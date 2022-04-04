@@ -1,0 +1,84 @@
+.no-underline{
+  text-decoration: underline;
+}
+  
+.center_elem{
+  text-align: center;
+  margin: auto;
+}
+
+.medium_window{
+  width: 30%;
+}
+
+.full_width{
+  width:100%;
+}
+
+.full_width td{
+  vertical-align: top;
+  width: 50%;
+}
+
+.border{
+  border: 1px solid white;
+  padding: 10px;
+}
+  
+.x-large-font{
+  font-size: x-large;
+}
+ 
+.xx-large-font{
+  font-size: xx-large;
+}
+  
+.app {
+  text-align: center;
+}
+  
+.app-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: center; */
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+  
+.nav-bar ul{
+  padding: 0px;
+   border-bottom: 1px solid;
+}
+  
+.nav-bar li{
+  padding: 8px;
+  display: inline;
+}
+  
+.nav-bar li a{
+  color:white;
+  text-decoration: none;
+}
+  
+.horizontalAlign{
+  float: left;
+  clear: none;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+  
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  monospace;
+}
+  
