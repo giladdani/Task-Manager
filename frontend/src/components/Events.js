@@ -14,7 +14,7 @@ export const Events = React.forwardRef((props, ref) => {
                     'access_token': document.cookie
                 },
                 method: 'GET'
-            })
+            });
 
             if (response.status !== 200) throw new Error('Error while fetching events');
             const data = await response.json();
