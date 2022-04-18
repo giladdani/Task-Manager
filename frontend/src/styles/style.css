@@ -1,7 +1,16 @@
+#daysDiv label{
+  padding-right:5px;
+  padding-left:15px;
+}
+
+.fc-col-header {    /* coloring the calendar's day headers (they were white so text was invisible) */
+  background-color:#282c34;
+}
+
 .no-underline{
   text-decoration: underline;
 }
-  
+
 .center_elem{
   text-align: center;
   margin: auto;
@@ -78,7 +87,5 @@ body {
 }
   
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-  monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-  
