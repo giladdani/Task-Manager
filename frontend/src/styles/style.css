@@ -1,23 +1,22 @@
+/* Padding between days checkboxes in Constraints page */
 #daysDiv label{
   padding-right:5px;
   padding-left:15px;
 }
 
-.fc-col-header {    /* coloring the calendar's day headers (they were white so text was invisible) */
-  background-color:#282c34;
+/* White coloring the text of the TimePicker in Constraints page */
+.MuiOutlinedInput-input{ 
+  color: white !important;;
 }
 
-.no-underline{
-  text-decoration: underline;
+/* coloring the calendar's day headers (they were white so text was invisible) in Scheduels page */
+.fc-col-header {
+  background-color:#282c34;
 }
 
 .center_elem{
   text-align: center;
   margin: auto;
-}
-
-.medium_window{
-  width: 30%;
 }
 
 .full_width{
@@ -33,50 +32,37 @@
   border: 1px solid white;
   padding: 10px;
 }
-  
-.x-large-font{
-  font-size: x-large;
+
+.horizontalAlign{
+  float: left;
+  clear: none;
 }
- 
-.xx-large-font{
-  font-size: xx-large;
+
+/* NavBar*/
+.nav-bar ul{
+  padding: 0px;
+  border-bottom: 1px solid;
+} 
+.nav-bar li{
+  padding: 8px;
+  display: inline;
+} 
+.nav-bar li a{
+  color:white;
+  text-decoration: none;
 }
-  
-.app {
-  text-align: center;
-}
-  
+/* NavBar end */
+
+/* General page layout */
 .app-header {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* justify-content: center; */
   font-size: calc(10px + 2vmin);
   color: white;
 }
-  
-.nav-bar ul{
-  padding: 0px;
-   border-bottom: 1px solid;
-}
-  
-.nav-bar li{
-  padding: 8px;
-  display: inline;
-}
-  
-.nav-bar li a{
-  color:white;
-  text-decoration: none;
-}
-  
-.horizontalAlign{
-  float: left;
-  clear: none;
-}
-
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -85,7 +71,4 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-  
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-}
+/* General page layout end */
