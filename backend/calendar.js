@@ -25,7 +25,7 @@ const create_tokens = async(req, res) => {
 
 const insert_event_to_calendar = async(req, res) => {
     try{
-        const access_token = req.headers['access_token'].slice(req.headers['access_token'].indexOf(';') + 2);
+        const access_token = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
         oauth2Client.setCredentials({access_token: access_token});
         const calendar = google.calendar('v3');
         const response = await calendar.events.insert({
@@ -49,7 +49,7 @@ const insert_event_to_calendar = async(req, res) => {
 }
 
 const get_calendar_events = async(req, res) => {
-    const access_token = req.headers['access_token'].slice(req.headers['access_token'].indexOf(';')+2);
+    const access_token = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
     oauth2Client.setCredentials({access_token: access_token});
     const calendar = google.calendar({version: 'v3', auth: oauth2Client});
     calendar.events.list({
