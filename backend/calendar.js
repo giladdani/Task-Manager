@@ -5,13 +5,11 @@ const User = require('./models/user');
 const GOOGLE_CLIENT_ID = '255089907729-d285lq0bfp7kjhpt99m03a3sktpsva5i.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = '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';
 const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 'http://localhost:3000');
-// const REFRESH_TOKEN = "1//09YIF0ysClN6xCgYIARAAGAkSNwF-L9Iroo7bm7L0ZUu4GagMAWRRTdsBWezinyLMjHex_ZrS9vYeNWrvzH_k8cvPM2xLAg4LRp0";  //FIXME:store in DB associated with user
 
 // Routing
 const router = express.Router();
 router.get('/events', (req, res) => { get_calendar_events(req, res) });
 router.post('/events', (req, res) => { insert_event_to_calendar(req, res) });
-
 router.post('/create-tokens', (req, res) => { create_tokens(req, res) });
 
 const create_tokens = async(req, res) => {
@@ -27,7 +25,7 @@ const create_tokens = async(req, res) => {
 
 const insert_event_to_calendar = async(req, res) => {
     try{
-        const access_token = req.headers['access_token'].slice(req.headers['access_token'].indexOf(';')+2);
+        const access_token = req.headers['access_token'].slice(req.headers['access_token'].indexOf(';') + 2);
         oauth2Client.setCredentials({access_token: access_token});
         const calendar = google.calendar('v3');
         const response = await calendar.events.insert({
@@ -57,7 +55,7 @@ const get_calendar_events = async(req, res) => {
     calendar.events.list({
         calendarId: 'primary',
         timeMin: (new Date()).toISOString(),
-        maxResults: 10,
+        maxResults: 100,
         singleEvents: true,
         orderBy: 'startTime',
     }, (err, result) => {
@@ -70,12 +68,6 @@ const get_calendar_events = async(req, res) => {
             } 
         }
     );
-
-    // // Load client secrets from a local file.
-    // const content = await fs.promises.readFile('credentials.json');
-    // // Authorize a client with credentials, then call the Google Calendar API.
-    // authHelper.authorize(JSON.parse(content), listEvents, res);
-
 }
 
 const listEvents = (auth, res) => {

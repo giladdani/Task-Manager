@@ -4,16 +4,16 @@ import { useRef } from 'react'
 
 export const Home = () => {
 
-    const myRef = useRef();
+    // const myRef = useRef();
 
-    const notify_login_successful = () => {
-        myRef.current.childMethod();
-    }
+    // const notify_login_successful = () => {
+    //     myRef.current.childMethod();
+    // }
     
     return(
         <div>
             {/* <GoogleLoginButton onLogin={notify_login_successful}></GoogleLoginButton> */}
-            <Events ref={myRef}></Events>
+            {/* <Events ref={myRef}></Events> */}
         </div>
     )
 }
