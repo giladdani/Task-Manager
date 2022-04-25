@@ -16,56 +16,53 @@ const createTokens = async(req, res) => {
     try{
         const {code} = req.body;
         const {tokens} = await oauth2Client.getToken(code);
-        res.send(tokens); //FIXME: DELETE THIS after creating a DB to store this in (don't ever return these tokens to the client)
+        res.send(tokens);
     }
     catch(error){
         console.log(error);
     }
 }
 
-const getAllEvents = async (req, res) => {
+const getAllEvents = async(req, res) => {
+    let allEvents = [];
     const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
     oauth2Client.setCredentials({access_token: accessToken});
-    const calendar = google.calendar({version: 'v3', auth: oauth2Client});
-    const allCalendars = await getAllCalendars(calendar);
-    console.log(allCalendars);
+    const calendarClient = google.calendar({version: 'v3', auth: oauth2Client});
+    const allCalendars = await getAllCalendars(calendarClient);
+    for (const calendar of allCalendars) {
+        const calendarEvents = await getEventsFromCalendar(calendarClient, calendar.id);
+        allEvents = allEvents.concat(calendarEvents);
+    }
+    res.send(allEvents);
 }
 
-const getAllCalendars = async (calendar) => {
-    // const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-    // oauth2Client.setCredentials({access_token: accessToken});
-    // const calendar = google.calendar({version: 'v3', auth: oauth2Client});
+const getAllCalendars = async(calendar) => {
     const response = await calendar.calendarList.list({});
     return response.data.items;
 }
 
-const getEventsFromCalendar = async(calendar) => {
-    // const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-    // oauth2Client.setCredentials({access_token: accessToken});
-    // const calendar = google.calendar({version: 'v3', auth: oauth2Client});
-    calendar.events.list({
-        calendarId: 'primary',
-        timeMin: (new Date()).toISOString(),
-        maxResults: 100,
-        singleEvents: true,
-        orderBy: 'startTime',
-    }, (err, result) => {
-            if(err){
-                return console.log('The API returned an error: ' + err);  
-            }
-            else{
-                const events = [];
-                res.send(JSON.stringify(result.data.items));
-            } 
-        }
-    );
+const getEventsFromCalendar = async(calendarClient, calendarId) => {
+    try{
+        const response = await calendarClient.events.list({
+            calendarId: calendarId,
+            timeMin: (new Date()).toISOString(),
+            maxResults: 100,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+        return response.data.items;
+    }
+    catch(err){
+        console.log(err);
+    }
+
 }
 
 const insertEventToCalendar = async(req, res) => {
     try{
-        const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-        oauth2Client.setCredentials({access_token: accessToken});
-        const calendar = google.calendar('v3');
+        // const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
+        // oauth2Client.setCredentials({access_token: accessToken});
+        // const calendar = google.calendar('v3');
         const response = await calendar.events.insert({
             auth: oauth2Client,
             calendarId: 'primary',
