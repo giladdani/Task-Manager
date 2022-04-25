@@ -1,5 +1,9 @@
 const express = require('express');
 const User = require('./models/user');
+const DayConstraintModel = require('./models/dayconstraint')
+const dataObjects = require('./dataobjects');
+const dataobjects = require('./dataobjects');
+
 
 // Routing
 const router = express.Router();
@@ -21,31 +25,24 @@ The algorithm receives:
         -   Later on: "Spread" \ Intensity (e.g ASAP or evenly spread until deadline)
 */
 
-const generateSchedule = async(req, res) => {
+const generateSchedule = async(req) => {
     try{
+        const name = req.body.name;
         const estimatedTimeTotal = getTimeEstimate(req);    // TODO: Int or float representing hours (decide how to model it)
         let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
-
         // TODO: check if estiamtedTime is a positive number?
 
-        const allConstraintsArr = getAllConstraints();        // An array of all the constraints
-        // Optional: Sort all constraints by days for ease of access during algorithm run
+        const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
 
-        /* Idea: ConstraintsMegaObject {
-            Sunday: []
-            Monday: []
-            ...
-            SpecificDates[]
-        }
-        */
+        const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
 
         let currentDate = getTaskStartDate(req);
         let endDate = getTaskEndDate(req);
         let allEventsGeneratedBySchedule = [];
 
         while ( (! isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
-            const allCurrDayConstraints = getAllCurrDateConstraints(currentDate);
-            const tempDayConstraint = createDayConstraintFromAllCurrDayConstraints(allCurrDayConstraints);
+            const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
+            const tempDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints);
 
             let foundAvailableHours = true;
             while (foundAvailableHours) {
@@ -90,7 +87,13 @@ const advanceDate = (currentDate, daysToAdd) => {
  * @param {*} tempDayConstraint 
  */
 const findAvailableTimeWindowByConstraints = (dayConstraint) => {
+    const sessionSizeMinutes = 60; // TODO: this is just a placeholder, add session size to request
 
+    // TODO: implement!
+    /*
+    -    Start with DayConstraint object where all timeframes are POSSIBLE TIME FRAMES
+    -   Go over the dayConstraint parameter and for each forbiddenTimeFrame in it, "chop" the POSSIBLE TIME FRAMES in the TempPossibleDayConstraint
+    */
 }
 
 /**
@@ -100,20 +103,18 @@ const findAvailableTimeWindowByConstraints = (dayConstraint) => {
  * which states which hours are possible for work
  * @param {*} allCurrDayConstraints 
  */
-const createDayConstraintFromAllCurrDayConstraints = (allCurrDayConstraints) => {
-    // TODO: implement
+const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints) => {
+    const dayConstraint = new dataobjects.DayConstraint(null);
 
-    /*
+    allCurrDayConstraints.forEach((dayConstraint) => {
+        dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
+            dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
+        })
+    })
 
-    let TempDayConstraint = new DayConstraint Object
+    // TODO: optimization - merge hours(e.g. 11:00-12:30 and 11:30-13:00 become a single frame of 11:00-13:00)
 
-    forEach item in the array:
-        Check the forbidden hours
-        Add forbidden hours to the TempDayConstraint
-
-
-    return TempDayConstraint
-    */
+    return dayConstraint;
 }
 
 /**
@@ -124,49 +125,109 @@ const createDayConstraintFromAllCurrDayConstraints = (allCurrDayConstraints) => 
  * This function also needs to receive an object of all constraints // TODO: add parameter
  * @param {*} currentDate 
  */
-const getAllCurrDateConstraints = (currentDate) => {
-    // TODO: implement
-    // Go over all constraints
-    // Find those relevant in the Day
-    // Find those relevant in the specific date
-    // Add them to an array
-    // Send back
-}
+const getAllCurrDateConstraints = (currentDate, allConstraintsSpecialObj) => {
+    const dayNum = currentDate.getDay();
 
+    let allDayConstraints = null;
 
-const getTaskStartDate = (request) => {
-    // TODO: fetch the start day of the task
-    // FIXME: quick and dirty
+    if (dayNum == 0) {
+        allDayConstraints = allConstraintsSpecialObj.Sunday;
+    }
 
-    return new Date();
-}
-
-const getTaskEndDate = (request) => {
-    // TODO: fetch the end day of the task
+    if (dayNum == 1) {
+        allDayConstraints = allConstraintsSpecialObj.Monday;
+    }
     
-    // FIXME: quick and dirty
-    let daysToAdd = 10;
-    let result = new Date();
-    result.setDate(result.getDate() + daysToAdd);
-    return result;
+    if (dayNum == 2) {
+        allDayConstraints = allConstraintsSpecialObj.Tuesday;
+    }
+
+    if (dayNum == 3) {
+        allDayConstraints = allConstraintsSpecialObj.Wednesday;
+    }
+
+    if (dayNum == 4) {
+        allDayConstraints = allConstraintsSpecialObj.Thursday;
+    }
+
+    if (dayNum == 5) {
+        allDayConstraints = allConstraintsSpecialObj.Friday;
+    }
+
+    if (dayNum == 6) {
+        allDayConstraints = allConstraintsSpecialObj.Saturday;
+    }
+
+    return allDayConstraints;
+}
+
+const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
+    const allConstraintsObj = {
+        Sunday: [],
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: [],
+        Saturday: [],
+    }
+
+    allConstraintsArr.forEach((dayConstraint) => {
+        if (dayConstraint.day == "Sunday") {
+            allConstraintsObj.Sunday.push(dayConstraint);
+        } else if (dayConstraint.day == "Monday") {
+            allConstraintsObj.Monday.push(dayConstraint);
+        } else if (dayConstraint.day == "Tuesday") {
+            allConstraintsObj.Tuesday.push(dayConstraint);
+        } else if (dayConstraint.day == "Wednesday") {
+            allConstraintsObj.Wednesday.push(dayConstraint);
+        } else if (dayConstraint.day == "Thursday") {
+            allConstraintsObj.Thursday.push(dayConstraint);
+        } else if (dayConstraint.day == "Friday") {
+            allConstraintsObj.Friday.push(dayConstraint);
+        } else if (dayConstraint.day == "Saturday") {
+            allConstraintsObj.Saturday.push(dayConstraint);
+        }
+    })
+
+    return allConstraintsObj;
+}
+
+
+const getTaskStartDate = (req) => {
+    // TODO: checks
+    return  req.body.startDate;
+}
+
+const getTaskEndDate = (req) => {
+    // TODO: check
+    return req.body.endDate;
 }
 
 const isCurrDatePastEndDate = (currentDate, endDate) => {
-    // TODO: implement!
+    return new Date(currentDate) > new Date(endDate);
+}
 
-    // FIXME: quick and dirty
-    return false;
+
+function compareTime(time1, time2) {
+    return new Date(time1) > new Date(time2); // true if time1 is later
 }
 
 const getTimeEstimate = (request) => {
-    // TODO: fetch the time estimate from the request
-    // FIXME: Quick and Dirty 
-    return 15;
+    const estimatedTime = request.body.estimatedTime;
+
+    return estimatedTime;
 }
 
-const getAllConstraints = () => {
+const getAllConstraints = async () => {
     // TODO: get all constraints
-    // Need to address Database
     // Maybe this should be a more general function, not just for the algorithm?
     // The front-end for example will want to display all constraints on the constraints-page too so the server should offer this in general
+    const allConstraints = await DayConstraintModel.find({}); // TODO: find based on user
+
+    return allConstraints;
+}
+
+module.exports = {
+    generateSchedule: generateSchedule,
 }
