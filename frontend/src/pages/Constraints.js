@@ -18,69 +18,101 @@ export const Constraints = () => {
     const [constraintEndTime, setConstraintEndTime] = React.useState(new Date());
 
     const days = <div id="daysDiv">
-                    <label>Sunday</label><input type="checkbox" onChange={(newValue) => {setSundayValue(newValue.target.checked);}}></input>
-                    <label>Monday</label><input type="checkbox" onChange={(newValue) => {setMondayValue(newValue.target.checked);}}></input>
-                    <label>Tuesday</label><input type="checkbox" onChange={(newValue) => {setTuesdayValue(newValue.target.checked);}}></input>
-                    <label>Wednesday</label><input type="checkbox" onChange={(newValue) => {setWednesdayValue(newValue.target.checked);}}></input>
-                    <label>Thursday</label><input type="checkbox" onChange={(newValue) => {setThursdayValue(newValue.target.checked);}}></input>
-                    <label>Friday</label><input type="checkbox" onChange={(newValue) => {setFridayValue(newValue.target.checked);}}></input>
-                    <label>Saturday</label><input type="checkbox" onChange={(newValue) => {setSaturdayValue(newValue.target.checked);}}></input>
-                </div>
+        <label>Sunday</label><input type="checkbox" onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
+        <label>Monday</label><input type="checkbox" onChange={(newValue) => { setMondayValue(newValue.target.checked); }}></input>
+        <label>Tuesday</label><input type="checkbox" onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }}></input>
+        <label>Wednesday</label><input type="checkbox" onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }}></input>
+        <label>Thursday</label><input type="checkbox" onChange={(newValue) => { setThursdayValue(newValue.target.checked); }}></input>
+        <label>Friday</label><input type="checkbox" onChange={(newValue) => { setFridayValue(newValue.target.checked); }}></input>
+        <label>Saturday</label><input type="checkbox" onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input>
+    </div>
 
-    const handleCreateClick = () => {
+    const handleCreateClick = async () => {
         // Send all values to server (constraintStartTime, constraintEndTime, [sundayValue, mondayValue, ...])
+        try {
+            // TODO: send a request for each day chosen, right now we're sending only for a specific day
+
+            const startHour = constraintStartTime.getHours();
+            const startMinute = constraintStartTime.getMinutes();
+            const endHour = constraintEndTime.getHours();
+            const endMinute = constraintEndTime.getMinutes();
+
+            const body = {
+                day: "Sunday", // TODO: change it from constant to what user decided
+                startHour: startHour,
+                startMinute: startMinute,
+                endHour: endHour,
+                endMinute: endMinute,
+            };
+
+            const response = await fetch('http://localhost:3001/api/constraints', {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'POST',
+                body: JSON.stringify(body),
+            });
+
+            if (response.status !== 200) throw new Error('Error while adding constraint')
+            console.log('Constraint added');
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
-    return(
-            <div>
-                <h1>Create constraint</h1>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td><label>Day:</label></td>
-                            <td>
-                                {days}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><label>Start time:</label></td>
-                            <td>
-                                <LocalizationProvider dateAdapter={AdapterDateFns} className="whiteFont">
-                                    <TimePicker
+    return (
+        <div>
+            <h1>Create constraint</h1>
+            <table>
+                <tbody>
+                    <tr>
+                        <td><label>Day:</label></td>
+                        <td>
+                            {days}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Start time:</label></td>
+                        <td>
+                            <LocalizationProvider dateAdapter={AdapterDateFns} className="whiteFont">
+                                <TimePicker
                                     value={constraintStartTime}
-                                    onChange={(newValue) => {setConstraintStartTime(newValue)}}
-                                    renderInput={(params) => <TextField {...params}  className="whiteFont"/>}
-                                    />
-                                </LocalizationProvider>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><label>End time:</label></td>
-                            <td className="whiteFont">
-                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                    <TimePicker
+                                    onChange={(newValue) => { setConstraintStartTime(newValue) }}
+                                    renderInput={(params) => <TextField {...params} className="whiteFont" />}
+                                />
+                            </LocalizationProvider>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>End time:</label></td>
+                        <td className="whiteFont">
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                <TimePicker
                                     value={constraintEndTime}
-                                    onChange={(newValue) => {setConstraintEndTime(newValue)}}
+                                    onChange={(newValue) => { setConstraintEndTime(newValue) }}
                                     renderInput={(params) => <TextField {...params} />}
-                                    />
-                                </LocalizationProvider>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><label>Repeat:</label></td>
-                            <td>
-                                <select>
-                                    <option>Daily</option>
-                                    <option>Weekly</option>
-                                    <option>Monthly</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><button onClick={handleCreateClick}>Create</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                />
+                            </LocalizationProvider>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Repeat:</label></td>
+                        <td>
+                            <select>
+                                <option>Daily</option>
+                                <option>Weekly</option>
+                                <option>Monthly</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><button onClick={handleCreateClick}>Create</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     )
 }
