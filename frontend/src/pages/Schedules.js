@@ -46,8 +46,8 @@ export class Schedules extends React.Component {
                 // id ?,
                 title: event.summary,
                 start: event.start.dateTime,
-                end: event.end.dateTime,
-                allDay: false
+                end: event.end.dateTime
+                // allDay: false
             })
         });
     }

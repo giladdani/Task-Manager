@@ -7,6 +7,8 @@ require('dotenv').config();
 // Local files
 const calendar = require('./calendar');
 const users = require('./users');
+const constraints = require('./constraints');
+
 
 // Constants
 const DbUri = "mongodb+srv://taskmanager:workshop2022@task-manager.sh855.mongodb.net/TaskManager?retryWrites=true&w=majority";
@@ -24,6 +26,8 @@ const router = express.Router();
 app.use('/api', router);
 router.use('/calendar', calendar);
 router.use('/users', users);
+router.use('/constraints', constraints);
+
 
 mongoose.connect(DbUri).then(result => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
