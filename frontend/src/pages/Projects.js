@@ -7,15 +7,17 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 export const Projects = () => {
 
     // Hooks
-    const [name, setName] = React.useState('');
+    const [projectName, setProjectName] = React.useState('');
     const [estimatedTime, setEstimatedTime] = React.useState(0);
+    const [sessionLengthMinutes, setSessionLengthMinutes] = React.useState(0);
     const [startDate, setStartDate] = React.useState(new Date());
     const [endDate, setEndDate] = React.useState(new Date());
 
     const handleGenerateClick = async () => {
         try {
             const body = {
-                name: name,
+                projectName: projectName,
+                sessionLengthMinutes: sessionLengthMinutes,
                 estimatedTime: estimatedTime,
                 startDate: startDate,
                 endDate: endDate,
@@ -45,15 +47,21 @@ export const Projects = () => {
             <table>
                 <tbody>
                     <tr>
-                        <td><label>Name:</label></td>
+                        <td><label>Project Name:</label></td>
                         <td>
-                            <input type="text" onChange={(newValue) => {setName(newValue)}}></input>
+                            <input type="text" onChange={(newValue) => {setProjectName(newValue)}}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Estimated Time:</label></td>
                         <td>
                             <input type="number" onChange={(newValue) => {setEstimatedTime(newValue)}}></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Session Length (Minutes):</label></td>
+                        <td>
+                            <input type="number" onChange={(newValue) => {setSessionLengthMinutes(newValue)}}></input>
                         </td>
                     </tr>
                     <tr>
