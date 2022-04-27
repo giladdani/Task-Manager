@@ -8,6 +8,8 @@ require('dotenv').config();
 const calendar = require('./calendar');
 const users = require('./users');
 const constraints = require('./constraints');
+const projects = require('./projects');
+
 
 
 // Constants
@@ -27,6 +29,7 @@ app.use('/api', router);
 router.use('/calendar', calendar);
 router.use('/users', users);
 router.use('/constraints', constraints);
+router.use('/projects', projects);
 
 
 mongoose.connect(DbUri).then(result => {

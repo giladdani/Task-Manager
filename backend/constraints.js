@@ -19,7 +19,7 @@ router.post('/', (req, res) => { addConstraint(req, res) });
 TODO:
     -   Add user ID
 */
-const addConstraint = async(req, res) => {
+const addConstraint = async (req, res) => {
     /* Parse from the request the following parameters:
         -   Day
         -   Start Hour
@@ -32,39 +32,46 @@ const addConstraint = async(req, res) => {
     Save in database
     */
 
-    try {
-        const day = getDayFromRequest(req);
-        const forbiddenHourStart = getStartHourFromRequest(req);
-        const forbiddenMinuteStart = getStartMinuteFromRequest(req);
-        const forbiddenHourEnd = getEndHourFromRequest(req);
-        const forbiddenMinuteEnd = getEndMinuteFromRequest(req);
-        // const userAccessToken = getUserAccessTokenFromRequest(req); // TODO:
-        // const userID = getUserIDFromAccessToken(userAccessToken); // TODO:
+    // TODO: loop for each day in the request
+    const days = req.body.days;
+    let errorMsg = null;
+    for(const day of days) {
+        try {
+            // const day = getDayFromRequest(req); // TODO: delete? old
+            const forbiddenHourStart = getStartHourFromRequest(req);
+            const forbiddenMinuteStart = getStartMinuteFromRequest(req);
+            const forbiddenHourEnd = getEndHourFromRequest(req);
+            const forbiddenMinuteEnd = getEndMinuteFromRequest(req);
+            // const userAccessToken = getUserAccessTokenFromRequest(req); // TODO:
+            // const userID = getUserIDFromAccessToken(userAccessToken); // TODO:
 
+            // Create Constraint object
+            const dayConstraint = new dataObjects.DayConstraint(day);
+            const forbiddenStartTime = new dataObjects.Time(forbiddenHourStart, forbiddenMinuteStart);
+            const forbiddenEndTime = new dataObjects.Time(forbiddenHourEnd, forbiddenMinuteEnd)
+            const forbiddenTimeWindow = new dataObjects.TimeWindow(forbiddenStartTime, forbiddenEndTime);
 
-        // Create Constraint object
-        const dayConstraint = new dataObjects.DayConstraint(day);
-        const forbiddenStartTime = new dataObjects.Time(forbiddenHourStart, forbiddenMinuteStart);
-        const forbiddenEndTime = new dataObjects.Time(forbiddenHourEnd, forbiddenMinuteEnd)
-        const forbiddenTimeWindow = new dataObjects.TimeWindow(forbiddenStartTime, forbiddenEndTime);
+            dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
 
-        dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
+            // TODO: push to Database
+            // const docs = await DayConstraintModel.create(dayConstraint, (a, b) => {});
+            const docs = await DayConstraintModel.create(dayConstraint, (a, b) => { });
 
-        // TODO: push to Database
-        // const docs = await DayConstraintModel.create(dayConstraint, (a, b) => {});
-        const docs = await DayConstraintModel.DayConstraint.create(dayConstraint, (a, b) => {});
+        } catch (err) {
+            errorMsg = errorMsg + " Failed to add " + day + ".";
+        }
+    }
 
-        
-
-
-        // Send OK
-
+    if (errorMsg != null) {
+        console.log("Added day constraints");
         res.status(StatusCodes.OK).send('Constraint added');
-	} catch (err) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error');
-	}
+    } else {
+        console.log("ERROR: Failed to add day constraints");
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
+    }
 }
 
+// TODO: delete? old version where day was a single value and not an array of days
 const getDayFromRequest = (req) => {
     if (req === null) {
         return null;

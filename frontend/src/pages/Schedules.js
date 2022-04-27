@@ -10,18 +10,20 @@ export class Schedules extends React.Component {
         this.state = {
             currentEvents: []
         }
+
+        // this.fetchEventsRegular = this.fetchEventsRegular.bind(this);
     }
 
     calendarRef = React.createRef();    // we need this to be able to add events
 
-    onGoogleLogin = async () => {
-        const events = await this.fetchEvents();
-        this.addEventsToSchedule(events);
+    async componentDidMount() {
+        let events = await this.fetchEventsRegular();
+        this.addEventsToScheduleRegular(events);
     }
 
-    fetchEvents = async() => {
+    fetchEventsRegular = async() => {
         try{
-            const response = await fetch('http://localhost:3001/api/calendar/events', {
+            const response = await fetch('http://localhost:3001/api/calendar/events/regular', {
                 headers: {
                 	'Accept': 'application/json',
                 	'Content-Type': 'application/json',
@@ -39,15 +41,53 @@ export class Schedules extends React.Component {
         }
     }
 
-    addEventsToSchedule = (events) => {
+    addEventsToScheduleRegular = (events) => {
+        let calendarApi = this.calendarRef.current.getApi();
+        events.forEach(event => {
+            calendarApi.addEvent({
+                // id ?,
+                title: event.eventName,
+                start: event.startDate,
+                end: event.endDate,
+                allDay: false
+            })
+        });
+    }
+
+    onGoogleLogin = async () => {
+        const events = await this.fetchEventsGoogle();
+        this.addEventsToScheduleGoogle(events);
+    }
+
+    fetchEventsGoogle = async() => {
+        try{
+            const response = await fetch('http://localhost:3001/api/calendar/events/google', {
+                headers: {
+                	'Accept': 'application/json',
+                	'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'GET'
+            });
+
+            if (response.status !== 200) throw new Error('Error while fetching events');
+            const data = await response.json();
+            return data;
+        }
+        catch(err){
+            console.error(err);
+        }
+    }
+
+    addEventsToScheduleGoogle = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
         events.forEach(event => {
             calendarApi.addEvent({
                 // id ?,
                 title: event.summary,
                 start: event.start.dateTime,
-                end: event.end.dateTime
-                // allDay: false
+                end: event.end.dateTime,
+                allDay: false,
             })
         });
     }
@@ -68,6 +108,12 @@ export class Schedules extends React.Component {
     }
 
     handleEventClick = (clickInfo) => {
+        let event = clickInfo.event;
+        let msg = `You have chosen the event ${event.title}
+        \nStart date: ${event.start}
+        \nEnd date: ${event.end}
+        \nLater on we will allow the user to edit the event here`;
+        alert(msg);
         // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
         //   clickInfo.event.remove()
         // }
@@ -100,6 +146,7 @@ export class Schedules extends React.Component {
                     allDaySlot={false}
                     height="auto"
                     selectable={true}
+                    editable={true}
                     // selectMirror={true}
                     // dayMaxEvents={true}
                     eventContent={this.renderEventContent}

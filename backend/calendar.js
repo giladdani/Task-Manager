@@ -1,6 +1,9 @@
 const express = require('express');
 const {google} = require('googleapis');
 const User = require('./models/user');
+const EventModel = require('./models/event')
+const StatusCodes = require('http-status-codes').StatusCodes;
+
 
 const GOOGLE_CLIENT_ID = '255089907729-d285lq0bfp7kjhpt99m03a3sktpsva5i.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = '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';
@@ -8,7 +11,9 @@ const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECR
 
 // Routing
 const router = express.Router();
-router.get('/events', (req, res) => { getAllEvents(req, res) });
+router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
+router.get('/events/regular', (req, res) => { getAllEventsRegular(req, res) });
+
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.post('/create-tokens', (req, res) => { createTokens(req, res) });
 
@@ -23,20 +28,29 @@ const createTokens = async(req, res) => {
     }
 }
 
-const getAllEvents = async(req, res) => {
-    let allEvents = [];
-    const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-    oauth2Client.setCredentials({access_token: accessToken});
-    const calendarClient = google.calendar({version: 'v3', auth: oauth2Client});
-    const allCalendars = await getAllCalendars(calendarClient);
-    for (const calendar of allCalendars) {
-        const calendarEvents = await getEventsFromCalendar(calendarClient, calendar.id);
-        allEvents = allEvents.concat(calendarEvents);
-    }
-    res.send(allEvents);
+const getAllEventsRegular = async(req, res) => {
+    const allEvents = await EventModel.find({}); // TODO: find based on user
+
+    res.status(StatusCodes.OK).send(allEvents);
 }
 
-const getAllCalendars = async(calendar) => {
+const getAllEventsGoogle = async(req, res) => {
+    let allEvents = [];
+
+    // Google
+    const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
+    oauth2Client.setCredentials({access_token: accessToken});
+    const googleCalendarClient = google.calendar({version: 'v3', auth: oauth2Client});
+    const allGoogleCalendars = await getAllGoogleCalendars(googleCalendarClient);
+    for (const calendar of allGoogleCalendars) {
+        const calendarEvents = await getEventsFromCalendar(googleCalendarClient, calendar.id);
+        allEvents = allEvents.concat(calendarEvents);
+    }
+
+    res.status(StatusCodes.OK).send(allEvents);
+}
+
+const getAllGoogleCalendars = async(calendar) => {
     const response = await calendar.calendarList.list({});
     return response.data.items;
 }
