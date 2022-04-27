@@ -57,15 +57,16 @@ const addConstraint = async (req, res) => {
             // const docs = await DayConstraintModel.create(dayConstraint, (a, b) => {});
             const docs = await DayConstraintModel.create(dayConstraint, (a, b) => { });
 
-            // Send OK
         } catch (err) {
             errorMsg = errorMsg + " Failed to add " + day + ".";
         }
     }
 
     if (errorMsg != null) {
+        console.log("Added day constraints");
         res.status(StatusCodes.OK).send('Constraint added');
     } else {
+        console.log("ERROR: Failed to add day constraints");
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
     }
 }

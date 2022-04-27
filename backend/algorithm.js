@@ -37,6 +37,7 @@ const generateSchedule = async (req) => {
         let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
         // TODO: check if estiamtedTime is a positive number?
 
+        const spacingBetweenEventsMinutes = getSpacingBetweenEvents(req);
         const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
         const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
         let currentDate = getTaskStartDate(req);
@@ -63,7 +64,7 @@ const generateSchedule = async (req) => {
                 let event = createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
                 allEventsGeneratedBySchedule.push(event);
 
-                shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows); // Indicates that this time frame has been taken
+                shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
                 estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
             }
 
@@ -75,6 +76,7 @@ const generateSchedule = async (req) => {
 
     // addEventsToDB(allEventsGeneratedBySchedule); // TODO:
 
+    console.log("Finished generating schedule");
     return allEventsGeneratedBySchedule;
 }
 
@@ -92,14 +94,15 @@ const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, e
     return sessionLengthRes;
 }
 
-const shrinkChosenWindowFromStartBySessionSize = (sessionLengthMinutes, availableTimeWindowIndex, dayConstraintAllPossibleWindows) => {
+const shrinkChosenWindowFromStartBySessionSize = (sessionLengthMinutes, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes) => {
     const chosenWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
 
     if (chosenWindow == null) {
         return;
     }
 
-    const addedMinutes = chosenWindow.startTime.minute + sessionLengthMinutes;
+    let addedMinutes = chosenWindow.startTime.minute + sessionLengthMinutes + spacingBetweenEventsMinutes; 
+    addedMinutes = Math.min(addedMinutes, getMinutesInWindow(chosenWindow));
     const newStartTimeHour = chosenWindow.startTime.hour + Math.floor((addedMinutes / 60));
     const newStartTimeMinute = addedMinutes % 60;
     const newSmallerStartTime = new dataObjects.Time(newStartTimeHour, newStartTimeMinute);
@@ -115,7 +118,7 @@ const isNoOverlap = (timeWindow1, timeWindow2) => {
     let earlierTime = null;
     let laterTime = null;
 
-    if (isEarlierTime(timeWindow1, timeWindow2)) {
+    if (isEarlierStartTimeTime(timeWindow1, timeWindow2)) {
         earlierTime = timeWindow1;
         laterTime = timeWindow2;
     } else {
@@ -128,7 +131,7 @@ const isNoOverlap = (timeWindow1, timeWindow2) => {
     }
 
     if (earlierTime.endTime.hour == laterTime.startTime.hour) {
-        if (earlierTime.endTime.minute <= laterTime.endTime.minute) {
+        if (earlierTime.endTime.minute <= laterTime.startTime.minute) {
             return true;
         }
     }
@@ -175,7 +178,7 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
                     timeWindow1 = cloneTimeWindow(possibleTimeWindow);
                 }
             } else if (isOverlap(possibleTimeWindow, forbiddenTimeWindow)) {
-                if (isEarlierTime(forbiddenTimeWindow, possibleTimeWindow)) {
+                if (isEarlierStartTimeTime(forbiddenTimeWindow, possibleTimeWindow)) {
                     possibleTimeWindow.startTime = cloneTime(forbiddenTimeWindow.endTime); // "Push" possibleStart to forbiddenEnd
                     
                     if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
@@ -188,6 +191,8 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
                         timeWindow1 = cloneTimeWindow(possibleTimeWindow);
                     }
                 }
+            } else { // No contact at all between them
+                timeWindow1 = cloneTimeWindow(possibleTimeWindow);
             }
 
             if (timeWindow1 != null) {
@@ -267,7 +272,7 @@ const isWindow1EndOverlapIntoWindow2Start = (timeWindow1, timeWindow2) => {
     // time2 08:00-13:00
     let isOverlap = false;
 
-    if (isLaterTime(timeWindow1.endTime, timeWindow2.startTime) && isEarlierTime(timeWindow1.startTime, timeWindow2.endTime)) {
+    if (isLaterTime(timeWindow1.endTime, timeWindow2.startTime) && isEarlierStartTimeTime(timeWindow1.startTime, timeWindow2.endTime)) {
         isOverlap = true;
     }
 
@@ -292,7 +297,7 @@ const isWindow1StartOverlapIntoWindow2End = (timeWindow1, timeWindow2) => {
 
     let isOverlap = false;
 
-    if (isEarlierTime(timeWindow1.startTime, timeWindow2.endTime) && (isLaterTime(timeWindow1.endTime, timeWindow2.startTime))) {
+    if (isEarlierStartTimeTime(timeWindow1.startTime, timeWindow2.endTime) && (isLaterTime(timeWindow1.endTime, timeWindow2.startTime))) {
         isOverlap = true;
     }
 
@@ -300,15 +305,15 @@ const isWindow1StartOverlapIntoWindow2End = (timeWindow1, timeWindow2) => {
 }
 
 /**
- * Returns TRUE if time1 is earlier than time2
+ * Returns TRUE if time1 starts earlier than time2
  * @param {*} timeWindow1 
  * @param {*} timeWindow2 
  * @returns 
  */
-const isEarlierTime = (time1, time2) => {
+const isEarlierStartTimeTime = (time1, time2) => {
     let isEarlier = false;
 
-    isEarlier = (time1.hour < time2.hour) || (time1.hour == time2.hour && time1.minute < time2.minute);
+    isEarlier = (time1.startTime.hour < time2.startTime.hour) || (time1.startTime.hour == time2.startTime.hour && time1.startTime.minute < time2.startTime.minute);
 
     return isEarlier;
 }
@@ -670,6 +675,14 @@ const getSessionLength = (request) => {
     sessionLength = parseInt(sessionLength);
 
     return sessionLength;
+}
+
+const getSpacingBetweenEvents = (request) => {
+    let spacingMin = request.body.spacingLengthMinutes;
+
+    spacingMin = parseInt(spacingMin);
+
+    return spacingMin;
 }
 
 const getTimeEstimate = (request) => {

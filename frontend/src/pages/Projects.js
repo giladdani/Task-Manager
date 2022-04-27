@@ -10,6 +10,7 @@ export const Projects = () => {
     const [projectName, setProjectName] = React.useState('');
     const [estimatedTime, setEstimatedTime] = React.useState(0);
     const [sessionLengthMinutes, setSessionLengthMinutes] = React.useState(0);
+    const [spacingBetweenSessions, setSpacingBetweenSessions] = React.useState(0);
     const [startDate, setStartDate] = React.useState(new Date());
     const [endDate, setEndDate] = React.useState(new Date());
 
@@ -18,6 +19,7 @@ export const Projects = () => {
             const body = {
                 projectName: projectName,
                 sessionLengthMinutes: sessionLengthMinutes,
+                spacingLengthMinutes: spacingBetweenSessions,
                 estimatedTime: estimatedTime,
                 startDate: startDate,
                 endDate: endDate,
@@ -62,6 +64,12 @@ export const Projects = () => {
                         <td><label>Session Length (Minutes):</label></td>
                         <td>
                             <input type="number" onChange={(newValue) => {setSessionLengthMinutes(newValue.target.value)}}></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Break Between Sessions (Minutes):</label></td>
+                        <td>
+                            <input type="number" onChange={(newValue) => {setSpacingBetweenSessions(newValue.target.value)}}></input>
                         </td>
                     </tr>
                     <tr>
