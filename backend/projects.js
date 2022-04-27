@@ -24,3 +24,5 @@ const createProject = async (req, res) => {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error');
         }
 }
+
+module.exports = router;

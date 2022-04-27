@@ -49,23 +49,23 @@ export const Projects = () => {
                     <tr>
                         <td><label>Project Name:</label></td>
                         <td>
-                            <input type="text" onChange={(newValue) => {setProjectName(newValue)}}></input>
+                            <input type="text" onChange={(newValue) => {setProjectName(newValue.target.value)}}></input>
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Estimated Time:</label></td>
+                        <td><label>Estimated Time (Hours):</label></td>
                         <td>
-                            <input type="number" onChange={(newValue) => {setEstimatedTime(newValue)}}></input>
+                            <input type="number" onChange={(newValue) => {setEstimatedTime(newValue.target.value)}}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Session Length (Minutes):</label></td>
                         <td>
-                            <input type="number" onChange={(newValue) => {setSessionLengthMinutes(newValue)}}></input>
+                            <input type="number" onChange={(newValue) => {setSessionLengthMinutes(newValue.target.value)}}></input>
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Start date:</label></td>
+                        <td><label>Start Date:</label></td>
                         <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
@@ -77,7 +77,7 @@ export const Projects = () => {
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Start date:</label></td>
+                        <td><label>End Date:</label></td>
                         <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker

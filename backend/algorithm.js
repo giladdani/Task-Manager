@@ -29,42 +29,48 @@ The algorithm receives:
 */
 
 const generateSchedule = async (req) => {
-    const projectName = req.body.projectName;
-    const estimatedTimeTotal = getTimeEstimate(req);    // TODO: Int or float representing hours (decide how to model it)
-    let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
-    // TODO: check if estiamtedTime is a positive number?
-
-    const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
-
-    const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
-
-    let currentDate = getTaskStartDate(req);
-    let endDate = getTaskEndDate(req);
     let allEventsGeneratedBySchedule = [];
 
-    while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
-        const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
-        const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints);
-        const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
+    try {
+        const projectName = req.body.projectName;
+        const estimatedTimeTotal = getTimeEstimate(req);    // TODO: Int or float representing hours (decide how to model it)
+        let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
+        // TODO: check if estiamtedTime is a positive number?
 
-        let foundAvailableWindow = true;
-        const sessionLengthMinutes = req.body.sessionLengthMinutes;
-        while (foundAvailableWindow) {
-            let availableTimeWindowIndex = findAvailableTimeWindowIndex(sessionLengthMinutes, dayConstraintAllPossibleWindows) // find available hours matching constraints, such as min\max session length 
-            if (availableTimeWindowIndex == -1) { // No time window found
-                foundAvailableWindow = false;
-                continue;
+        const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
+        const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
+        let currentDate = getTaskStartDate(req);
+        let endDate = getTaskEndDate(req);
+
+        while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
+            const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
+            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints);
+            const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
+
+            let foundAvailableWindow = true;
+            const sessionLengthMinutes = getSessionLength(req);
+
+            while (foundAvailableWindow && estimatedTimeLeft > 0) {
+                const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
+
+                let availableTimeWindowIndex = findAvailableTimeWindowIndex(sessionLengthToFind, dayConstraintAllPossibleWindows) // find available hours matching constraints, such as min\max session length 
+                if (availableTimeWindowIndex == -1) { // No time window found
+                    foundAvailableWindow = false;
+                    continue;
+                }
+
+                const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
+                let event = createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
+                allEventsGeneratedBySchedule.push(event);
+
+                shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows); // Indicates that this time frame has been taken
+                estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
             }
 
-            const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
-            let event = createEventFromTimeWindow(req, sessionLengthMinutes, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
-            allEventsGeneratedBySchedule.push(event);
-
-            breakChosenWindowBySessionSize(sessionLengthMinutes, availableTimeWindowIndex, dayConstraintAllPossibleWindows); // Indicates that this time frame has been taken
-            estimatedTimeLeft = updateTimeEstimate(estimatedTime, possibleTimeWindow);
+            currentDate = advanceDateByDays(currentDate, 1, true);
         }
-
-        currentDate = advanceDateByDays(currentDate, 1, true);
+    } catch (err) {
+        console.log("error in schedule generating algorithm:" + err);
     }
 
     // addEventsToDB(allEventsGeneratedBySchedule); // TODO:
@@ -72,26 +78,36 @@ const generateSchedule = async (req) => {
     return allEventsGeneratedBySchedule;
 }
 
-const breakChosenWindowBySessionSize = (sessionLengthMinutes, availableTimeWindowIndex, dayConstraintAllPossibleWindows) => {
+const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, estimatedTimeLeft) => {
+    let sessionLengthRes;
+
+    let sessionLengthPrefInHours = sessionLengthMinutesPreference / 60;
+
+    if (estimatedTimeLeft > sessionLengthPrefInHours) {
+        sessionLengthRes = sessionLengthMinutesPreference;
+    } else {
+        sessionLengthRes = Math.ceil(estimatedTimeLeft * 60);
+    }
+
+    return sessionLengthRes;
+}
+
+const shrinkChosenWindowFromStartBySessionSize = (sessionLengthMinutes, availableTimeWindowIndex, dayConstraintAllPossibleWindows) => {
     const chosenWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
 
     if (chosenWindow == null) {
         return;
     }
 
-    dayConstraintAllPossibleWindows.possibleTimeWindows.splice(availableTimeWindowIndex, 1);
-
     const addedMinutes = chosenWindow.startTime.minute + sessionLengthMinutes;
-    const newStartTimeHour = chosenWindow.startTime.hour + (addedMinutes / 60);
+    const newStartTimeHour = chosenWindow.startTime.hour + Math.floor((addedMinutes / 60));
     const newStartTimeMinute = addedMinutes % 60;
     const newSmallerStartTime = new dataObjects.Time(newStartTimeHour, newStartTimeMinute);
-    const newSmallerEndTime = new dataObjects.Time(chosenWindow.endTime.hour, chosenWindow.endTime.minute);
 
-    const newSmallerTimeWindow = new dataObjects.TimeWindow(newSmallerStartTime, newSmallerEndTime);
+    chosenWindow.startTime = newSmallerStartTime;
 
-    if (!isEmptyTimeWindow(newSmallerTimeWindow)) {
-        dayConstraintAllPossibleWindows.possibleTimeWindows.push(newSmallerTimeWindow);
-        // optional TODO: sort time windows
+    if (isEmptyTimeWindow(chosenWindow)) {
+        dayConstraintAllPossibleWindows.possibleTimeWindows.splice(availableTimeWindowIndex, 1);
     }
 }
 
@@ -121,7 +137,7 @@ const isNoOverlap = (timeWindow1, timeWindow2) => {
 }
 
 const isOverlap = (timeWindow1, timeWindow2) => {
-    return ! isNoOverlap(timeWindow1, timeWindow2);
+    return !isNoOverlap(timeWindow1, timeWindow2);
 }
 
 const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
@@ -136,44 +152,70 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
 
     allPossibleTimeWindowsDayConstraint.possibleTimeWindows.push(startingTimeWindow);
 
-    const newTimeWindowsToAdd = [];
 
     // Go over all forbidden
     tempDayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
-        // Go over all possible
+        const newTimeWindowsToAdd = [];        
         for (const possibleTimeWindow of allPossibleTimeWindowsDayConstraint.possibleTimeWindows) {
+            let timeWindow1 = null;
+            let timeWindow2 = null;
+
             if (doesWindow1ContainWindow2(forbiddenTimeWindow, possibleTimeWindow)) {
-                possibleTimeWindow.startTime = cloneTimeWindow(possibleTimeWindow.endTime);
+                possibleTimeWindow.startTime = cloneTime(possibleTimeWindow.endTime);
             } else if (doesWindow1ContainWindow2(possibleTimeWindow, forbiddenTimeWindow)) {
-                possibleTimeWindow.endTime = cloneTimeWindow(forbiddenTimeWindow.startTime);
-
-                const newWindowStart = cloneTimeWindow(forbiddenTimeWindow.endTime);
-                const newWindowEnd = cloneTimeWindow(possibleTimeWindow.endTime);
+                const newWindowStart = cloneTime(forbiddenTimeWindow.endTime);
+                const newWindowEnd = cloneTime(possibleTimeWindow.endTime);
                 const newWindow = new dataObjects.TimeWindow(newWindowStart, newWindowEnd);
-
                 if ( ! isEmptyTimeWindow(newWindow)) {
-                    newTimeWindowsToAdd.push(newWindow);
+                    timeWindow2 = newWindow;
                 }
-            } else if ( isOverlap(possibleTimeWindow, forbiddenTimeWindow)) {
+                
+                possibleTimeWindow.endTime = cloneTime(forbiddenTimeWindow.startTime);
+                if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+                    timeWindow1 = cloneTimeWindow(possibleTimeWindow);
+                }
+            } else if (isOverlap(possibleTimeWindow, forbiddenTimeWindow)) {
                 if (isEarlierTime(forbiddenTimeWindow, possibleTimeWindow)) {
-                    possibleTimeWindow.startTime = cloneTimeWindow(forbiddenTimeWindow.endTime); // "Push" possibleStart to forbiddenEnd
+                    possibleTimeWindow.startTime = cloneTime(forbiddenTimeWindow.endTime); // "Push" possibleStart to forbiddenEnd
+                    
+                    if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+                        timeWindow1 = cloneTimeWindow(possibleTimeWindow);
+                    }
                 } else { // Possible is earlier
-                    possibleTimeWindow.endTime = cloneTimeWindow(forbiddenTimeWindow.endTime); // "Pull" possibleEnd to forbiddenStart
+                    possibleTimeWindow.endTime = cloneTime(forbiddenTimeWindow.endTime); // "Pull" possibleEnd to forbiddenStart
+
+                    if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+                        timeWindow1 = cloneTimeWindow(possibleTimeWindow);
+                    }
                 }
             }
+
+            if (timeWindow1 != null) {
+                newTimeWindowsToAdd.push(timeWindow1);
+            }
+
+            if (timeWindow2 != null) {
+                newTimeWindowsToAdd.push(timeWindow2);
+            }
         }
+
+        allPossibleTimeWindowsDayConstraint.possibleTimeWindows = newTimeWindowsToAdd;
     })
 
     // optional TODO: go over time windows and remove "empty" ones
-    
-    // add newTimeWindows to possibleTimeWindows
-    newTimeWindowsToAdd.forEach((newTimeWindow) => {
-        allPossibleTimeWindowsDayConstraint.possibleTimeWindows.push(newTimeWindow);
-    })
+
 
     // OPTIONAL TODO: sort time frames
 
     return allPossibleTimeWindowsDayConstraint;
+}
+
+const cloneTime = (timeWindow) => {
+    const cloneHour = timeWindow.hour;
+    const cloneMinute = timeWindow.minute;
+    const cloneTime = new dataObjects.Time(cloneHour, cloneMinute);
+
+    return cloneTime;
 }
 
 const cloneTimeWindow = (timeWindow) => {
@@ -192,7 +234,7 @@ const cloneTimeWindow = (timeWindow) => {
 
 
 const doesWindow1ContainWindow2 = (timeWindow1, timeWindow2) => {
-    let doesContain = false; 
+    let doesContain = false;
 
     if (isEarlierOrEqualTime(timeWindow1.startTime, timeWindow2.startTime)) {
         if (isLaterOrEqualTime(timeWindow1.endTime, timeWindow2.endTime)) {
@@ -304,7 +346,7 @@ const isLaterOrEqualTime = (time1, time2) => {
 const isEmptyTimeWindow = (timeWindow) => {
     let isIdenticalTime = false;
 
-    if (timeWindow.startTime.hour == timeWindow.endTimeHour && timeWindow.startTime.minute == timeWindow.startTime.minute) {
+    if (timeWindow.startTime.hour == timeWindow.endTime.hour && timeWindow.startTime.minute == timeWindow.startTime.minute) {
         isIdenticalTime = true;
     }
 
@@ -415,24 +457,17 @@ const advanceDateByDays = (originalDate, days, resetToMidnightFlag) => {
     return cloneDate;
 }
 
-const updateTimeEstimate = (estimatedTime, timeWindow) => {
-    const startDate = new Date();
-    const endDate = new Date(startDate);
+const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
+    // estimated time - hours given in float
 
-    const startHour = timeWindow.startTime.hour;
-    const startMinute = timeWindow.startTime.minute;
-    startDate.setHours(startHour, startMinute, 00);
+    const hoursInSession = Math.floor(sessionLengthMinutes / 60);
+    const minuteRemainder = sessionLengthMinutes % 60; // 15
+    const minuteRatioInHour = minuteRemainder / 60;
 
-    const endHour = timeWindow.endTime.hour;
-    const endMinute = timeWindow.endTime.minute;
-    endDate.setHours(endHour, endMinute, 00);
+    estimatedTimeLeft = estimatedTimeLeft - hoursInSession;
+    estimatedTimeLeft = estimatedTimeLeft - minuteRatioInHour;
 
-    // Subtract from estimated time
-    let hoursDiff = Math.abs(endDate - startDate) / 3_600_000;
-
-    const newEstimate = estimatedTime - hoursDiff;
-
-    return newEstimate;
+    return estimatedTimeLeft;
 }
 
 const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
@@ -445,7 +480,7 @@ const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindo
     const startDate = new Date(currentDate);
     startDate.setHours(startHour, startMinute, 00);
 
-    let endHour = startHour + (sessionLengthMinutes / 60);
+    let endHour = startHour + Math.floor((sessionLengthMinutes / 60));
     const minutesRemainder = sessionLengthMinutes % 60;
     let endMinute = (minutesRemainder + startMinute);
     if (endMinute >= 60) {
@@ -491,8 +526,8 @@ const getMinutesInWindow = (timeWindow) => {
     const startTime = timeWindow.startTime;
     const endTime = timeWindow.endTime;
 
-    const minutes = endTime.minute + (60 - startTime.minute);
-    const hours = endTime.hour - startTime.hour;
+    let minutes = endTime.minute + (60 - startTime.minute);
+    let hours = endTime.hour - startTime.hour;
 
     if (minutes < 60) {
         hours = hours - 1;
@@ -513,17 +548,17 @@ const getMinutesInWindow = (timeWindow) => {
  * @param {*} allCurrDayConstraints 
  */
 const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints) => {
-    const dayConstraint = new dataobjects.DayConstraint(null);
+    const dayConstraintRes = new dataobjects.DayConstraint(null);
 
     allCurrDayConstraints.forEach((dayConstraint) => {
         dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
-            dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
+            dayConstraintRes.forbiddenTimeWindows.push(forbiddenTimeWindow);
         })
     })
 
     // TODO: optimization - merge hours(e.g. 11:00-12:30 and 11:30-13:00 become a single frame of 11:00-13:00)
 
-    return dayConstraint;
+    return dayConstraintRes;
 }
 
 /**
@@ -605,12 +640,18 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
 
 const getTaskStartDate = (req) => {
     // TODO: checks
-    return req.body.startDate;
+    const dateString = req.body.startDate;
+    const date = new Date(dateString);
+
+    return date;
 }
 
 const getTaskEndDate = (req) => {
     // TODO: check
-    return req.body.endDate;
+    const dateString = req.body.endDate;
+    const date = new Date(dateString);
+
+    return date;
 }
 
 const isCurrDatePastEndDate = (currentDate, endDate) => {
@@ -622,8 +663,19 @@ function compareTime(time1, time2) {
     return new Date(time1) > new Date(time2); // true if time1 is later
 }
 
+const getSessionLength = (request) => {
+    // TODO: checks, and return null if needed
+    let sessionLength = request.body.sessionLengthMinutes;
+
+    sessionLength = parseInt(sessionLength);
+
+    return sessionLength;
+}
+
 const getTimeEstimate = (request) => {
-    const estimatedTime = request.body.estimatedTime;
+    let estimatedTime = request.body.estimatedTime;
+
+    estimatedTime = parseFloat(estimatedTime);
 
     return estimatedTime;
 }
@@ -633,6 +685,9 @@ const getAllConstraints = async () => {
     // Maybe this should be a more general function, not just for the algorithm?
     // The front-end for example will want to display all constraints on the constraints-page too so the server should offer this in general
     const allConstraints = await DayConstraintModel.find({}); // TODO: find based on user
+
+    // TODO: translate to our objects
+
 
     return allConstraints;
 }
