@@ -1,6 +1,5 @@
 const express = require('express');
 const {google} = require('googleapis');
-const User = require('./models/user');
 
 const GOOGLE_CLIENT_ID = '255089907729-d285lq0bfp7kjhpt99m03a3sktpsva5i.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = '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';
