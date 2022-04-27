@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -15,6 +16,8 @@ export const Constraints = () => {
     const [saturdayValue, setSaturdayValue] = React.useState(false);
     const [constraintStartTime, setConstraintStartTime] = React.useState(new Date());
     const [constraintEndTime, setConstraintEndTime] = React.useState(new Date());
+    
+    const constraints = []; // TODO: fetch all constraints in useEffect and when a constrtaint is created
 
     const days = <div id="daysDiv">
         <label>Sunday</label><input type="checkbox" onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
@@ -145,6 +148,7 @@ export const Constraints = () => {
                     </tr>
                 </tbody>
             </table>
+            <ConstraintsList></ConstraintsList>
         </div>
     )
 }

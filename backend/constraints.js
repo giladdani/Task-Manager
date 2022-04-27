@@ -10,10 +10,14 @@ const router = express.Router();
 
 // Routing
 router.post('/', (req, res) => { addConstraint(req, res) });
+router.get('/', (req, res) => { getConstraints(req, res) });
 
 
 // Functions
-
+const getConstraints = async(req, res) => {
+    const allConstraints = await DayConstraintModel.find({});
+    res.status(StatusCodes.OK).send(allConstraints);
+}
 
 /*
 TODO:
@@ -62,7 +66,7 @@ const addConstraint = async (req, res) => {
         }
     }
 
-    if (errorMsg != null) {
+    if (errorMsg == null) {
         console.log("Added day constraints");
         res.status(StatusCodes.OK).send('Constraint added');
     } else {
