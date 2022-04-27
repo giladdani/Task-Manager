@@ -8,12 +8,12 @@ const DAY_FRIDAY = "Friday";
 const DAY_SATURDAY = "Saturday";
 
 class Time {
-    constructor(hourInDay, minuteInDay) {
+    constructor(hour, minute) {
         // TODO:
         // Check if parameters are valid ranges (both int, and hour [0,23], minute [0,59])
 
-        this.hourInDay = hourInDay;
-        this.minuteInDay = minuteInDay;
+        this.hour = hour;
+        this.minute = minute;
     }
 }
 
@@ -33,7 +33,6 @@ class DayConstraint {
 
     // TODO: method to add TimeWindow ?
 }
-
 
 module.exports = {
     Time: Time,

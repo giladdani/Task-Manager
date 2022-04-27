@@ -5,7 +5,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 export const Constraints = () => {
-
     // Hooks
     const [sundayValue, setSundayValue] = React.useState(false);
     const [mondayValue, setMondayValue] = React.useState(false);
@@ -30,15 +29,14 @@ export const Constraints = () => {
     const handleCreateClick = async () => {
         // Send all values to server (constraintStartTime, constraintEndTime, [sundayValue, mondayValue, ...])
         try {
-            // TODO: send a request for each day chosen, right now we're sending only for a specific day
-
+            const days = getCheckedDays();
             const startHour = constraintStartTime.getHours();
             const startMinute = constraintStartTime.getMinutes();
             const endHour = constraintEndTime.getHours();
             const endMinute = constraintEndTime.getMinutes();
 
             const body = {
-                day: "Sunday", // TODO: change it from constant to what user decided
+                days: days, 
                 startHour: startHour,
                 startMinute: startMinute,
                 endHour: endHour,
@@ -61,6 +59,40 @@ export const Constraints = () => {
         catch (err) {
             console.error(err);
         }
+    }
+
+    const getCheckedDays = () => {
+        const days = [];
+    
+        if (sundayValue) {
+            days.push("Sunday");
+        }
+    
+        if (mondayValue) {
+            days.push("Monday");
+        }
+    
+        if (tuesdayValue) {
+            days.push("Tuesday");
+        }
+    
+        if (wednesdayValue) {
+            days.push("Wednesday");
+        }
+    
+        if (thursdayValue) {
+            days.push("Thursday");
+        }
+    
+        if (fridayValue) {
+            days.push("Friday");
+        }
+    
+        if (saturdayValue) {
+            days.push("Saturday");
+        }
+    
+        return days;
     }
 
     return (
