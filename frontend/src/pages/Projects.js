@@ -37,6 +37,7 @@ export const Projects = () => {
 
             if (response.status !== 200) throw new Error('Error while creating project')
             console.log('Project added');
+            alert("Project added");
         }
         catch (err) {
             console.error(err);

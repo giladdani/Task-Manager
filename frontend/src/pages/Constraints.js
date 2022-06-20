@@ -58,6 +58,7 @@ export const Constraints = () => {
 
             if (response.status !== 200) throw new Error('Error while adding constraint')
             console.log('Constraint added');
+            alert("Constraints added!");
         }
         catch (err) {
             console.error(err);
