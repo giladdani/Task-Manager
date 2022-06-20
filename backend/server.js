@@ -10,8 +10,6 @@ const users = require('./users');
 const constraints = require('./constraints');
 const projects = require('./projects');
 
-
-
 // Constants
 const DbUri = "mongodb+srv://taskmanager:workshop2022@task-manager.sh855.mongodb.net/TaskManager?retryWrites=true&w=majority";
 const PORT = process.env.PORT || 3001;

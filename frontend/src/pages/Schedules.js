@@ -79,11 +79,38 @@ export class Schedules extends React.Component {
         }
     }
 
+    updateEventGoogle = async(event) => {
+        try{
+            const body = {
+                event: event,
+                googleCalendarId: event.extendedProps.googleCalendarId
+            };
+
+            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+                headers: {
+                	'Accept': 'application/json',
+                	'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'PUT',
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) throw new Error('Error while fetching events');
+            const data = await response.json();
+            return data;
+        }
+        catch(err){
+            console.error(err);
+        }
+    }
+
     addEventsToScheduleGoogle = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
         events.forEach(event => {
             calendarApi.addEvent({
-                // id ?,
+                id: event.id,
+                googleCalendarId: event.calendarId,
                 title: event.summary,
                 start: event.start.dateTime,
                 end: event.end.dateTime,
@@ -97,16 +124,17 @@ export class Schedules extends React.Component {
         let calendarApi = selectInfo.view.calendar;
         calendarApi.unselect() // clear date selection
         if (title) {
-        calendarApi.addEvent({
-            // id: ?,
-            title,
-            start: selectInfo.startStr,
-            end: selectInfo.endStr,
-            allDay: selectInfo.allDay
-        })
+            calendarApi.addEvent({
+                // id: ?,
+                title,
+                start: selectInfo.startStr,
+                end: selectInfo.endStr,
+                allDay: selectInfo.allDay
+            })
         }
     }
 
+    // TODO: open a dialog with the ability to edit/delete the event
     handleEventClick = (clickInfo) => {
         let event = clickInfo.event;
         let msg = `You have chosen the event ${event.title}
@@ -117,6 +145,10 @@ export class Schedules extends React.Component {
         // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
         //   clickInfo.event.remove()
         // }
+    }
+
+    handleEventDragged = (eventInfo) => {
+        this.updateEventGoogle(eventInfo.event);
     }
 
     handleEvents = (events) => {
@@ -153,6 +185,7 @@ export class Schedules extends React.Component {
                     select={this.handleDateSelect}
                     eventClick={this.handleEventClick}
                     eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
+                    eventDrop={this.handleEventDragged}
                     ref={this.calendarRef}
                 />
             </div>
