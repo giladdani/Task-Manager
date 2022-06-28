@@ -1,6 +1,6 @@
 const express = require('express');
 const User = require('./models/user');
-const DayConstraintModel = require('./models/dayconstraint')
+const DayConstraintModel = require('./models/constraintevent')
 const EventModel = require('./models/event')
 const dataObjects = require('./dataobjects');
 const dataobjects = require('./dataobjects');
@@ -101,7 +101,7 @@ const shrinkChosenWindowFromStartBySessionSize = (sessionLengthMinutes, availabl
         return;
     }
 
-    let addedMinutes = chosenWindow.startTime.minute + sessionLengthMinutes + spacingBetweenEventsMinutes; 
+    let addedMinutes = chosenWindow.startTime.minute + sessionLengthMinutes + spacingBetweenEventsMinutes;
     addedMinutes = Math.min(addedMinutes, getMinutesInWindow(chosenWindow));
     const newStartTimeHour = chosenWindow.startTime.hour + Math.floor((addedMinutes / 60));
     const newStartTimeMinute = addedMinutes % 60;
@@ -158,7 +158,7 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
 
     // Go over all forbidden
     tempDayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
-        const newTimeWindowsToAdd = [];        
+        const newTimeWindowsToAdd = [];
         for (const possibleTimeWindow of allPossibleTimeWindowsDayConstraint.possibleTimeWindows) {
             let timeWindow1 = null;
             let timeWindow2 = null;
@@ -169,25 +169,25 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
                 const newWindowStart = cloneTime(forbiddenTimeWindow.endTime);
                 const newWindowEnd = cloneTime(possibleTimeWindow.endTime);
                 const newWindow = new dataObjects.TimeWindow(newWindowStart, newWindowEnd);
-                if ( ! isEmptyTimeWindow(newWindow)) {
+                if (!isEmptyTimeWindow(newWindow)) {
                     timeWindow2 = newWindow;
                 }
-                
+
                 possibleTimeWindow.endTime = cloneTime(forbiddenTimeWindow.startTime);
-                if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+                if (!isEmptyTimeWindow(possibleTimeWindow)) {
                     timeWindow1 = cloneTimeWindow(possibleTimeWindow);
                 }
             } else if (isOverlap(possibleTimeWindow, forbiddenTimeWindow)) {
                 if (isEarlierStartTimeTime(forbiddenTimeWindow, possibleTimeWindow)) {
                     possibleTimeWindow.startTime = cloneTime(forbiddenTimeWindow.endTime); // "Push" possibleStart to forbiddenEnd
-                    
-                    if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+
+                    if (!isEmptyTimeWindow(possibleTimeWindow)) {
                         timeWindow1 = cloneTimeWindow(possibleTimeWindow);
                     }
                 } else { // Possible is earlier
                     possibleTimeWindow.endTime = cloneTime(forbiddenTimeWindow.endTime); // "Pull" possibleEnd to forbiddenStart
 
-                    if ( ! isEmptyTimeWindow(possibleTimeWindow)) {
+                    if (!isEmptyTimeWindow(possibleTimeWindow)) {
                         timeWindow1 = cloneTimeWindow(possibleTimeWindow);
                     }
                 }

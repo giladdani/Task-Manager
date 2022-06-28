@@ -5,7 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { GoogleLoginButton } from "../components/GoogleLoginButton"
 
 export class Schedules extends React.Component {
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
             currentEvents: []
@@ -16,8 +16,13 @@ export class Schedules extends React.Component {
     calendarRef = React.createRef();    // we need this to be able to add events
 
     async componentDidMount() {
-        let events = await this.fetchEventsRegular();
-        this.addEventsToScheduleRegular(events);
+        let constraintEvents = await this.fetchConstraints();
+        this.addEventsToScheduleFullCalendar(constraintEvents);
+
+
+        // TODO: delete? We're not saving events anymore, only constraints
+        // let events = await this.fetchEventsRegular();
+        // this.addEventsToScheduleFullCalendar(events);
     }
 
     onGoogleLogin = async () => {
@@ -25,12 +30,12 @@ export class Schedules extends React.Component {
         this.addEventsToScheduleGoogle(events);
     }
 
-    fetchEventsGoogle = async() => {
-        try{
-            const response = await fetch('http://localhost:3001/api/calendar/events/google', {
+    fetchConstraints = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/constraints', {
                 headers: {
-                	'Accept': 'application/json',
-                	'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'access_token': document.cookie
                 },
                 method: 'GET'
@@ -40,13 +45,33 @@ export class Schedules extends React.Component {
             const data = await response.json();
             return data;
         }
-        catch(err){
+        catch (err) {
             console.error(err);
         }
     }
 
-    updateEventGoogle = async(event) => {
-        try{
+    fetchEventsGoogle = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/calendar/events/google', {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'GET'
+            });
+
+            if (response.status !== 200) throw new Error('Error while fetching events');
+            const data = await response.json();
+            return data;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+
+    updateEventGoogle = async (event) => {
+        try {
             const body = {
                 event: event,
                 googleCalendarId: event.extendedProps.googleCalendarId
@@ -54,8 +79,8 @@ export class Schedules extends React.Component {
 
             const response = await fetch(`http://localhost:3001/api/calendar/events`, {
                 headers: {
-                	'Accept': 'application/json',
-                	'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'access_token': document.cookie
                 },
                 method: 'PUT',
@@ -66,23 +91,55 @@ export class Schedules extends React.Component {
             const data = await response.json();
             return data;
         }
-        catch(err){
+        catch (err) {
             console.error(err);
         }
+    }
+
+    addEventsToScheduleFullCalendar = (events) => {
+        let calendarApi = this.calendarRef.current.getApi();
+        events.forEach(event => {
+            calendarApi.addEvent(event)
+        });
+
+
+        /* TODO: Just a test, delete later
+        events.forEach(event => {
+            calendarApi.addEvent(
+                {
+                    start: event.start,
+                    end: event.end,
+                }
+                )
+        });
+        */
+
+        // TODO: delete
+        // const startDate = new Date();
+        // const endDate = new Date();
+        // endDate.setHours(23);
+        // calendarApi.addEvent(
+        //     {
+        //         start: startDate,
+        //         end: endDate,
+        //     }
+        // )
     }
 
     addEventsToScheduleGoogle = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
         events.forEach(event => {
-            calendarApi.addEvent({
-                id: event.id,
-                googleCalendarId: event.calendarId,
-                editable: false,
-                title: event.summary,
-                start: event.start.dateTime,
-                end: event.end.dateTime,
-                allDay: false
-            })
+            calendarApi.addEvent(
+                {
+                    id: event.id,
+                    googleCalendarId: event.calendarId,
+                    editable: false,
+                    title: event.summary,
+                    start: event.start.dateTime,
+                    end: event.end.dateTime,
+                    allDay: false
+                }
+            )
         });
     }
 
@@ -119,7 +176,7 @@ export class Schedules extends React.Component {
     }
 
     handleEvents = (events) => {
-        this.setState({currentEvents: events});
+        this.setState({ currentEvents: events });
     }
 
     renderEventContent = (eventInfo) => {
@@ -128,18 +185,19 @@ export class Schedules extends React.Component {
                 <b>{eventInfo.timeText}</b>
                 <i>{eventInfo.event.title}</i>
             </div>
-    )}
+        )
+    }
 
     render() {
         return (
             <div className='demo-app'>
-                <GoogleLoginButton onLogin={this.onGoogleLogin}/>
+                <GoogleLoginButton onLogin={this.onGoogleLogin} />
                 <FullCalendar
                     plugins={[timeGridPlugin, interactionPlugin]}
                     headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'timeGridWeek,timeGridDay'
                     }}
                     initialView='timeGridWeek'
                     allDaySlot={false}

@@ -32,11 +32,15 @@ export const Constraints = () => {
     const handleCreateClick = async () => {
         // Send all values to server (constraintStartTime, constraintEndTime, [sundayValue, mondayValue, ...])
         try {
-            const days = getCheckedDays();
+            const days = getCheckedDays(); // TODO: change to numbers to match FullCalendar
+
+
+            /* TODO: old version with our own TimeWindow. Delete?
             const startHour = constraintStartTime.getHours();
             const startMinute = constraintStartTime.getMinutes();
             const endHour = constraintEndTime.getHours();
             const endMinute = constraintEndTime.getMinutes();
+
 
             const body = {
                 days: days, 
@@ -44,6 +48,14 @@ export const Constraints = () => {
                 startMinute: startMinute,
                 endHour: endHour,
                 endMinute: endMinute,
+            };
+
+            */
+
+            const body = {
+                days: days,
+                forbiddenStartDate: constraintStartTime,
+                forbiddenEndDate: constraintEndTime,
             };
 
             const response = await fetch('http://localhost:3001/api/constraints', {
@@ -69,31 +81,31 @@ export const Constraints = () => {
         const days = [];
     
         if (sundayValue) {
-            days.push("Sunday");
+            days.push("0");
         }
     
         if (mondayValue) {
-            days.push("Monday");
+            days.push("1");
         }
     
         if (tuesdayValue) {
-            days.push("Tuesday");
+            days.push("2");
         }
     
         if (wednesdayValue) {
-            days.push("Wednesday");
+            days.push("3");
         }
     
         if (thursdayValue) {
-            days.push("Thursday");
+            days.push("4");
         }
     
         if (fridayValue) {
-            days.push("Friday");
+            days.push("5");
         }
     
         if (saturdayValue) {
-            days.push("Saturday");
+            days.push("6");
         }
     
         return days;

@@ -5,11 +5,11 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 export const Constraint = (props) => {
     const startDate = new Date();
-    startDate.setHours(props.constraint.forbiddenTimeWindows[0].startTime.hour);
-    startDate.setMinutes(props.constraint.forbiddenTimeWindows[0].startTime.minute);
+    // startDate.setHours(props.constraint.forbiddenTimeWindows[0].startTime.hour);
+    // startDate.setMinutes(props.constraint.forbiddenTimeWindows[0].startTime.minute);
     const endDate = new Date();
-    endDate.setHours(props.constraint.forbiddenTimeWindows[0].endTime.hour);
-    endDate.setMinutes(props.constraint.forbiddenTimeWindows[0].endTime.minute);
+    // endDate.setHours(props.constraint.forbiddenTimeWindows[0].endTime.hour);
+    // endDate.setMinutes(props.constraint.forbiddenTimeWindows[0].endTime.minute);
     
     return (
         <div>
