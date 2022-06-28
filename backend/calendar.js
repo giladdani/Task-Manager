@@ -11,7 +11,6 @@ const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECR
 // Routing
 const router = express.Router();
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
-router.get('/events/regular', (req, res) => { getAllEventsRegular(req, res) });
 
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.post('/create-tokens', (req, res) => { createTokens(req, res) });
@@ -27,11 +26,6 @@ const createTokens = async(req, res) => {
     catch(error){
         console.log(error);
     }
-}
-
-const getAllEventsRegular = async(req, res) => {
-    const allEvents = await EventModel.find({}); // TODO: find based on user
-    res.status(StatusCodes.OK).send(allEvents);
 }
 
 const getAllEventsGoogle = async(req, res) => {
@@ -117,26 +111,6 @@ const insertEventToCalendar = async(req, res) => {
     catch(error){
         console.log(error);
     }
-}
-
-class OurEvent {
-    constructor(summary) {
-        this.summary = `${summary}, from the task manager!`;
-        this.creation_date = new Date(Date.now()).toLocaleString();
-    }
-}
-
-class OurCalendar {
-    constructor(name, text) {
-        this.name = name;
-        this.text = text;
-    }
-}
-
-const getOurEventFromGoogleEvent = (event) => {
-    const new_event = new OurEvent(event.summary);
-
-    return new_event;
 }
 
 module.exports = router;
