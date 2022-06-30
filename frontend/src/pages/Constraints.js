@@ -16,7 +16,8 @@ export const Constraints = () => {
     const [saturdayValue, setSaturdayValue] = React.useState(false);
     const [constraintStartTime, setConstraintStartTime] = React.useState(new Date());
     const [constraintEndTime, setConstraintEndTime] = React.useState(new Date());
-    
+    const [constraintNameValue, setConstraintNameValue] = React.useState("");
+
     const constraints = []; // TODO: fetch all constraints in useEffect and when a constrtaint is created
 
     const days = <div id="daysDiv">
@@ -32,11 +33,15 @@ export const Constraints = () => {
     const handleCreateClick = async () => {
         // Send all values to server (constraintStartTime, constraintEndTime, [sundayValue, mondayValue, ...])
         try {
-            const days = getCheckedDays();
+            const days = getCheckedDays(); // TODO: change to numbers to match FullCalendar
+
+
+            /* TODO: old version with our own TimeWindow. Delete?
             const startHour = constraintStartTime.getHours();
             const startMinute = constraintStartTime.getMinutes();
             const endHour = constraintEndTime.getHours();
             const endMinute = constraintEndTime.getMinutes();
+
 
             const body = {
                 days: days, 
@@ -44,6 +49,15 @@ export const Constraints = () => {
                 startMinute: startMinute,
                 endHour: endHour,
                 endMinute: endMinute,
+            };
+
+            */
+
+            const body = {
+                days: days,
+                forbiddenStartDate: constraintStartTime,
+                forbiddenEndDate: constraintEndTime,
+                title: constraintNameValue,
             };
 
             const response = await fetch('http://localhost:3001/api/constraints', {
@@ -67,35 +81,35 @@ export const Constraints = () => {
 
     const getCheckedDays = () => {
         const days = [];
-    
+
         if (sundayValue) {
-            days.push("Sunday");
+            days.push("0");
         }
-    
+
         if (mondayValue) {
-            days.push("Monday");
+            days.push("1");
         }
-    
+
         if (tuesdayValue) {
-            days.push("Tuesday");
+            days.push("2");
         }
-    
+
         if (wednesdayValue) {
-            days.push("Wednesday");
+            days.push("3");
         }
-    
+
         if (thursdayValue) {
-            days.push("Thursday");
+            days.push("4");
         }
-    
+
         if (fridayValue) {
-            days.push("Friday");
+            days.push("5");
         }
-    
+
         if (saturdayValue) {
-            days.push("Saturday");
+            days.push("6");
         }
-    
+
         return days;
     }
 
@@ -104,6 +118,12 @@ export const Constraints = () => {
             <h1>Create constraint</h1>
             <table>
                 <tbody>
+                    <tr>
+                        <td><label>Name:</label></td>
+                        <td>
+                            <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} />
+                        </td>
+                    </tr>
                     <tr>
                         <td><label>Day:</label></td>
                         <td>

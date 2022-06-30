@@ -4,6 +4,12 @@ const getUserIDFromReq = (req) => {
     return 1;
 }
 
+const getUserEmail = {
+    
+}
+
+
 module.exports = {
     getUserIDFromReq: getUserIDFromReq,
+    getUserEmail: getUserEmail,
 }
