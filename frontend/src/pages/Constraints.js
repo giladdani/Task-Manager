@@ -16,7 +16,8 @@ export const Constraints = () => {
     const [saturdayValue, setSaturdayValue] = React.useState(false);
     const [constraintStartTime, setConstraintStartTime] = React.useState(new Date());
     const [constraintEndTime, setConstraintEndTime] = React.useState(new Date());
-    
+    const [constraintNameValue, setConstraintNameValue] = React.useState("");
+
     const constraints = []; // TODO: fetch all constraints in useEffect and when a constrtaint is created
 
     const days = <div id="daysDiv">
@@ -56,6 +57,7 @@ export const Constraints = () => {
                 days: days,
                 forbiddenStartDate: constraintStartTime,
                 forbiddenEndDate: constraintEndTime,
+                title: constraintNameValue,
             };
 
             const response = await fetch('http://localhost:3001/api/constraints', {
@@ -79,35 +81,35 @@ export const Constraints = () => {
 
     const getCheckedDays = () => {
         const days = [];
-    
+
         if (sundayValue) {
             days.push("0");
         }
-    
+
         if (mondayValue) {
             days.push("1");
         }
-    
+
         if (tuesdayValue) {
             days.push("2");
         }
-    
+
         if (wednesdayValue) {
             days.push("3");
         }
-    
+
         if (thursdayValue) {
             days.push("4");
         }
-    
+
         if (fridayValue) {
             days.push("5");
         }
-    
+
         if (saturdayValue) {
             days.push("6");
         }
-    
+
         return days;
     }
 
@@ -116,6 +118,12 @@ export const Constraints = () => {
             <h1>Create constraint</h1>
             <table>
                 <tbody>
+                    <tr>
+                        <td><label>Name:</label></td>
+                        <td>
+                            <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} />
+                        </td>
+                    </tr>
                     <tr>
                         <td><label>Day:</label></td>
                         <td>

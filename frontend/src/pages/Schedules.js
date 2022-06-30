@@ -10,8 +10,9 @@ export class Schedules extends React.Component {
         this.state = {
             currentEvents: []
         }
-
     }
+
+
 
     calendarRef = React.createRef();    // we need this to be able to add events
 
@@ -188,10 +189,40 @@ export class Schedules extends React.Component {
         )
     }
 
+    updateConstraintDisplayValue = (displayType) => {
+
+        let calendarApi = this.calendarRef.current.getApi(); // TODO: make this global? because we duplicate this line
+
+        const allEvents = calendarApi.getEvents();
+
+        allEvents.forEach(event => {
+            if (event.extendedProps.isConstraint !== undefined && event.extendedProps.isConstraint === true) {
+                event.setProp("display", displayType);
+            }
+        }
+        )
+    }
+
+    setShowConstraintsValue = (newValue) => {
+        // document.getElementById("showConstraintsCheckbox").checked = newValue;
+
+        let displayType = null;
+
+        if (newValue == true) {
+            displayType = "auto";
+        } else {
+            displayType = "none";
+        }
+
+        this.updateConstraintDisplayValue(displayType);
+    }
+
+
     render() {
         return (
             <div className='demo-app'>
                 <GoogleLoginButton onLogin={this.onGoogleLogin} />
+                <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
                 <FullCalendar
                     plugins={[timeGridPlugin, interactionPlugin]}
                     headerToolbar={{

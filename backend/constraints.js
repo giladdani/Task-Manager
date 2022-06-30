@@ -40,6 +40,13 @@ const addConstraint = async (req, res) => {
     const days = req.body.days;
     let errorMsg = null;
     try {
+
+        const userEmail = utils.getUserEmail()
+
+        if (userEmail == null) {
+            throw "No user logged in. User must be logged in with their Google account to add constraints.";
+        }
+
         // const day = getDayFromRequest(req); // TODO: delete? old
 
         /* TODO: delete? old code before we used simple Date object for the start and end
@@ -49,8 +56,7 @@ const addConstraint = async (req, res) => {
         const forbiddenMinuteEnd = getEndMinuteFromRequest(req);
 */
 
-        let forbiddenStartDate = req.body.forbiddenStartDate;
-        let forbiddenEndDate = req.body.forbiddenEndDate;
+
 
         // const userAccessToken = getUserAccessTokenFromRequest(req); // TODO:
         // const userID = getUserIDFromAccessToken(userAccessToken); // TODO:
@@ -66,10 +72,26 @@ const addConstraint = async (req, res) => {
         dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
         */
 
+        let forbiddenStartDateStr = req.body.forbiddenStartDate;
+        let forbiddenStartDate = new Date(forbiddenStartDateStr);
+        let startHourStr = forbiddenStartDate.getHours().toString();
+        startHourStr = addZeroDigitIfNeeded(startHourStr);
 
-        const forbiddenStartDurationDeleteLater = '12:00'; // TODO: this is just atest, delete later
-        const forbiddenEndDurationDeleteLater = '13:00';
+        let startMinuteStr = forbiddenStartDate.getMinutes().toString();
+        startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
+        const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
+        
+        let forbiddenEndDateStr = req.body.forbiddenEndDate;
+        const forbiddenEndDate = new Date(forbiddenEndDateStr);
+        let endHourStr = forbiddenEndDate.getHours();
+        endHourStr = addZeroDigitIfNeeded(endHourStr);
 
+        let endMinuteStr = forbiddenEndDate.getMinutes().toString();
+        endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
+
+        const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
+
+        const title = req.body.title;
 
         // Create constraint event
         // TODO: add title
@@ -77,10 +99,15 @@ const addConstraint = async (req, res) => {
         const endRecur = null; // TODO: add option for user to set end date?
         const constraintEvent = {
             daysOfWeek: days,
-            startTime: forbiddenStartDurationDeleteLater,
-            endTime: forbiddenEndDurationDeleteLater,
+            startTime: forbiddenStartDuration,
+            endTime: forbiddenEndDuration,
             startRecur: startRecur,
             endRecur: endRecur,
+            display: "none",
+            isConstraint: true,
+            backgroundColor: "black",
+            title: title,
+            userEmail: userEmail,
         }
 
         // TODO: push to Database
@@ -98,6 +125,14 @@ const addConstraint = async (req, res) => {
         console.log("ERROR: Failed to add day constraints");
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
     }
+}
+
+const addZeroDigitIfNeeded = (numberStr) => {
+    if (numberStr.length == "1") {
+        numberStr = "0" + numberStr;
+    }
+
+    return numberStr;
 }
 
 // TODO: delete? old version where day was a single value and not an array of days

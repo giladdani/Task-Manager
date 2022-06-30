@@ -9,6 +9,10 @@ const constraintEventSchema = new Schema({
     endRecur: Date,
     startTime: String,
     endTime: String,
+    display: String,
+    isConstraint: Boolean,
+    backgroundColor: String,
+    title: String,
     // userID: Number,
     // constraintID: Number.
 })
