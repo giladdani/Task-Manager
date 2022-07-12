@@ -4,7 +4,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 
-export const Projects = () => {
+export const Projects = (props) => {
 
     // Hooks
     const [projectName, setProjectName] = React.useState('');
@@ -16,6 +16,15 @@ export const Projects = () => {
 
     const handleGenerateClick = async () => {
         try {
+
+            // Get all events from Calendar
+
+
+            // let calendarApi = props.calendarRef.current.getApi(); // TODO: make this global? because we duplicate this line
+            // const allEvents = calendarApi.getEvents();
+            const allEvents = props.events.events;
+
+
             const body = {
                 projectName: projectName,
                 sessionLengthMinutes: sessionLengthMinutes,
@@ -23,6 +32,7 @@ export const Projects = () => {
                 estimatedTime: estimatedTime,
                 startDate: startDate,
                 endDate: endDate,
+                allEvents: allEvents,
             };
 
             const response = await fetch('http://localhost:3001/api/projects', {
@@ -52,31 +62,31 @@ export const Projects = () => {
                     <tr>
                         <td><label>Project Name:</label></td>
                         <td>
-                            <input type="text" onChange={(newValue) => {setProjectName(newValue.target.value)}}></input>
+                            <input type="text" onChange={(newValue) => { setProjectName(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Estimated Time (Hours):</label></td>
                         <td>
-                            <input type="number" onChange={(newValue) => {setEstimatedTime(newValue.target.value)}}></input>
+                            <input type="number" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Session Length (Minutes):</label></td>
                         <td>
-                            <input type="number" onChange={(newValue) => {setSessionLengthMinutes(newValue.target.value)}}></input>
+                            <input type="number" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Break Between Sessions (Minutes):</label></td>
                         <td>
-                            <input type="number" onChange={(newValue) => {setSpacingBetweenSessions(newValue.target.value)}}></input>
+                            <input type="number" onChange={(newValue) => { setSpacingBetweenSessions(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
                         <td><label>Start Date:</label></td>
                         <td>
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
                                     onChange={(newValue) => { setStartDate(newValue) }}
@@ -88,7 +98,7 @@ export const Projects = () => {
                     <tr>
                         <td><label>End Date:</label></td>
                         <td>
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
                                     onChange={(newValue) => { setEndDate(newValue) }}

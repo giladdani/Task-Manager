@@ -7,14 +7,14 @@ import { GoogleLoginButton } from "../components/GoogleLoginButton"
 export class Schedules extends React.Component {
     constructor(props) {
         super(props);
+
         this.state = {
-            currentEvents: []
+            currentEvents: [],
         }
     }
 
-
-
     calendarRef = React.createRef();    // we need this to be able to add events
+    // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
         let constraintEvents = await this.fetchConstraints();
@@ -24,11 +24,19 @@ export class Schedules extends React.Component {
         // TODO: delete? We're not saving events anymore, only constraints
         // let events = await this.fetchEventsRegular();
         // this.addEventsToScheduleFullCalendar(events);
+
+        let calendarApi = this.calendarRef.current.getApi();
+        const allEvents = calendarApi.getEvents();
+        this.props.setEvents(allEvents);
     }
 
     onGoogleLogin = async () => {
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
+
+        let calendarApi = this.calendarRef.current.getApi();
+        const allEvents = calendarApi.getEvents();
+        this.props.setEvents(allEvents);
     }
 
     fetchConstraints = async () => {
@@ -99,10 +107,11 @@ export class Schedules extends React.Component {
 
     addEventsToScheduleFullCalendar = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
+        
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
-
+        this.props.setEvents(events)
 
         /* TODO: Just a test, delete later
         events.forEach(event => {
@@ -129,6 +138,7 @@ export class Schedules extends React.Component {
 
     addEventsToScheduleGoogle = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
+
         events.forEach(event => {
             calendarApi.addEvent(
                 {
@@ -190,9 +200,7 @@ export class Schedules extends React.Component {
     }
 
     updateConstraintDisplayValue = (displayType) => {
-
-        let calendarApi = this.calendarRef.current.getApi(); // TODO: make this global? because we duplicate this line
-
+        const calendarApi = this.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
 
         allEvents.forEach(event => {
