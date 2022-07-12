@@ -33,6 +33,7 @@ const generateSchedule = async (req) => {
 
     try {
         const projectName = req.body.projectName;
+        const allEvents = req.body.allEvents;
         const estimatedTimeTotal = getTimeEstimate(req);    // TODO: Int or float representing hours (decide how to model it)
         let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
         // TODO: check if estiamtedTime is a positive number?
@@ -43,9 +44,13 @@ const generateSchedule = async (req) => {
         let currentDate = getTaskStartDate(req);
         let endDate = getTaskEndDate(req);
 
+        // TODO: performance: remove all the events before the start time and after the end time of the project?
+
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
-            const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
-            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints);
+            const allCurrDayConstraints = getAllCurrDateConstraintsAndEvents(currentDate, allConstraintsSpecialObj);
+            const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
+            // TODO: for performance, remove allCurrDatEvents from the allEvents object, to gradually size it down?
+            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDatEvents);
             const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
 
             let foundAvailableWindow = true;
@@ -552,7 +557,7 @@ const getMinutesInWindow = (timeWindow) => {
  * which states which hours are possible for work
  * @param {*} allCurrDayConstraints 
  */
-const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints) => {
+const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints, allCurrDatEvents) => {
     const dayConstraintRes = new dataobjects.DayConstraint(null);
 
     allCurrDayConstraints.forEach((dayConstraint) => {
@@ -574,7 +579,7 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
  * This function also needs to receive an object of all constraints // TODO: add parameter
  * @param {*} currentDate 
  */
-const getAllCurrDateConstraints = (currentDate, allConstraintsSpecialObj) => {
+const getAllCurrDateConstraintsAndEvents = (currentDate, allConstraintsSpecialObj) => {
     const dayNum = currentDate.getDay();
 
     let allDayConstraints = null;
@@ -610,6 +615,21 @@ const getAllCurrDateConstraints = (currentDate, allConstraintsSpecialObj) => {
     return allDayConstraints;
 }
 
+const getAllCurrDayEvents = (currentDate, allEvents) => {
+    let allCurrDayEvents = [];
+    const currDateWithoutTime = new Date(currentDate).setHours(0,0,0,0);
+    allEvents.forEach((event) => {
+        let eventDateStartWithoutTime = new Date(event.start).setHours(0,0,0,0);
+        let eventDateEndWithoutTime = new Date(event.end).setHours(0,0,0,0);
+
+        if (eventDateStartWithoutTime.valueOf() === currDateWithoutTime.valueOf()) {
+            allCurrDayEvents.push(event);
+        }
+    })
+
+    return allCurrDayEvents;
+}
+
 const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
     const allConstraintsObj = {
         Sunday: [],
@@ -622,20 +642,32 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
     }
 
     allConstraintsArr.forEach((dayConstraint) => {
-        if (dayConstraint.day == "Sunday") {
+        if (dayConstraint.daysOfWeek.includes(0)) {
             allConstraintsObj.Sunday.push(dayConstraint);
-        } else if (dayConstraint.day == "Monday") {
+        }
+
+        if (dayConstraint.daysOfWeek.includes(1)) {
             allConstraintsObj.Monday.push(dayConstraint);
-        } else if (dayConstraint.day == "Tuesday") {
+        }
+
+        if (dayConstraint.daysOfWeek.includes(2)) {
             allConstraintsObj.Tuesday.push(dayConstraint);
-        } else if (dayConstraint.day == "Wednesday") {
-            allConstraintsObj.Wednesday.push(dayConstraint);
-        } else if (dayConstraint.day == "Thursday") {
-            allConstraintsObj.Thursday.push(dayConstraint);
-        } else if (dayConstraint.day == "Friday") {
+        }
+
+        if (dayConstraint.daysOfWeek.includes(3)) {
+            allConstraintsObj.Wednesday.push(dayConstraint); 
+        }
+
+        if (dayConstraint.daysOfWeek.includes(4)) {
+            allConstraintsObj.Thursday.push(dayConstraint);    
+        }
+
+        if (dayConstraint.daysOfWeek.includes(5)) {
             allConstraintsObj.Friday.push(dayConstraint);
-        } else if (dayConstraint.day == "Saturday") {
-            allConstraintsObj.Saturday.push(dayConstraint);
+        }
+
+        if (dayConstraint.daysOfWeek.includes(6)) {
+            allConstraintsObj.Saturday.push(dayConstraint); 
         }
     })
 

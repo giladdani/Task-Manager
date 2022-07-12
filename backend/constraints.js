@@ -41,11 +41,14 @@ const addConstraint = async (req, res) => {
     let errorMsg = null;
     try {
 
+        const userEmail = null;
+        /* TODO: uncomment once we know how to fetch user email
         const userEmail = utils.getUserEmail()
 
         if (userEmail == null) {
             throw "No user logged in. User must be logged in with their Google account to add constraints.";
         }
+        */
 
         // const day = getDayFromRequest(req); // TODO: delete? old
 
