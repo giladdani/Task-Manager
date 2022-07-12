@@ -21,7 +21,7 @@ const createProject = async (req, res) => {
                         }
                 });
 
-                if (errorMsg != null) {
+                if (errorMsg !== null) {
                         res.status(StatusCodes.OK).send('Project added');
                 } else {
                         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);

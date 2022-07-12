@@ -50,7 +50,7 @@ const generateSchedule = async (req) => {
             const allCurrDayConstraints = getAllCurrDateConstraintsAndEvents(currentDate, allConstraintsSpecialObj);
             const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
             // TODO: for performance, remove allCurrDatEvents from the allEvents object, to gradually size it down?
-            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDatEvents);
+            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDayEvents);
             const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
 
             let foundAvailableWindow = true;
@@ -557,14 +557,34 @@ const getMinutesInWindow = (timeWindow) => {
  * which states which hours are possible for work
  * @param {*} allCurrDayConstraints 
  */
-const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints, allCurrDatEvents) => {
+const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints, allCurrDayEvents) => {
     const dayConstraintRes = new dataobjects.DayConstraint(null);
 
-    allCurrDayConstraints.forEach((dayConstraint) => {
-        dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
-            dayConstraintRes.forbiddenTimeWindows.push(forbiddenTimeWindow);
-        })
+    allCurrDayEvents.forEach((dayEvent) => {
+        // Create forbidden time window from day hours
+
+        const startDate = new Date(dayEvent.start);
+        const startHour = startDate.getHours();
+        const startMin = startDate.getMinutes();        
+        const startTime = new dataobjects.Time(startHour, startMin);
+
+        const endDate = new Date(dayEvent.end);
+        const endHour = endDate.getHours();
+        const endMin = endDate.getMinutes();
+        const endTime = new dataobjects.Time(endHour, endMin);
+
+        const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+
+        dayConstraintRes.forbiddenTimeWindows.push(timeWindow);
     })
+
+
+    // OLD CODE before using allEvents
+    // allCurrDayConstraints.forEach((dayConstraint) => {
+    //     dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
+    //         dayConstraintRes.forbiddenTimeWindows.push(forbiddenTimeWindow);
+    //     })
+    // })
 
     // TODO: optimization - merge hours(e.g. 11:00-12:30 and 11:30-13:00 become a single frame of 11:00-13:00)
 
