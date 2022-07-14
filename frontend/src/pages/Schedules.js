@@ -2,7 +2,6 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { GoogleLoginButton } from "../components/GoogleLoginButton"
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -17,26 +16,16 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
-        let constraintEvents = await this.fetchConstraints();
-        this.addEventsToScheduleFullCalendar(constraintEvents);
-
-
-        // TODO: delete? We're not saving events anymore, only constraints
-        // let events = await this.fetchEventsRegular();
-        // this.addEventsToScheduleFullCalendar(events);
-
-        let calendarApi = this.calendarRef.current.getApi();
-        const allEvents = calendarApi.getEvents();
-        this.props.setEvents(allEvents);
-    }
-
-    onGoogleLogin = async () => {
+        // fetch and add google events to FullCalendar
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
-
+        // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
         this.props.setEvents(allEvents);
+        // fetch and add constraints to FullCalenndar
+        let constraintEvents = await this.fetchConstraints();
+        this.addEventsToScheduleFullCalendar(constraintEvents);
     }
 
     fetchConstraints = async () => {
@@ -216,7 +205,7 @@ export class Schedules extends React.Component {
 
         let displayType = null;
 
-        if (newValue == true) {
+        if (newValue === true) {
             displayType = "auto";
         } else {
             displayType = "none";
@@ -229,7 +218,6 @@ export class Schedules extends React.Component {
     render() {
         return (
             <div className='demo-app'>
-                <GoogleLoginButton onLogin={this.onGoogleLogin} />
                 <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
                 <FullCalendar
                     plugins={[timeGridPlugin, interactionPlugin]}
