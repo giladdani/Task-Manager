@@ -8,7 +8,6 @@ const getUserEmail = {
     
 }
 
-
 module.exports = {
     getUserIDFromReq: getUserIDFromReq,
     getUserEmail: getUserEmail,
