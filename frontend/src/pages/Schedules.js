@@ -23,7 +23,8 @@ export class Schedules extends React.Component {
 
         // TODO: delete? We're not saving events anymore, only constraints
         // let events = await this.fetchEventsRegular();
-        // this.addEventsToScheduleFullCalendar(events);
+        let projectEvents = await this.fetchProjectEvents();
+        this.addEventsToScheduleFullCalendar(projectEvents);
 
         let calendarApi = this.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
@@ -42,6 +43,26 @@ export class Schedules extends React.Component {
     fetchConstraints = async () => {
         try {
             const response = await fetch('http://localhost:3001/api/constraints', {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'GET'
+            });
+
+            if (response.status !== 200) throw new Error('Error while fetching events');
+            const data = await response.json();
+            return data;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+
+    fetchProjectEvents = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/projects', {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -111,7 +132,7 @@ export class Schedules extends React.Component {
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
-        this.props.setEvents(events)
+        // this.props.setEvents(events)
 
         /* TODO: Just a test, delete later
         events.forEach(event => {

@@ -79,7 +79,13 @@ const generateSchedule = async (req) => {
         console.log("error in schedule generating algorithm:" + err);
     }
 
-    // addEventsToDB(allEventsGeneratedBySchedule); // TODO:
+
+    /* TODO:
+    Add following details to events:
+        *   User email
+        *   Something to mark them as project events not yet exported to Google
+
+    */
 
     console.log("Finished generating schedule");
     return allEventsGeneratedBySchedule;
@@ -502,11 +508,12 @@ const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindo
     endDate.setHours(endHour, endMinute, 00);
 
     const event = {
-        userID: userID,
-        eventName: eventName,
-        projectName: projectName,
-        startDate: startDate,
-        endDate: endDate,
+        // userID: userID,
+        title: projectName,
+        start: startDate,
+        end: endDate,
+        backgroundColor: "green",
+        unexportedEvent: true,
     }
 
     return event;
@@ -571,6 +578,23 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
         const endDate = new Date(dayEvent.end);
         const endHour = endDate.getHours();
         const endMin = endDate.getMinutes();
+        const endTime = new dataobjects.Time(endHour, endMin);
+
+        const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+
+        dayConstraintRes.forbiddenTimeWindows.push(timeWindow);
+    })
+
+    allCurrDayConstraints.forEach((dayConstraint) => {
+        const startTimeSplitStr = dayConstraint.startTime.split(":");
+        const startHour = Number(startTimeSplitStr[0]);
+        const startMin = Number(startTimeSplitStr[1]);
+        const startTime = new dataobjects.Time(startHour, startMin);
+
+
+        const endTimeSplitStr = dayConstraint.endTime.split(":");
+        const endHour = Number(endTimeSplitStr[0]);
+        const endMin = Number(endTimeSplitStr[1]);
         const endTime = new dataobjects.Time(endHour, endMin);
 
         const timeWindow = new dataobjects.TimeWindow(startTime, endTime);

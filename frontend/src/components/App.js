@@ -14,6 +14,7 @@ const App = () => {
   // let allEvents = [];
   let allEvents = {
     events: [],
+    unexportedAlgorithmEvents: [],
   }
 
   const setEvents = (events) =>{

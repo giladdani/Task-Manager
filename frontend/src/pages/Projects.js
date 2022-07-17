@@ -24,7 +24,6 @@ export const Projects = (props) => {
             // const allEvents = calendarApi.getEvents();
             const allEvents = props.events.events;
 
-
             const body = {
                 projectName: projectName,
                 sessionLengthMinutes: sessionLengthMinutes,
@@ -46,6 +45,10 @@ export const Projects = (props) => {
             });
 
             if (response.status !== 200) throw new Error('Error while creating project')
+
+
+            let jsonRes = response.json();
+
             console.log('Project added');
             alert("Project added");
         }
