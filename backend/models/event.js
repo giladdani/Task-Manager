@@ -3,12 +3,15 @@ const Schema = mongoose.Schema;
 
 const eventSchema = new Schema({
     userID: Number,
-    eventName: String,
+    title: String,
     // eventID: Number,
     projectName: String,
     // projectID: String,
-    startDate: Date,
-    endDate: Date,
+    start: Date,
+    end: Date,
+    backgroundColor: String,
+    unexportedEvent: Boolean,
+    // user ID
 })
 
 const Event = mongoose.model('Event', eventSchema);

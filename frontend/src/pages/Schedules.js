@@ -16,21 +16,45 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
-        // fetch and add google events to FullCalendar
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
-        const allEvents = calendarApi.getEvents();
-        this.props.setEvents(allEvents);
+
         // fetch and add constraints to FullCalenndar
         let constraintEvents = await this.fetchConstraints();
         this.addEventsToScheduleFullCalendar(constraintEvents);
+        
+                let projectEvents = await this.fetchProjectEvents();
+        this.addEventsToScheduleFullCalendar(projectEvents);
+        
+                const allEvents = calendarApi.getEvents();
+        this.props.setEvents(allEvents);
     }
 
     fetchConstraints = async () => {
         try {
             const response = await fetch('http://localhost:3001/api/constraints', {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': document.cookie
+                },
+                method: 'GET'
+            });
+
+            if (response.status !== 200) throw new Error('Error while fetching events');
+            const data = await response.json();
+            return data;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+
+    fetchProjectEvents = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/projects', {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -100,7 +124,7 @@ export class Schedules extends React.Component {
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
-        this.props.setEvents(events)
+        // this.props.setEvents(events)
 
         /* TODO: Just a test, delete later
         events.forEach(event => {
