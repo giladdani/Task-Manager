@@ -1,38 +1,19 @@
 const express = require('express');
 const {google} = require('googleapis');
-const User = require('./models/user');
-const EventModel = require('./models/event')
 const StatusCodes = require('http-status-codes').StatusCodes;
-
-const GOOGLE_CLIENT_ID = '255089907729-d285lq0bfp7kjhpt99m03a3sktpsva5i.apps.googleusercontent.com';
-const GOOGLE_CLIENT_SECRET = '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';
-const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 'http://localhost:3000');
+const utils = require('./utils');
 
 // Routing
 const router = express.Router();
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
-
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
-router.post('/create-tokens', (req, res) => { createTokens(req, res) });
-
 router.put('/events', (req, res) => { updateGoogleEvent(req, res) });
-
-const createTokens = async(req, res) => {
-    try{
-        const {code} = req.body;
-        const {tokens} = await oauth2Client.getToken(code);
-        res.send(tokens);
-    }
-    catch(error){
-        console.log(error);
-    }
-}
 
 const getAllEventsGoogle = async(req, res) => {
     let allEvents = [];
-    const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-    oauth2Client.setCredentials({access_token: accessToken});
-    const googleCalendarClient = google.calendar({version: 'v3', auth: oauth2Client});
+    const accessToken = utils.getAccessTokenFromRequest(req);
+    utils.oauth2Client.setCredentials({access_token: accessToken});
+    const googleCalendarClient = google.calendar({version: 'v3', auth: utils.oauth2Client});
     const allGoogleCalendars = await getAllGoogleCalendars(googleCalendarClient);
     for (const calendar of allGoogleCalendars) {
         const calendarEvents = await getEventsFromCalendar(googleCalendarClient, calendar.id);
@@ -64,12 +45,12 @@ const getEventsFromCalendar = async(googleCalendarApi, calendarId) => {
 }
 
 const updateGoogleEvent = async(req, res) => {
-    const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-    oauth2Client.setCredentials({access_token: accessToken});
-    const googleCalendarApi = google.calendar({version: 'v3', auth: oauth2Client});
+    const accessToken = utils.getAccessTokenFromRequest(req);
+    utils.oauth2Client.setCredentials({access_token: accessToken});
+    const googleCalendarApi = google.calendar({version: 'v3', auth: utils.oauth2Client});
     try{
         const response = await googleCalendarApi.events.patch({
-            auth: oauth2Client,
+            auth: utils.oauth2Client,
             calendarId: req.body.googleCalendarId,
             eventId: req.body.event.id,
             resource: {
@@ -90,11 +71,11 @@ const updateGoogleEvent = async(req, res) => {
 
 const insertEventToCalendar = async(req, res) => {
     try{
-        const accessToken = req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
-        oauth2Client.setCredentials({access_token: accessToken});
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({access_token: accessToken});
         const calendar = google.calendar('v3');
         const response = await calendar.events.insert({
-            auth: oauth2Client,
+            auth: utils.oauth2Client,
             calendarId: 'primary',
             requestBody: {
                 summary: req.body.summary,

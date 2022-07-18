@@ -1,17 +1,36 @@
 const express = require('express');
-const {google} = require('googleapis');
-const User = require('./models/user');
-
 const router = express.Router();
+const utils = require('./utils');
+const axios = require('axios').default;
 
-// Routing
-router.get('/:username', (req, res) => { get_user_refresh_token(req, res) });
+router.post('/', (req, res) => { createUserDataFromCode(req, res) });
 
-// Functions
-const get_user_refresh_token = async(req, res) =>{
-    const name = stringHelper.capitalizeFirstLetter(req.params.name);
-    const user = await User.find({ user_name: name });
-    res.send(user);
+const createUserDataFromCode = async (req, res) =>{
+    const accessToken = await getAccessTokenFromCode(req.body.code);
+    const email = await getEmailFromAccessToken(accessToken);
+    res.send({email: email, accessToken: accessToken});
+}
+
+const getAccessTokenFromCode = async(code) => {
+    try{
+        // const {code} = req.params.code;
+        const {tokens} = await utils.oauth2Client.getToken(code);
+        return tokens.access_token;
+    }
+    catch(error){
+        console.log(error);
+    }
+}
+
+const getEmailFromAccessToken = async(accessToken) => {
+    try {
+        const res = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
+        // const data = await res.json();
+        return res.data.email;
+    }
+    catch (err) {
+        console.log(err);
+    }
 }
 
 module.exports = router;

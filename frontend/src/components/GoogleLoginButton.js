@@ -1,20 +1,21 @@
 import { GoogleLogin } from "react-google-login"
 
 export const GoogleLoginButton = (props) => {
-    const responseGoogle = async (response) => {
+    const getLoggedInUserData = async (response) => {
         const { code } = response;
         try {
-            const res = await fetch('http://localhost:3001/api/calendar/create-tokens', {
+            const res = await fetch(`http://localhost:3001/api/users`, {
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 method: 'POST',
                 body: JSON.stringify({code})
             });
 
             const data = await res.json();
-            document.cookie = data.access_token;
+            sessionStorage.setItem("access_token", data.accessToken);
+            sessionStorage.setItem("user_email", data.email);
             props.onLogin();
         } 
         catch (err) {
@@ -29,7 +30,7 @@ export const GoogleLoginButton = (props) => {
     return (
         <GoogleLogin clientId="255089907729-d285lq0bfp7kjhpt99m03a3sktpsva5i.apps.googleusercontent.com"
             buttonText="Sign in"
-            onSuccess={responseGoogle}
+            onSuccess={getLoggedInUserData}
             onFailure={responseError}
             cookiePolicy={'single_host_origin'}
             responseType='code'
