@@ -1,8 +1,7 @@
 const mongoose  = require("mongoose");
 const Schema = mongoose.Schema;
 
-const eventSchema = new Schema({
-    userID: Number,
+const projectEventSchema = new Schema({
     title: String,
     // eventID: Number,
     projectName: String,
@@ -11,8 +10,8 @@ const eventSchema = new Schema({
     end: Date,
     backgroundColor: String,
     unexportedEvent: Boolean,
-    // user ID
+    email: String,
 })
 
-const Event = mongoose.model('Event', eventSchema);
-module.exports = Event;
+const ProjectEvent = mongoose.model('ProjectEvent', projectEventSchema);
+module.exports = ProjectEvent;

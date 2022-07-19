@@ -13,7 +13,7 @@ const constraintEventSchema = new Schema({
     isConstraint: Boolean,
     backgroundColor: String,
     title: String,
-    // userID: Number,
+    email: String,
     // constraintID: Number.
 })
 

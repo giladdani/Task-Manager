@@ -5,7 +5,7 @@ const ConstraintEventModel = require('./models/constraintevent')
 const dataObjects = require('./dataobjects');
 const { DayConstraint } = require('./dataobjects');
 
-
+const utils = require('./utils');
 const router = express.Router();
 
 // Routing
@@ -15,7 +15,8 @@ router.get('/', (req, res) => { getConstraints(req, res) });
 
 // Functions
 const getConstraints = async (req, res) => {
-    const allConstraints = await ConstraintEventModel.find({});
+    const userEmail = await utils.getEmailFromReq(req);
+    const allConstraints = await ConstraintEventModel.find({ 'email': userEmail });
     res.status(StatusCodes.OK).send(allConstraints);
 }
 
@@ -41,14 +42,11 @@ const addConstraint = async (req, res) => {
     let errorMsg = null;
     try {
 
-        const userEmail = null;
-        /* TODO: uncomment once we know how to fetch user email
-        const userEmail = utils.getUserEmail()
+        const userEmail = await utils.getEmailFromReq(req);
 
         if (userEmail == null) {
             throw "No user logged in. User must be logged in with their Google account to add constraints.";
         }
-        */
 
         // const day = getDayFromRequest(req); // TODO: delete? old
 
@@ -110,7 +108,7 @@ const addConstraint = async (req, res) => {
             isConstraint: true,
             backgroundColor: "black",
             title: title,
-            userEmail: userEmail,
+            email: userEmail,
         }
 
         // TODO: push to Database

@@ -1,8 +1,9 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const EventModel = require('./models/event')
+const EventModel = require('./models/projectevent')
 
 const algorithm = require('./algorithm');
+const utils = require('./utils');
 const router = express.Router();
 
 // Routing
@@ -12,8 +13,9 @@ router.post('/', (req, res) => { createProject(req, res) });
 
 // Functions
 const getProjectEvents = async (req, res) => {
-    const allProjectEvents = await EventModel.find({});
-    res.status(StatusCodes.OK).send(allProjectEvents);
+        const userEmail = await utils.getEmailFromReq(req);
+        const allProjectEvents = await EventModel.find({ 'email': userEmail });
+        res.status(StatusCodes.OK).send(allProjectEvents);
 }
 
 const createProject = async (req, res) => {
