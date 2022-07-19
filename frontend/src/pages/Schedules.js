@@ -2,6 +2,7 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import { ThreeDots } from  'react-loader-spinner'
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -243,8 +244,9 @@ export class Schedules extends React.Component {
     render() {
         return (
             <div className='demo-app'>
-            <div>
-                <h1 hidden={!this.state.isLoading}>Loading events...</h1>
+            <div hidden={!this.state.isLoading}>
+                <h3>Loading your schedule</h3>
+                <ThreeDots color="#00BFFF" height={80} width={80} />
             </div>
             <div hidden={this.state.isLoading}>
                 <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
