@@ -64,7 +64,7 @@ export const Constraints = () => {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'access_token': document.cookie
+                    'access_token': sessionStorage.getItem('access_token'),
                 },
                 method: 'POST',
                 body: JSON.stringify(body),

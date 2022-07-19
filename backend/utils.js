@@ -24,13 +24,21 @@ const getAccessTokenFromCode = async(code) => {
 }
 
 const getEmailFromAccessToken = async(accessToken) => {
+    let email = null;
     try {
         const res = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
+<<<<<<< HEAD
         return res.data.email;
+=======
+        // const data = await res.json();
+        email = res.data.email;
+>>>>>>> 1a00ccad8c9f27ac977919180b8ad8c774d2b65d
     }
     catch (err) {
         console.log(err);
     }
+
+    return email;
 }
 
 module.exports = {
