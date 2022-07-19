@@ -58,7 +58,7 @@ export class Schedules extends React.Component {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'access_token': document.cookie
+                    'access_token': sessionStorage.getItem('access_token')
                 },
                 method: 'GET'
             });
