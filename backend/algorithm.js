@@ -1,7 +1,7 @@
 const express = require('express');
 const User = require('./models/user');
 const DayConstraintModel = require('./models/constraintevent')
-const EventModel = require('./models/event')
+const EventModel = require('./models/projectevent')
 const dataObjects = require('./dataobjects');
 const dataobjects = require('./dataobjects');
 const utils = require('./utils');
@@ -66,7 +66,7 @@ const generateSchedule = async (req) => {
                 }
 
                 const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
-                let event = createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
+                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
                 allEventsGeneratedBySchedule.push(event);
 
                 shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
@@ -486,8 +486,8 @@ const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
     return estimatedTimeLeft;
 }
 
-const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
-    const userEmail = utils.getUserEmailFromReq(req);
+const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
+    const userEmail = await utils.getEmailFromReq(req);
 
     const projectName = req.body.projectName;
     const eventName = projectName;
@@ -515,7 +515,7 @@ const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindo
         end: endDate,
         backgroundColor: "green",
         unexportedEvent: true,
-        userEmail: userEmail,
+        email: userEmail,
     }
 
     return event;
