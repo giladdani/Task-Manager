@@ -50,7 +50,7 @@ const generateSchedule = async (req) => {
             const allCurrDayConstraints = getAllCurrDateConstraintsAndEvents(currentDate, allConstraintsSpecialObj);
             const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
             // TODO: for performance, remove allCurrDatEvents from the allEvents object, to gradually size it down?
-            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDatEvents);
+            const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDayEvents);
             const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
 
             let foundAvailableWindow = true;
@@ -79,7 +79,13 @@ const generateSchedule = async (req) => {
         console.log("error in schedule generating algorithm:" + err);
     }
 
-    // addEventsToDB(allEventsGeneratedBySchedule); // TODO:
+
+    /* TODO:
+    Add following details to events:
+        *   User email
+        *   Something to mark them as project events not yet exported to Google
+
+    */
 
     console.log("Finished generating schedule");
     return allEventsGeneratedBySchedule;
@@ -481,7 +487,8 @@ const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
 }
 
 const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
-    const userID = utils.getUserIDFromReq(req);
+    const userEmail = utils.getUserEmailFromReq(req);
+
     const projectName = req.body.projectName;
     const eventName = projectName;
 
@@ -502,11 +509,13 @@ const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindo
     endDate.setHours(endHour, endMinute, 00);
 
     const event = {
-        userID: userID,
-        eventName: eventName,
-        projectName: projectName,
-        startDate: startDate,
-        endDate: endDate,
+        // userID: userID,
+        title: projectName,
+        start: startDate,
+        end: endDate,
+        backgroundColor: "green",
+        unexportedEvent: true,
+        userEmail: userEmail,
     }
 
     return event;
@@ -557,14 +566,51 @@ const getMinutesInWindow = (timeWindow) => {
  * which states which hours are possible for work
  * @param {*} allCurrDayConstraints 
  */
-const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints, allCurrDatEvents) => {
+const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayConstraints, allCurrDayEvents) => {
     const dayConstraintRes = new dataobjects.DayConstraint(null);
 
-    allCurrDayConstraints.forEach((dayConstraint) => {
-        dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
-            dayConstraintRes.forbiddenTimeWindows.push(forbiddenTimeWindow);
-        })
+    allCurrDayEvents.forEach((dayEvent) => {
+        // Create forbidden time window from day hours
+
+        const startDate = new Date(dayEvent.start);
+        const startHour = startDate.getHours();
+        const startMin = startDate.getMinutes();        
+        const startTime = new dataobjects.Time(startHour, startMin);
+
+        const endDate = new Date(dayEvent.end);
+        const endHour = endDate.getHours();
+        const endMin = endDate.getMinutes();
+        const endTime = new dataobjects.Time(endHour, endMin);
+
+        const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+
+        dayConstraintRes.forbiddenTimeWindows.push(timeWindow);
     })
+
+    allCurrDayConstraints.forEach((dayConstraint) => {
+        const startTimeSplitStr = dayConstraint.startTime.split(":");
+        const startHour = Number(startTimeSplitStr[0]);
+        const startMin = Number(startTimeSplitStr[1]);
+        const startTime = new dataobjects.Time(startHour, startMin);
+
+
+        const endTimeSplitStr = dayConstraint.endTime.split(":");
+        const endHour = Number(endTimeSplitStr[0]);
+        const endMin = Number(endTimeSplitStr[1]);
+        const endTime = new dataobjects.Time(endHour, endMin);
+
+        const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+
+        dayConstraintRes.forbiddenTimeWindows.push(timeWindow);
+    })
+
+
+    // OLD CODE before using allEvents
+    // allCurrDayConstraints.forEach((dayConstraint) => {
+    //     dayConstraint.forbiddenTimeWindows.forEach((forbiddenTimeWindow) => {
+    //         dayConstraintRes.forbiddenTimeWindows.push(forbiddenTimeWindow);
+    //     })
+    // })
 
     // TODO: optimization - merge hours(e.g. 11:00-12:30 and 11:30-13:00 become a single frame of 11:00-13:00)
 
