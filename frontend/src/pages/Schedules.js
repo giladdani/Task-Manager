@@ -2,6 +2,8 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import { trackPromise } from 'react-promise-tracker';
+import { LoadingIndicator } from '../components/LoadingIndicator';
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -49,6 +51,7 @@ export class Schedules extends React.Component {
     }
 
     fetchEventsGoogle = async () => {
+        trackPromise(
         try {
             const response = await fetch('http://localhost:3001/api/calendar/events/google', {
                 headers: {
@@ -66,7 +69,7 @@ export class Schedules extends React.Component {
         catch (err) {
             console.error(err);
         }
-    }
+    })
 
     updateEventGoogle = async (event) => {
         try {
@@ -219,6 +222,7 @@ export class Schedules extends React.Component {
         return (
             <div className='demo-app'>
                 <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
+                <LoadingIndicator/>
                 <FullCalendar
                     plugins={[timeGridPlugin, interactionPlugin]}
                     headerToolbar={{
