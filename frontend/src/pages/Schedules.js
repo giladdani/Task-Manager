@@ -2,8 +2,6 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { trackPromise } from 'react-promise-tracker';
-import { LoadingIndicator } from '../components/LoadingIndicator';
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -11,6 +9,7 @@ export class Schedules extends React.Component {
 
         this.state = {
             currentEvents: [],
+            isLoading: false
         }
     }
 
@@ -18,6 +17,7 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
+        this.setState({isLoading: true});
         // fetch and add google events to FullCalendar
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
@@ -28,6 +28,7 @@ export class Schedules extends React.Component {
         // fetch and add constraints to FullCalenndar
         let constraintEvents = await this.fetchConstraints();
         this.addEventsToScheduleFullCalendar(constraintEvents);
+        this.setState({isLoading: false});
     }
 
     fetchConstraints = async () => {
@@ -40,7 +41,6 @@ export class Schedules extends React.Component {
                 },
                 method: 'GET'
             });
-
             if (response.status !== 200) throw new Error('Error while fetching events');
             const data = await response.json();
             return data;
@@ -51,7 +51,6 @@ export class Schedules extends React.Component {
     }
 
     fetchEventsGoogle = async () => {
-        trackPromise(
         try {
             const response = await fetch('http://localhost:3001/api/calendar/events/google', {
                 headers: {
@@ -69,7 +68,7 @@ export class Schedules extends React.Component {
         catch (err) {
             console.error(err);
         }
-    })
+    }
 
     updateEventGoogle = async (event) => {
         try {
@@ -204,8 +203,6 @@ export class Schedules extends React.Component {
     }
 
     setShowConstraintsValue = (newValue) => {
-        // document.getElementById("showConstraintsCheckbox").checked = newValue;
-
         let displayType = null;
 
         if (newValue === true) {
@@ -221,30 +218,34 @@ export class Schedules extends React.Component {
     render() {
         return (
             <div className='demo-app'>
+            <div>
+                <h1 hidden={!this.state.isLoading}>Loading events...</h1>
+            </div>
+            <div hidden={this.state.isLoading}>
                 <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
-                <LoadingIndicator/>
                 <FullCalendar
-                    plugins={[timeGridPlugin, interactionPlugin]}
-                    headerToolbar={{
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'timeGridWeek,timeGridDay'
-                    }}
-                    initialView='timeGridWeek'
-                    allDaySlot={false}
-                    height="auto"
-                    selectable={true}
-                    // editable={true}
-                    // selectMirror={true}
-                    // dayMaxEvents={true}
-                    eventContent={this.renderEventContent}
-                    select={this.handleDateSelect}
-                    eventClick={this.handleEventClick}
-                    eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
-                    eventDrop={this.handleEventDragged}
-                    ref={this.calendarRef}
+                plugins={[timeGridPlugin, interactionPlugin]}
+                headerToolbar={{
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                }}
+                initialView='timeGridWeek'
+                allDaySlot={false}
+                height="auto"
+                selectable={true}
+                // editable={true}
+                // selectMirror={true}
+                // dayMaxEvents={true}
+                eventContent={this.renderEventContent}
+                select={this.handleDateSelect}
+                eventClick={this.handleEventClick}
+                eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
+                eventDrop={this.handleEventDragged}
+                ref={this.calendarRef}
                 />
             </div>
+        </div>
         )
     }
 }
