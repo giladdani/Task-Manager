@@ -7,7 +7,38 @@ const getAccessTokenFromRequest = (req) => {
     return req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ')+1);
 }
 
+const getEmailFromReq = async(req) => {
+    const accessToken = await getAccessTokenFromRequest(req);
+
+    return getEmailFromAccessToken(accessToken);
+}
+
+const getAccessTokenFromCode = async(code) => {
+    try{
+        // const {code} = req.params.code;
+        const {tokens} = await oauth2Client.getToken(code);
+        return tokens.access_token;
+    }
+    catch(error){
+        console.log(error);
+    }
+}
+
+const getEmailFromAccessToken = async(accessToken) => {
+    try {
+        const res = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
+        // const data = await res.json();
+        return res.data.email;
+    }
+    catch (err) {
+        console.log(err);
+    }
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
-    getAccessTokenFromRequest: getAccessTokenFromRequest
+    getAccessTokenFromRequest: getAccessTokenFromRequest,
+    getEmailFromReq: getEmailFromReq,
+    getAccessTokenFromCode: getAccessTokenFromCode,
+    getEmailFromAccessToken: getEmailFromAccessToken,
 }

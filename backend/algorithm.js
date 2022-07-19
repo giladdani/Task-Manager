@@ -487,7 +487,8 @@ const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
 }
 
 const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
-    const userID = utils.getUserIDFromReq(req);
+    const userEmail = utils.getUserEmailFromReq(req);
+
     const projectName = req.body.projectName;
     const eventName = projectName;
 
@@ -514,6 +515,7 @@ const createEventFromTimeWindow = (req, sessionLengthMinutes, availableTimeWindo
         end: endDate,
         backgroundColor: "green",
         unexportedEvent: true,
+        userEmail: userEmail,
     }
 
     return event;
