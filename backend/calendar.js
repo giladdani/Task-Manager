@@ -6,8 +6,33 @@ const utils = require('./utils');
 // Routing
 const router = express.Router();
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
+router.post('/', (req, res) => { createGoogleCalendar(req, res) });
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
+router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 router.put('/events', (req, res) => { updateGoogleEvent(req, res) });
+
+const createGoogleCalendar = async (req, res) => {
+    const accessToken = utils.getAccessTokenFromRequest(req);
+    utils.oauth2Client.setCredentials({access_token: accessToken});
+    const googleCalendarApi = google.calendar({version: 'v3', auth: utils.oauth2Client});
+
+    try{
+        const googleRes = await googleCalendarApi.calendars.insert({
+            auth: utils.oauth2Client,
+            resource: {
+              summary: req.body.calendarName,
+            }
+          })
+
+        res.status(StatusCodes.OK).send(googleRes);
+    }
+    catch(err){
+        console.log(err);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+    }
+
+
+}
 
 const getAllEventsGoogle = async(req, res) => {
     let allEvents = [];
@@ -62,10 +87,51 @@ const updateGoogleEvent = async(req, res) => {
                 } 
             }
         });
-        res.send(response);
+        res.status(StatusCodes.OK).send(response);
     }
     catch(err){
         console.log(err);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+    }
+}
+
+const insertGeneratedEventsToCalendar = async(req, res) => {
+    try{
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({access_token: accessToken});
+        const calendar = google.calendar('v3');
+
+        const events = req.body.events;
+        const calendarId = req.body.googleCalendarId;
+
+        // TODO: change this to batch
+
+        for(const event of events) {
+            const response = await calendar.events.insert({
+                auth: utils.oauth2Client,
+                calendarId: calendarId,
+                requestBody: {
+                    summary: event.title,
+                    start:{
+                        dateTime: new Date(event.start)
+                    },
+                    end:{
+                        dateTime: new Date(event.end)
+                    },
+                    extendedProperties: {
+                        private: {
+                            fullCalendarProjectID: 666,
+                        },
+                    }
+                }
+            })
+        }
+
+        res.status(StatusCodes.OK).send(response);
+    }
+    catch(error){
+        console.log(error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
 }
 
@@ -87,10 +153,11 @@ const insertEventToCalendar = async(req, res) => {
                 }
             }
         })
-        res.send(response);
+        res.status(StatusCodes.OK).send(response);
     }
     catch(error){
         console.log(error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
 }
 
