@@ -19,6 +19,9 @@
   margin: auto;
 }
 
+div svg{
+  margin: auto;
+}
 .full_width{
   width:100%;
 }
