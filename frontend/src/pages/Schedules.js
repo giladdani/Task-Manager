@@ -19,7 +19,6 @@ export class Schedules extends React.Component {
 
     async componentDidMount() {
         this.setState({isLoading: true});
-        // fetch and add google events to FullCalendar
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
         // add events to shared events object in App.js
@@ -157,18 +156,23 @@ export class Schedules extends React.Component {
         let calendarApi = this.calendarRef.current.getApi();
 
         events.forEach(event => {
-            let fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
+            const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
+            const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
+            const idFunction = this.fetchEventIdFromGoogleEvent(event);
+            const idGoogle = event.id;
+            const eventID = idFunction;
 
             calendarApi.addEvent(
                 {
-                    id: event.id,
+                    id: eventID,
                     googleCalendarId: event.calendarId,
                     editable: false,
                     title: event.summary,
                     start: event.start.dateTime,
                     end: event.end.dateTime,
-                    allDay: false,
+                    allDay: false, // TODO: change based on Google?
                     fullCalendarProjectId: fullCalendarProjectId,
+                    backgroundColor: backgroundColor,
                 }
             )
         });
@@ -184,6 +188,30 @@ export class Schedules extends React.Component {
         }
 
         return googleEvent.extendedProperties.private.fullCalendarProjectID;
+    }
+
+    fetchBackgroundColorFromGoogleEvent = (googleEvent) => {
+        if (!googleEvent.extendedProperties) {
+            return googleEvent.colorId;
+        }
+
+        if (!googleEvent.extendedProperties.private) {
+            return googleEvent.colorId;
+        }
+
+        return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
+    }
+
+    fetchEventIdFromGoogleEvent = (googleEvent) => {
+        if (!googleEvent.extendedProperties) {
+            return null;
+        }
+
+        if (!googleEvent.extendedProperties.private) {
+            return null;
+        }
+
+        return googleEvent.extendedProperties.private.fullCalendarEventID;
     }
 
     handleDateSelect = (selectInfo) => {
@@ -207,6 +235,10 @@ export class Schedules extends React.Component {
         let msg = `You have chosen the event ${event.title}
         \nStart date: ${event.start}
         \nEnd date: ${event.end}
+        \nEvent ID: ${event.id}
+        \nProject ID: ${event.extendedProps.projectID}
+        \nBackground Color: ${event.backgroundColor}
+        \nUser Email: ${event.extendedProps.email}
         \nLater on we will allow the user to edit the event here`;
         alert(msg);
         // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
@@ -292,6 +324,7 @@ export class Schedules extends React.Component {
         const googleCalendarID = googleResJson.data.id;
 
         const resJson = this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
+        alert("Events added to Google Calendar!");
     }
 
 

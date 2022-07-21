@@ -23,7 +23,7 @@ const getProjectEvents = async (req, res) => {
 const createProject = async (req, res) => {
         try {
                 const project = await createNewProject(req);
-                const events = await algorithm.generateSchedule(req, project);
+                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(req, project);
                 let errorMsg = null;
 
                 const docsEvents = await EventModel.insertMany(events, (err) => {
@@ -40,8 +40,12 @@ const createProject = async (req, res) => {
                         }
                 });
 
+                resBody = {
+                        estimatedTimeLeft: estimatedTimeLeft,
+                };
+
                 if (errorMsg === null) {
-                        res.status(StatusCodes.OK).send();
+                        res.status(StatusCodes.OK).send(resBody);
                 } else {
                         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);
                 }

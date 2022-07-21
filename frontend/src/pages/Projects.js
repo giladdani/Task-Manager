@@ -13,6 +13,8 @@ export const Projects = (props) => {
     const [spacingBetweenSessions, setSpacingBetweenSessions] = React.useState(0);
     const [startDate, setStartDate] = React.useState(new Date());
     const [endDate, setEndDate] = React.useState(new Date());
+    const [maxEventsPerDay, setMaxEventsPerDay] = React.useState();
+    const [dayRepetitionFrequency, setDayRepetitionFrequency] = React.useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
 
     const handleGenerateClick = async () => {
         try {
@@ -24,6 +26,8 @@ export const Projects = (props) => {
             // const allEvents = calendarApi.getEvents();
             const allEvents = props.events.events;
 
+            console.log(`Max events per day: ${maxEventsPerDay}`);
+
             const body = {
                 projectName: projectName,
                 sessionLengthMinutes: sessionLengthMinutes,
@@ -32,6 +36,8 @@ export const Projects = (props) => {
                 startDate: startDate,
                 endDate: endDate,
                 allEvents: allEvents,
+                maxEventsPerDay: maxEventsPerDay,
+                dayRepetitionFrequency: dayRepetitionFrequency,
             };
 
             const response = await fetch('http://localhost:3001/api/projects', {
@@ -46,11 +52,19 @@ export const Projects = (props) => {
 
             if (response.status !== 200) throw new Error('Error while creating project')
 
+            let jsonRes = await response.json();
+            let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
+            let msg = "";
+            if (estimatedTimeLeft > 0) {
+                msg = `Project added.
+                \nNote! There was not enough time to match the estimated hours.
+                Estimated time left: ${estimatedTimeLeft}`
+            } else {
+                msg = `Project added.`;
+            }
 
-            let jsonRes = response.json();
-
-            console.log('Project added');
-            alert("Project added");
+            console.log(msg);
+            alert(msg);
         }
         catch (err) {
             console.error(err);
@@ -108,6 +122,18 @@ export const Projects = (props) => {
                                     renderInput={(props) => <TextField {...props} />}
                                 />
                             </LocalizationProvider>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Max sessions per day (leave undefined for unlimited): </label></td>
+                        <td>
+                            <input type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>Day repetition (1 for every day, 3 for every 3 days, etc): </label></td>
+                        <td>
+                            <input type="number" onChange={(newValue) => { setDayRepetitionFrequency(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
