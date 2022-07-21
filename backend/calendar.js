@@ -55,10 +55,15 @@ const getAllGoogleCalendars = async(calendar) => {
 
 const getEventsFromCalendar = async(googleCalendarApi, calendarId) => {
     try{
+        const currDate = new Date();
+        const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 1);
+        const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 3);
+
         const response = await googleCalendarApi.events.list({
             calendarId: calendarId,
-            timeMin: (new Date()).toISOString(),
-            maxResults: 100,
+            timeMin: (new Date(timeMinDate)).toISOString(),
+            timeMax: (new Date(timeMaxDate)).toISOString(),
+            // maxResults: 100,
             singleEvents: true,
             orderBy: 'startTime',
         });
