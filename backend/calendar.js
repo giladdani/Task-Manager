@@ -30,8 +30,6 @@ const createGoogleCalendar = async (req, res) => {
         console.log(err);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
-
-
 }
 
 const getAllEventsGoogle = async(req, res) => {
@@ -63,7 +61,6 @@ const getEventsFromCalendar = async(googleCalendarApi, calendarId) => {
             calendarId: calendarId,
             timeMin: (new Date(timeMinDate)).toISOString(),
             timeMax: (new Date(timeMaxDate)).toISOString(),
-            // maxResults: 100,
             singleEvents: true,
             orderBy: 'startTime',
         });
