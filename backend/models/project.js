@@ -8,6 +8,8 @@ const projectSchema = new Schema({
     timeEstimate: Number,
     start: Date,
     end: Date,
+    sessionLengthMinutes: Number,
+    spacingLengthMinutes: Number,
     backgroundColor: String,
     email: String,
 })

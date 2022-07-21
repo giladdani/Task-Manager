@@ -1,6 +1,8 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
+const ProjectModel = require('./models/project')
+
 
 const algorithm = require('./algorithm');
 const utils = require('./utils');
@@ -20,18 +22,23 @@ const getProjectEvents = async (req, res) => {
 
 const createProject = async (req, res) => {
         try {
-                const project = createNewProject(req);
-
+                const project = await createNewProject(req);
                 const events = await algorithm.generateSchedule(req, project);
                 let errorMsg = null;
 
-                const docs = await EventModel.insertMany(events, (err) => {
+                const docsEvents = await EventModel.insertMany(events, (err) => {
                         if (err != null) {
                                 console.error(err);
                                 errorMsg = err;
                         }
                 });
-                // addEventsToDB(allEventsGeneratedBySchedule); // TODO:
+
+                const docsProject = await ProjectModel.create(project, (err, b) => { 
+                        if (err != null) {
+                                console.error(err);
+                                errorMsg = err;
+                        }
+                });
 
                 if (errorMsg === null) {
                         res.status(StatusCodes.OK).send();
@@ -43,11 +50,11 @@ const createProject = async (req, res) => {
         }
 }
 
-const createNewProject = (req) => {
-        const projectID = "666"; // TODO: get project ID
-        const userEmail = utils.getEmailFromReq(req);
-        // TODO: get random background color?
-        
+const createNewProject = async (req) => {
+        const projectID = utils.generateId();
+        const userEmail = await utils.getEmailFromReq(req);
+        const backgroundColor = getRandomColor();
+
         const newProject = {
                 title: req.body.projectName,
                 id: projectID,
@@ -57,11 +64,18 @@ const createNewProject = (req) => {
                 end: req.body.endDate,
                 sessionLengthMinutes: req.body.sessionLengthMinutes,
                 spacingLengthMinutes: req.body.spacingLengthMinutes,
-                backgroundColor: "green",
+                backgroundColor: backgroundColor,
                 email: userEmail,
         }
 
         return newProject;
+}
+
+const getRandomColor = () => {
+        let randomColor = Math.floor(Math.random() * 16777215).toString(16);
+        randomColor = "#" + randomColor;
+
+        return randomColor;
 }
 
 module.exports = router;
