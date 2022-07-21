@@ -20,7 +20,9 @@ const getProjectEvents = async (req, res) => {
 
 const createProject = async (req, res) => {
         try {
-                const events = await algorithm.generateSchedule(req);
+                const project = createNewProject(req);
+
+                const events = await algorithm.generateSchedule(req, project);
                 let errorMsg = null;
 
                 const docs = await EventModel.insertMany(events, (err) => {
@@ -39,6 +41,27 @@ const createProject = async (req, res) => {
         } catch (err) {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error');
         }
+}
+
+const createNewProject = (req) => {
+        const projectID = "666"; // TODO: get project ID
+        const userEmail = utils.getEmailFromReq(req);
+        // TODO: get random background color?
+        
+        const newProject = {
+                title: req.body.projectName,
+                id: projectID,
+                eventsID: [],
+                timeEstimate: req.body.estimatedTime,
+                start: req.body.startDate,
+                end: req.body.endDate,
+                sessionLengthMinutes: req.body.sessionLengthMinutes,
+                spacingLengthMinutes: req.body.spacingLengthMinutes,
+                backgroundColor: "green",
+                email: userEmail,
+        }
+
+        return newProject;
 }
 
 module.exports = router;
