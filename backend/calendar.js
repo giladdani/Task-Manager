@@ -67,6 +67,7 @@ const getEventsFromCalendar = async(googleCalendarApi, calendarId) => {
             singleEvents: true,
             orderBy: 'startTime',
         });
+        
         return response.data.items;
     }
     catch(err){

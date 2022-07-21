@@ -28,7 +28,7 @@ The algorithm receives:
         -   Later on: "Spread" \ Intensity (e.g ASAP or evenly spread until deadline)
 */
 
-const generateSchedule = async (req) => {
+const generateSchedule = async (req, project) => {
     let allEventsGeneratedBySchedule = [];
 
     try {
@@ -66,8 +66,9 @@ const generateSchedule = async (req) => {
                 }
 
                 const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
-                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate); // TODO: add as a parameter all the task details, such as name
+                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate, project); // TODO: add as a parameter all the task details, such as name
                 allEventsGeneratedBySchedule.push(event);
+                project.eventsID.push(event.id);
 
                 shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
                 estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
@@ -486,7 +487,7 @@ const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
     return estimatedTimeLeft;
 }
 
-const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTimeWindow, currentDate) => {
+const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTimeWindow, currentDate, project) => {
     const userEmail = await utils.getEmailFromReq(req);
 
     const projectName = req.body.projectName;
@@ -508,18 +509,25 @@ const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTim
     const endDate = new Date(currentDate);
     endDate.setHours(endHour, endMinute, 00);
 
+    const eventID = "666"; // TODO: get ID from system
+
+
     const event = {
-        // userID: userID,
         title: projectName,
+        eventID: eventID,
+        projectName: projectName,
+        projectID: project.id,
         start: startDate,
         end: endDate,
-        backgroundColor: "green",
+        backgroundColor: project.backgroundColor,
         unexportedEvent: true,
         email: userEmail,
     }
 
     return event;
 }
+
+
 
 /**
  * This function returns the index of an available time window.
