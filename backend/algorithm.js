@@ -80,14 +80,6 @@ const generateSchedule = async (req, project) => {
         console.log("error in schedule generating algorithm:" + err);
     }
 
-
-    /* TODO:
-    Add following details to events:
-        *   User email
-        *   Something to mark them as project events not yet exported to Google
-
-    */
-
     console.log("Finished generating schedule");
     return allEventsGeneratedBySchedule;
 }
@@ -509,12 +501,11 @@ const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTim
     const endDate = new Date(currentDate);
     endDate.setHours(endHour, endMinute, 00);
 
-    const eventID = "666"; // TODO: get ID from system
-
+    const eventID = utils.generateId();
 
     const event = {
         title: projectName,
-        eventID: eventID,
+        id: eventID,
         projectName: projectName,
         projectID: project.id,
         start: startDate,

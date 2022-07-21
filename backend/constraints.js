@@ -98,6 +98,7 @@ const addConstraint = async (req, res) => {
         // TODO: add title
         const startRecur = new Date(); // TODO: add option for user to set start date?
         const endRecur = null; // TODO: add option for user to set end date?
+        const constraintID = utils.generateId();
         const constraintEvent = {
             daysOfWeek: days,
             startTime: forbiddenStartDuration,
@@ -109,6 +110,7 @@ const addConstraint = async (req, res) => {
             backgroundColor: "black",
             title: title,
             email: userEmail,
+            constraintID: constraintID,
         }
 
         // TODO: push to Database
