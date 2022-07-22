@@ -30,6 +30,7 @@ The algorithm receives:
 
 const generateSchedule = async (req, project) => {
     let allEventsGeneratedBySchedule = [];
+    let timeLeft = null;
 
     try {
         const projectName = req.body.projectName;
@@ -44,6 +45,9 @@ const generateSchedule = async (req, project) => {
         let currentDate = getTaskStartDate(req);
         let endDate = getTaskEndDate(req);
 
+        const maxEventsPerDay = req.body.maxEventsPerDay;
+        let dayRepetitionFrequency = Number(req.body.dayRepetitionFrequency);
+
         // TODO: performance: remove all the events before the start time and after the end time of the project?
 
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
@@ -56,7 +60,9 @@ const generateSchedule = async (req, project) => {
             let foundAvailableWindow = true;
             const sessionLengthMinutes = getSessionLength(req);
 
-            while (foundAvailableWindow && estimatedTimeLeft > 0) {
+            let eventsSoFarInDay = 0;
+
+            while (foundAvailableWindow && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
                 const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
 
                 let availableTimeWindowIndex = findAvailableTimeWindowIndex(sessionLengthToFind, dayConstraintAllPossibleWindows) // find available hours matching constraints, such as min\max session length 
@@ -72,16 +78,19 @@ const generateSchedule = async (req, project) => {
 
                 shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
                 estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
+                eventsSoFarInDay++;
             }
 
-            currentDate = advanceDateByDays(currentDate, 1, true);
+            currentDate = advanceDateByDays(currentDate, dayRepetitionFrequency, true);
         }
+
+        timeLeft = estimatedTimeLeft;
     } catch (err) {
         console.log("error in schedule generating algorithm:" + err);
     }
 
-    console.log("Finished generating schedule");
-    return allEventsGeneratedBySchedule;
+    console.log("Finished generating schedule. Estimated time left: " + timeLeft);
+    return [allEventsGeneratedBySchedule, timeLeft];
 }
 
 const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, estimatedTimeLeft) => {
@@ -573,7 +582,7 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
 
         const startDate = new Date(dayEvent.start);
         const startHour = startDate.getHours();
-        const startMin = startDate.getMinutes();        
+        const startMin = startDate.getMinutes();
         const startTime = new dataobjects.Time(startHour, startMin);
 
         const endDate = new Date(dayEvent.end);
@@ -662,10 +671,10 @@ const getAllCurrDateConstraintsAndEvents = (currentDate, allConstraintsSpecialOb
 
 const getAllCurrDayEvents = (currentDate, allEvents) => {
     let allCurrDayEvents = [];
-    const currDateWithoutTime = new Date(currentDate).setHours(0,0,0,0);
+    const currDateWithoutTime = new Date(currentDate).setHours(0, 0, 0, 0);
     allEvents.forEach((event) => {
-        let eventDateStartWithoutTime = new Date(event.start).setHours(0,0,0,0);
-        let eventDateEndWithoutTime = new Date(event.end).setHours(0,0,0,0);
+        let eventDateStartWithoutTime = new Date(event.start).setHours(0, 0, 0, 0);
+        let eventDateEndWithoutTime = new Date(event.end).setHours(0, 0, 0, 0);
 
         if (eventDateStartWithoutTime.valueOf() === currDateWithoutTime.valueOf()) {
             allCurrDayEvents.push(event);
@@ -700,11 +709,11 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
         }
 
         if (dayConstraint.daysOfWeek.includes(3)) {
-            allConstraintsObj.Wednesday.push(dayConstraint); 
+            allConstraintsObj.Wednesday.push(dayConstraint);
         }
 
         if (dayConstraint.daysOfWeek.includes(4)) {
-            allConstraintsObj.Thursday.push(dayConstraint);    
+            allConstraintsObj.Thursday.push(dayConstraint);
         }
 
         if (dayConstraint.daysOfWeek.includes(5)) {
@@ -712,7 +721,7 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
         }
 
         if (dayConstraint.daysOfWeek.includes(6)) {
-            allConstraintsObj.Saturday.push(dayConstraint); 
+            allConstraintsObj.Saturday.push(dayConstraint);
         }
     })
 
@@ -738,6 +747,14 @@ const getTaskEndDate = (req) => {
 
 const isCurrDatePastEndDate = (currentDate, endDate) => {
     return new Date(currentDate) > new Date(endDate);
+}
+
+const isAtMaxEventsPerDay = (maxEventsPerDay, eventsSoFarInDay) => {
+    if (!maxEventsPerDay || maxEventsPerDay == -1) {
+        return false;
+    } else {
+        return (maxEventsPerDay == eventsSoFarInDay);
+    }
 }
 
 
