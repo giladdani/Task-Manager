@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -7,18 +8,22 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 export const Constraints = () => {
     // Hooks
-    const [sundayValue, setSundayValue] = React.useState(false);
-    const [mondayValue, setMondayValue] = React.useState(false);
-    const [tuesdayValue, setTuesdayValue] = React.useState(false);
-    const [wednesdayValue, setWednesdayValue] = React.useState(false);
-    const [thursdayValue, setThursdayValue] = React.useState(false);
-    const [fridayValue, setFridayValue] = React.useState(false);
-    const [saturdayValue, setSaturdayValue] = React.useState(false);
-    const [constraintStartTime, setConstraintStartTime] = React.useState(new Date());
-    const [constraintEndTime, setConstraintEndTime] = React.useState(new Date());
-    const [constraintNameValue, setConstraintNameValue] = React.useState("");
+    const [sundayValue, setSundayValue] = useState(false);
+    const [mondayValue, setMondayValue] = useState(false);
+    const [tuesdayValue, setTuesdayValue] = useState(false);
+    const [wednesdayValue, setWednesdayValue] = useState(false);
+    const [thursdayValue, setThursdayValue] = useState(false);
+    const [fridayValue, setFridayValue] = useState(false);
+    const [saturdayValue, setSaturdayValue] = useState(false);
+    const [constraintStartTime, setConstraintStartTime] = useState(new Date());
+    const [constraintEndTime, setConstraintEndTime] = useState(new Date());
+    const [constraintNameValue, setConstraintNameValue] = useState("");
+    const [allConstraints, setAllConstraints] = useState([]);
 
-    const constraints = []; // TODO: fetch all constraints in useEffect and when a constrtaint is created
+    useEffect(async () => {
+        const constraints = await fetchConstraints();
+        setAllConstraints(constraints);
+    });
 
     const days = <div id="daysDiv">
         <label>Sunday</label><input type="checkbox" onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
@@ -31,27 +36,8 @@ export const Constraints = () => {
     </div>
 
     const handleCreateClick = async () => {
-        // Send all values to server (constraintStartTime, constraintEndTime, [sundayValue, mondayValue, ...])
         try {
             const days = getCheckedDays(); // TODO: change to numbers to match FullCalendar
-
-
-            /* TODO: old version with our own TimeWindow. Delete?
-            const startHour = constraintStartTime.getHours();
-            const startMinute = constraintStartTime.getMinutes();
-            const endHour = constraintEndTime.getHours();
-            const endMinute = constraintEndTime.getMinutes();
-
-
-            const body = {
-                days: days, 
-                startHour: startHour,
-                startMinute: startMinute,
-                endHour: endHour,
-                endMinute: endMinute,
-            };
-
-            */
 
             const body = {
                 days: days,
@@ -70,9 +56,15 @@ export const Constraints = () => {
                 body: JSON.stringify(body),
             });
 
-            if (response.status !== 200) throw new Error('Error while adding constraint')
-            console.log('Constraint added');
-            alert("Constraints added!");
+            if (response.status !== 200) {
+                throw new Error('Error while adding constraint');
+            } else {
+                console.log('Constraint added');
+                alert("Constraints added!");
+
+                const constraints = await fetchConstraints();
+                setAllConstraints(constraints);
+            }
         }
         catch (err) {
             console.error(err);
@@ -111,6 +103,76 @@ export const Constraints = () => {
         }
 
         return days;
+    }
+
+    const fetchConstraints = async () => {
+        const response = await fetch('http://localhost:3001/api/constraints', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token')
+            },
+            method: 'GET'
+        });
+
+        if (response.status !== 200) throw new Error('Error while fetching constraints')
+        const data = await response.json();
+        return data;
+    }
+
+    const handleConstraintUpdate = async (partialConstraintEvent) => {
+        console.log(`Updating constraint ${partialConstraintEvent.title}`);
+
+        try {
+            const body = {
+                days: partialConstraintEvent.days,
+                forbiddenStartDate: partialConstraintEvent.forbiddenStartDate,
+                forbiddenEndDate: partialConstraintEvent.forbiddenEndDate,
+                title: partialConstraintEvent.title,
+            };
+
+            const response = await fetch(`http://localhost:3001/api/constraints/${partialConstraintEvent.id}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token'),
+                },
+                method: 'PUT',
+                body: JSON.stringify(body),
+            });
+
+            if (response.status !== 200) throw new Error(`Error while updating constraint: '${partialConstraintEvent.title}'`)
+            console.log(`Constraint updated: '${partialConstraintEvent.title}'`);
+            alert(`Constraint ${body.title} updated successfully`);
+
+            const constraints = await fetchConstraints();
+            setAllConstraints(constraints);
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+
+    const handleConstraintDelete = async (constraintID) => {
+        try {
+            const response = await fetch(`http://localhost:3001/api/constraints/${constraintID}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token'),
+                },
+                method: 'DELETE',
+            });
+
+            if (response.status !== 200) throw new Error('Error while deleting constraint')
+            console.log(`Constraint ${constraintID} deleted`);
+
+            const constraints = await fetchConstraints();
+            setAllConstraints(constraints);
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
     return (
@@ -169,7 +231,12 @@ export const Constraints = () => {
                     </tr>
                 </tbody>
             </table>
-            <ConstraintsList></ConstraintsList>
+            <ConstraintsList
+                constraints={allConstraints}
+                handleConstraintUpdate={handleConstraintUpdate}
+                handleConstraintDelete={handleConstraintDelete}
+            >
+            </ConstraintsList>
         </div>
     )
 }

@@ -14,7 +14,7 @@ const constraintEventSchema = new Schema({
     backgroundColor: String,
     title: String,
     email: String,
-    constraintID: String,
+    id: String,
 })
 
 const ConstraintEvent = mongoose.model('ConstraintEvent', constraintEventSchema);

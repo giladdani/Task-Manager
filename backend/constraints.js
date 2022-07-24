@@ -10,6 +10,9 @@ const router = express.Router();
 
 // Routing
 router.post('/', (req, res) => { addConstraint(req, res) });
+router.put('/:id', (req, res) => { updateConstraint(req, res) });
+router.delete('/:id', (req, res) => { deleteConstraint(req, res) });
+
 router.get('/', (req, res) => { getConstraints(req, res) });
 
 
@@ -20,102 +23,13 @@ const getConstraints = async (req, res) => {
     res.status(StatusCodes.OK).send(allConstraints);
 }
 
-/*
-TODO:
-    -   Add user ID
-*/
 const addConstraint = async (req, res) => {
-    /* Parse from the request the following parameters:
-        -   Day
-        -   Start Hour
-        -   End Hour
-
-        -   Call database to fetch the user ID based on access token // TODO:
-
-    Create this object and add a user ID to it
-
-    Save in database
-    */
-
-    // TODO: loop for each day in the request
-    const days = req.body.days;
     let errorMsg = null;
     try {
+        const constraint = await receiveConstraintFromReq(req);
+        constraint.id = utils.generateId();
 
-        const userEmail = await utils.getEmailFromReq(req);
-
-        if (userEmail == null) {
-            throw "No user logged in. User must be logged in with their Google account to add constraints.";
-        }
-
-        // const day = getDayFromRequest(req); // TODO: delete? old
-
-        /* TODO: delete? old code before we used simple Date object for the start and end
-        const forbiddenHourStart = getStartHourFromRequest(req);
-        const forbiddenMinuteStart = getStartMinuteFromRequest(req);
-        const forbiddenHourEnd = getEndHourFromRequest(req);
-        const forbiddenMinuteEnd = getEndMinuteFromRequest(req);
-*/
-
-
-
-        // const userAccessToken = getUserAccessTokenFromRequest(req); // TODO:
-        // const userID = getUserIDFromAccessToken(userAccessToken); // TODO:
-
-
-        /* TODO: delete? old code with our own data object
-        // Create Constraint object
-        const dayConstraint = new dataObjects.DayConstraint(day);
-        const forbiddenStartTime = new dataObjects.Time(forbiddenHourStart, forbiddenMinuteStart);
-        const forbiddenEndTime = new dataObjects.Time(forbiddenHourEnd, forbiddenMinuteEnd)
-        const forbiddenTimeWindow = new dataObjects.TimeWindow(forbiddenStartTime, forbiddenEndTime);
-
-        dayConstraint.forbiddenTimeWindows.push(forbiddenTimeWindow);
-        */
-
-        let forbiddenStartDateStr = req.body.forbiddenStartDate;
-        let forbiddenStartDate = new Date(forbiddenStartDateStr);
-        let startHourStr = forbiddenStartDate.getHours().toString();
-        startHourStr = addZeroDigitIfNeeded(startHourStr);
-
-        let startMinuteStr = forbiddenStartDate.getMinutes().toString();
-        startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
-        const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
-        
-        let forbiddenEndDateStr = req.body.forbiddenEndDate;
-        const forbiddenEndDate = new Date(forbiddenEndDateStr);
-        let endHourStr = forbiddenEndDate.getHours();
-        endHourStr = addZeroDigitIfNeeded(endHourStr);
-
-        let endMinuteStr = forbiddenEndDate.getMinutes().toString();
-        endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
-
-        const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
-
-        const title = req.body.title;
-
-        // Create constraint event
-        // TODO: add title
-        const startRecur = new Date(); // TODO: add option for user to set start date?
-        const endRecur = null; // TODO: add option for user to set end date?
-        const constraintID = utils.generateId();
-        const constraintEvent = {
-            daysOfWeek: days,
-            startTime: forbiddenStartDuration,
-            endTime: forbiddenEndDuration,
-            startRecur: startRecur,
-            endRecur: endRecur,
-            display: "none",
-            isConstraint: true,
-            backgroundColor: "black",
-            title: title,
-            email: userEmail,
-            constraintID: constraintID,
-        }
-
-        // TODO: push to Database
-        // const docs = await DayConstraintModel.create(dayConstraint, (a, b) => {});
-        const docs = await ConstraintEventModel.create(constraintEvent, (a, b) => { });
+        const docs = await ConstraintEventModel.create(constraint, (a, b) => { });
 
     } catch (err) {
         errorMsg = err;
@@ -130,54 +44,102 @@ const addConstraint = async (req, res) => {
     }
 }
 
+const updateConstraint = async (req, res) => {
+    let errorMsg = null;
+    const constraintId = req.params.id;
+    try {
+        const constraint = await receiveConstraintFromReq(req);
+        constraint.id = constraintId;
+
+        const docs = await ConstraintEventModel.updateOne({'id': constraintId}, constraint);
+    } catch (err) {
+        errorMsg = err;
+    }
+
+    if (errorMsg == null) {
+        console.log(`Updated constraint ${constraintId}`);
+        res.status(StatusCodes.OK).send('Constraint updated');
+    } else {
+        console.log("ERROR: Failed to update constraint");
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
+    }
+}
+
+const deleteConstraint = async (req, res) => {
+    let errorMsg = null;
+    const constraintId = req.params.id;
+    try {
+        const docs = await ConstraintEventModel.deleteOne({ 'id': constraintId })
+    } catch (err) {
+        errorMsg = err;
+    }
+
+    if (errorMsg == null) {
+        console.log("Deleted constraint " + constraintId);
+        res.status(StatusCodes.OK).send('Constraint deleted');
+    } else {
+        console.log("ERROR: Failed to delete constraint " + constraintId);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
+    }
+}
+
+
+const receiveConstraintFromReq = async (req) => {
+    const userEmail = await utils.getEmailFromReq(req);
+
+    if (userEmail == null) {
+        throw "No user logged in. User must be logged in with their Google account to add constraints.";
+    }
+
+    const days = req.body.days;
+
+    let forbiddenStartDateStr = req.body.forbiddenStartDate;
+    let forbiddenStartDate = new Date(forbiddenStartDateStr);
+    let startHourStr = forbiddenStartDate.getHours().toString();
+    startHourStr = addZeroDigitIfNeeded(startHourStr);
+
+    let startMinuteStr = forbiddenStartDate.getMinutes().toString();
+    startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
+    const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
+
+    let forbiddenEndDateStr = req.body.forbiddenEndDate;
+    const forbiddenEndDate = new Date(forbiddenEndDateStr);
+    let endHourStr = forbiddenEndDate.getHours();
+    endHourStr = addZeroDigitIfNeeded(endHourStr);
+
+    let endMinuteStr = forbiddenEndDate.getMinutes().toString();
+    endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
+
+    const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
+
+    const title = req.body.title;
+
+    // Create constraint event
+    const startRecur = new Date(); // TODO: add option for user to set start date?
+    const endRecur = null; // TODO: add option for user to set end date?
+    const constraintEvent = {
+        daysOfWeek: days,
+        startTime: forbiddenStartDuration,
+        endTime: forbiddenEndDuration,
+        startRecur: startRecur,
+        endRecur: endRecur,
+        display: "none",
+        isConstraint: true,
+        backgroundColor: "black",
+        title: title,
+        email: userEmail,
+    }
+
+    return constraintEvent;
+}
+
+
 const addZeroDigitIfNeeded = (numberStr) => {
     if (numberStr.length == "1") {
         numberStr = "0" + numberStr;
     }
 
     return numberStr;
-}
-
-// TODO: delete? old version where day was a single value and not an array of days
-const getDayFromRequest = (req) => {
-    if (req === null) {
-        return null;
-    }
-
-    return req.body.day;
-}
-
-
-const getStartHourFromRequest = (req) => {
-    if (req === null) {
-        return null;
-    }
-
-    return req.body.startHour;
-}
-
-const getStartMinuteFromRequest = (req) => {
-    if (req === null) {
-        return null;
-    }
-
-    return req.body.startMinute;
-}
-
-const getEndHourFromRequest = (req) => {
-    if (req === null) {
-        return null;
-    }
-
-    return req.body.endHour;
-}
-
-const getEndMinuteFromRequest = (req) => {
-    if (req === null) {
-        return null;
-    }
-
-    return req.body.endMinute;
 }
 
 module.exports = router;
