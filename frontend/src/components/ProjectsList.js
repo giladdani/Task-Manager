@@ -1,21 +1,21 @@
 import * as React from 'react';
-import { Constraint } from './Constraint';
+import { Project } from './Project';
 
-export class ConstraintsList extends React.Component{
+export class ProjectsList extends React.Component{
     constructor(props){
         super(props);
         this.state = {
-            constraints: []
+            projects: []
         }
     }
 
     async componentDidMount() {
-        const constraints = await this.fetchConstraints();
-        this.setState({constraints: constraints});
+        const projects = await this.fetchProjects();
+        this.setState({projects: projects});
     }
 
-    fetchConstraints = async() => {
-        const response = await fetch('http://localhost:3001/api/constraints', {
+    fetchProjects = async() => {
+        const response = await fetch('http://localhost:3001/api/projects', {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -30,13 +30,13 @@ export class ConstraintsList extends React.Component{
     }    
 
     render(){
-        const constraints = this.state.constraints.map((constraint, index) => {
-            return <li key={index}><Constraint constraint={constraint}></Constraint></li>
+        const projects = this.state.projects.map((project, index) => {
+            return <li key={index}><Project project={project}></Project></li>
         });
 
         return(
             <ul>
-                {constraints}
+                {projects}
             </ul>
         )
     }

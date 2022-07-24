@@ -4,7 +4,7 @@ import { Login } from '../pages/Login';
 import { Schedules } from '../pages/Schedules';
 import { Projects } from '../pages/Projects';
 import { Constraints } from '../pages/Constraints';
-import { Profile } from '../pages/Profile';
+import { ProjectManagement } from '../pages/ProjectManagement';
 
 const App = () => {
   // let allEvents = [];
@@ -36,7 +36,7 @@ const App = () => {
             <Link to="/constraints">Constraints</Link>
           </li>
           <li>
-            <Link to="/profile">Profile</Link>
+            <Link to="/projectmanagement">Project Management</Link>
           </li>
         </ul>
       </nav>
@@ -44,7 +44,7 @@ const App = () => {
           <Route path="/schedules" element={<Schedules setEvents={setEvents} />}></Route>
           <Route path="/projects" element={<Projects events={allEvents} />}></Route>
           <Route path="/constraints" element={<Constraints />}></Route>
-          <Route path="/profile" element={<Profile />}></Route>
+          <Route path="/projectmanagement" element={<ProjectManagement />}></Route>
         </Routes>
     </div>
   )

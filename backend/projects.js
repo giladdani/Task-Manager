@@ -3,17 +3,22 @@ const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
 const ProjectModel = require('./models/project')
 
-
 const algorithm = require('./algorithm');
 const utils = require('./utils');
 const router = express.Router();
 
 // Routing
-router.get('/', (req, res) => { getProjectEvents(req, res) });
+router.get('/', (req, res) => { getProjects(req, res) });
+router.get('/events', (req, res) => { getProjectEvents(req, res) });
 router.post('/', (req, res) => { createProject(req, res) });
 
-
 // Functions
+const getProjects = async(req,res) => {
+        const userEmail = await utils.getEmailFromReq(req);
+        const allProjects = await ProjectModel.find({ 'email': userEmail });
+        res.status(StatusCodes.OK).send(allProjects);
+}
+
 const getProjectEvents = async (req, res) => {
         const userEmail = await utils.getEmailFromReq(req);
         const allProjectEvents = await EventModel.find({ 'email': userEmail });
