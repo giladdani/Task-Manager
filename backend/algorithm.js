@@ -10,7 +10,7 @@ const utils = require('./utils');
 
 // Routing
 const router = express.Router();
-router.post('/events/generate', (req, res) => { generateSchedule(req, res) });  // TODO: what's the correct URL? 
+router.post('/events/generate', (req, res) => { generateSchedule(req, res) });  
 
 
 /* Schedule Generating Algorithm
@@ -34,10 +34,9 @@ const generateSchedule = async (req, project) => {
 
     try {
         const projectName = req.body.projectName;
-        const allEvents = req.body.allEvents;
-        const estimatedTimeTotal = getTimeEstimate(req);    // TODO: Int or float representing hours (decide how to model it)
-        let estimatedTimeLeft = estimatedTimeTotal;         // TODO: Int or float representing hours (decide how to model it)
-        // TODO: check if estiamtedTime is a positive number?
+        let allEvents = req.body.allEvents;
+        const estimatedTimeTotal = getTimeEstimate(req);
+        let estimatedTimeLeft = estimatedTimeTotal;
 
         const spacingBetweenEventsMinutes = getSpacingBetweenEvents(req);
         const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
@@ -45,15 +44,16 @@ const generateSchedule = async (req, project) => {
         let currentDate = getTaskStartDate(req);
         let endDate = getTaskEndDate(req);
 
-        const maxEventsPerDay = req.body.maxEventsPerDay;
+        const maxEventsPerDay = Number(req.body.maxEventsPerDay);
         let dayRepetitionFrequency = Number(req.body.dayRepetitionFrequency);
 
-        // TODO: performance: remove all the events before the start time and after the end time of the project?
+        console.log(`Number of events before filter: ${allEvents.length}`)
+        allEvents = filterEvents(allEvents, currentDate, endDate);
+        console.log(`Number of events after filter: ${allEvents.length}`)
 
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
             const allCurrDayConstraints = getAllCurrDateConstraintsAndEvents(currentDate, allConstraintsSpecialObj);
             const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
-            // TODO: for performance, remove allCurrDatEvents from the allEvents object, to gradually size it down?
             const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDayEvents);
             const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
 
@@ -72,7 +72,7 @@ const generateSchedule = async (req, project) => {
                 }
 
                 const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
-                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate, project); // TODO: add as a parameter all the task details, such as name
+                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate, project); 
                 allEventsGeneratedBySchedule.push(event);
                 project.eventsID.push(event.id);
 
@@ -91,6 +91,25 @@ const generateSchedule = async (req, project) => {
 
     console.log("Finished generating schedule. Estimated time left: " + timeLeft);
     return [allEventsGeneratedBySchedule, timeLeft];
+}
+
+const filterEvents = (allEvents, startDate, endDate) => {
+
+    let eventsWithinDates = allEvents.filter(event => {
+        eventStartDate = new Date(event.start);
+        eventEndDate = new Date(event.end);
+
+        let notConstraint = true;
+        if (event.extendedProps && event.extendedProps.isConstraint == true) {
+            notConstraint = false;
+        }
+
+        return (eventStartDate >= startDate
+            && eventEndDate <= endDate
+            && notConstraint);
+    })
+
+    return eventsWithinDates;
 }
 
 const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, estimatedTimeLeft) => {
@@ -219,9 +238,6 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
 
         allPossibleTimeWindowsDayConstraint.possibleTimeWindows = newTimeWindowsToAdd;
     })
-
-    // optional TODO: go over time windows and remove "empty" ones
-
 
     // OPTIONAL TODO: sort time frames
 
@@ -630,7 +646,7 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
  * Relevant constraints are either those which are general constraints for the relevant day 
  * (e.g. all Tuesday constraints, if currentDate is a Tuesday)
  * or all constraints relevant to the specific date alone
- * This function also needs to receive an object of all constraints // TODO: add parameter
+ * This function also needs to receive an object of all constraints 
  * @param {*} currentDate 
  */
 const getAllCurrDateConstraintsAndEvents = (currentDate, allConstraintsSpecialObj) => {
