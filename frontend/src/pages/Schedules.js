@@ -24,14 +24,15 @@ export class Schedules extends React.Component {
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
 
-        // fetch and add constraints to FullCalenndar
         let constraintEvents = await this.fetchConstraints();
+        constraintEvents.forEach(constraint => { constraint.editable = false})
         this.addEventsToScheduleFullCalendar(constraintEvents);
-        this.setState({isLoading: false});
         
         let projectEvents = await this.fetchProjectEvents();
         this.addEventsToScheduleFullCalendar(projectEvents);
         
+        this.setState({isLoading: false});
+
         const allEvents = calendarApi.getEvents();
         this.props.setEvents(allEvents);
     }
@@ -127,29 +128,6 @@ export class Schedules extends React.Component {
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
-        // this.props.setEvents(events)
-
-        /* TODO: Just a test, delete later
-        events.forEach(event => {
-            calendarApi.addEvent(
-                {
-                    start: event.start,
-                    end: event.end,
-                }
-                )
-        });
-        */
-
-        // TODO: delete
-        // const startDate = new Date();
-        // const endDate = new Date();
-        // endDate.setHours(23);
-        // calendarApi.addEvent(
-        //     {
-        //         start: startDate,
-        //         end: endDate,
-        //     }
-        // )
     }
 
     addEventsToScheduleGoogle = (events) => {
@@ -158,15 +136,16 @@ export class Schedules extends React.Component {
         events.forEach(event => {
             const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
             const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
-            const idFunction = this.fetchEventIdFromGoogleEvent(event);
-            const idGoogle = event.id;
-            const eventID = idFunction;
+            const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
+            const googleEventId = event.id;
+            const eventID = localEventId;
 
             calendarApi.addEvent(
                 {
-                    id: eventID,
+                    id: localEventId,
+                    googleEventId: googleEventId,
                     googleCalendarId: event.calendarId,
-                    editable: false,
+                    editable: true,
                     title: event.summary,
                     start: event.start.dateTime,
                     end: event.end.dateTime,
@@ -202,7 +181,7 @@ export class Schedules extends React.Component {
         return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
     }
 
-    fetchEventIdFromGoogleEvent = (googleEvent) => {
+    fetchAppEventIdFromGoogleEvent = (googleEvent) => {
         if (!googleEvent.extendedProperties) {
             return null;
         }
@@ -246,8 +225,42 @@ export class Schedules extends React.Component {
         // }
     }
 
+    isConstraintEvent = (event) => {
+        if (!event) {
+            return false;
+        }
+
+        if (!event.extendedProps || !event.extendedProps.isConstraint) {
+            return false;
+        }
+
+        return event.extendedProps.isConstraint;
+    }
+
+    isUnexportedProjectEvent = (event) => {
+        if (!event) {
+            return false;
+        }
+
+        if (!event.extendedProps || !event.extendedProps.unexportedEvent) {
+            return false;
+        }
+
+        return event.extendedProps.unexportedEvent;
+    }
+
     handleEventDragged = (eventInfo) => {
-        this.updateEventGoogle(eventInfo.event);
+        if (this.isConstraintEvent(eventInfo.event)) {
+            return;
+        } else if (this.isUnexportedProjectEvent(eventInfo.event)) {
+            this.updateUnexportedProjectEvent(eventInfo.event);
+        } else {
+            this.updateEventGoogle(eventInfo.event);
+        }
+    }
+
+    updateUnexportedProjectEvent(event) {
+        console.log(`Updating unexported project event: ${event.title}`)
     }
 
     handleEvents = (events) => {
@@ -401,7 +414,7 @@ export class Schedules extends React.Component {
                 allDaySlot={false}
                 height="auto"
                 selectable={true}
-                // editable={true}
+                editable={true}
                 // selectMirror={true}
                 // dayMaxEvents={true}
                 eventContent={this.renderEventContent}

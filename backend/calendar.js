@@ -77,11 +77,12 @@ const updateGoogleEvent = async (req, res) => {
     const accessToken = utils.getAccessTokenFromRequest(req);
     utils.oauth2Client.setCredentials({ access_token: accessToken });
     const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+    const googleEventId = req.body.event.extendedProps.googleEventId; // TODO: add a check that this even exists, and if not return error
     try {
         const response = await googleCalendarApi.events.patch({
             auth: utils.oauth2Client,
             calendarId: req.body.googleCalendarId,
-            eventId: req.body.event.id,
+            eventId: googleEventId,
             resource: {
                 start: {
                     dateTime: new Date(req.body.event.start)
