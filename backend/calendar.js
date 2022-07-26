@@ -135,7 +135,7 @@ const insertGeneratedEventsToCalendar = async (req, res) => {
                 }
             })
 
-            const docs = await EventModel.deleteOne( {id: eventID} );
+            const docs = await EventModel.deleteOne({ id: eventID });
         }
 
         res.status(StatusCodes.OK).send();

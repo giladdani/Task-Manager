@@ -57,7 +57,7 @@ export class Schedules extends React.Component {
 
     fetchProjectEvents = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/projects', {
+            const response = await fetch('http://localhost:3001/api/projects/events', {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
