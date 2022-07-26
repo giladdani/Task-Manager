@@ -2,7 +2,7 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { ThreeDots } from  'react-loader-spinner'
+import { ThreeDots } from 'react-loader-spinner'
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -18,20 +18,20 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
-        this.setState({isLoading: true});
+        this.setState({ isLoading: true });
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
 
         let constraintEvents = await this.fetchConstraints();
-        constraintEvents.forEach(constraint => { constraint.editable = false})
+        constraintEvents.forEach(constraint => { constraint.editable = false })
         this.addEventsToScheduleFullCalendar(constraintEvents);
-        
+
         let projectEvents = await this.fetchProjectEvents();
         this.addEventsToScheduleFullCalendar(projectEvents);
-        
-        this.setState({isLoading: false});
+
+        this.setState({ isLoading: false });
 
         const allEvents = calendarApi.getEvents();
         this.props.setEvents(allEvents);
@@ -47,11 +47,15 @@ export class Schedules extends React.Component {
                 },
                 method: 'GET'
             });
-            if (response.status !== 200) throw new Error('Error while fetching events');
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -67,11 +71,14 @@ export class Schedules extends React.Component {
                 method: 'GET'
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -87,11 +94,14 @@ export class Schedules extends React.Component {
                 method: 'GET'
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -103,7 +113,7 @@ export class Schedules extends React.Component {
                 googleCalendarId: event.extendedProps.googleCalendarId
             };
 
-            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+            const response = await fetch(`http://localhost:3001/api/calendar/events/google`, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -113,18 +123,21 @@ export class Schedules extends React.Component {
                 body: JSON.stringify(body)
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
 
     addEventsToScheduleFullCalendar = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
-        
+
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
@@ -135,7 +148,9 @@ export class Schedules extends React.Component {
 
         events.forEach(event => {
             const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
-            const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
+            // const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
+            const backgroundColor = event.backgroundColor;
+
             const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
             const googleEventId = event.id;
             const eventID = localEventId;
@@ -259,8 +274,30 @@ export class Schedules extends React.Component {
         }
     }
 
-    updateUnexportedProjectEvent(event) {
-        console.log(`Updating unexported project event: ${event.title}`)
+    async updateUnexportedProjectEvent(event) {
+        try {
+            const body = {
+                event: event,
+            };
+
+            const response = await fetch(`http://localhost:3001/api/calendar/events/unexported`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token')
+                },
+                method: 'PUT',
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert(err);
+        }
     }
 
     handleEvents = (events) => {
@@ -330,7 +367,7 @@ export class Schedules extends React.Component {
             return;
         }
 
-        let newCalendarName = generatedEvents[0].title; 
+        let newCalendarName = generatedEvents[0].title;
 
         const googleResJson = await this.createGoogleCalendar(newCalendarName);
 
@@ -358,11 +395,14 @@ export class Schedules extends React.Component {
                 body: JSON.stringify(body)
             });
 
-            if (response.status !== 200) throw new Error('Error while inserting events to Google calendar');
+            if (response.status !== 200) {
+                throw new Error('Error while inserting events to Google calendar');
+            }
+
             const resJson = await response.json();
+
             return resJson;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -383,12 +423,16 @@ export class Schedules extends React.Component {
                 body: JSON.stringify(body)
             });
 
-            if (response.status !== 200) throw new Error('Error while creating new calendar');
+            if (response.status !== 200) {
+                throw new Error('Error while creating new calendar');
+            }
+
             const googleResJson = await response.json();
+
             return googleResJson;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
+
             return null;
         }
     }
@@ -396,36 +440,36 @@ export class Schedules extends React.Component {
     render() {
         return (
             <div className='demo-app'>
-            <div hidden={!this.state.isLoading}>
-                <h3>Loading your schedule</h3>
-                <ThreeDots color="#00BFFF" height={80} width={80} />
+                <div hidden={!this.state.isLoading}>
+                    <h3>Loading your schedule</h3>
+                    <ThreeDots color="#00BFFF" height={80} width={80} />
+                </div>
+                <div hidden={this.state.isLoading}>
+                    <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
+                    <button onClick={this.exportProjectEventsToGoogleCalendar}>Export generated events to Google Calendar</button>
+                    <FullCalendar
+                        plugins={[timeGridPlugin, interactionPlugin]}
+                        headerToolbar={{
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'timeGridWeek,timeGridDay'
+                        }}
+                        initialView='timeGridWeek'
+                        allDaySlot={false}
+                        height="auto"
+                        selectable={true}
+                        editable={true}
+                        // selectMirror={true}
+                        // dayMaxEvents={true}
+                        eventContent={this.renderEventContent}
+                        select={this.handleDateSelect}
+                        eventClick={this.handleEventClick}
+                        eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
+                        eventDrop={this.handleEventDragged}
+                        ref={this.calendarRef}
+                    />
+                </div>
             </div>
-            <div hidden={this.state.isLoading}>
-                <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
-                <button onClick={this.exportProjectEventsToGoogleCalendar}>Export generated events to Google Calendar</button>
-                <FullCalendar
-                plugins={[timeGridPlugin, interactionPlugin]}
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
-                }}
-                initialView='timeGridWeek'
-                allDaySlot={false}
-                height="auto"
-                selectable={true}
-                editable={true}
-                // selectMirror={true}
-                // dayMaxEvents={true}
-                eventContent={this.renderEventContent}
-                select={this.handleDateSelect}
-                eventClick={this.handleEventClick}
-                eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
-                eventDrop={this.handleEventDragged}
-                ref={this.calendarRef}
-                />
-            </div>
-        </div>
         )
     }
 }
