@@ -1,9 +1,9 @@
 import { ProjectsList } from '../components/ProjectsList';
 
-export const ProjectManagement = () => {
+export const ProjectManagement = (props) => {
     return (
         <div>
-            <ProjectsList></ProjectsList>
+            <ProjectsList allEvents={props.allEvents}></ProjectsList>
         </div>
     )
 }

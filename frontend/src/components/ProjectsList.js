@@ -29,9 +29,13 @@ export class ProjectsList extends React.Component{
             return data;
     }    
 
-    render(){
+    render() {
         const projects = this.state.projects.map((project, index) => {
-            return <li key={index}><Project project={project}></Project></li>
+
+            const allEvents = this.props.allEvents.events;
+            const projectEvents = allEvents.filter(event => event.extendedProps.projectID == project.id)
+
+            return <li key={index}><Project project={project} projectEvents={projectEvents}></Project></li>
         });
 
         return(
