@@ -8,13 +8,15 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 export const Constraints = () => {
     // Hooks
-    const [sundayValue, setSundayValue] = useState(false);
-    const [mondayValue, setMondayValue] = useState(false);
-    const [tuesdayValue, setTuesdayValue] = useState(false);
-    const [wednesdayValue, setWednesdayValue] = useState(false);
-    const [thursdayValue, setThursdayValue] = useState(false);
-    const [fridayValue, setFridayValue] = useState(false);
-    const [saturdayValue, setSaturdayValue] = useState(false);
+    const [days, setDays] = useState({
+        sundayValue: false,
+        mondayValue: false,
+        tuesdayValue: false,
+        wednesdayValue: false,
+        thursdayValue: false,
+        fridayValue: false,
+        saturdayValue: false
+    })
     const [constraintStartTime, setConstraintStartTime] = useState(new Date());
     const [constraintEndTime, setConstraintEndTime] = useState(new Date());
     const [constraintNameValue, setConstraintNameValue] = useState("");
@@ -25,22 +27,27 @@ export const Constraints = () => {
         setAllConstraints(constraints);
     });
 
-    const days = <div id="daysDiv">
-        <label>Sunday</label><input type="checkbox" onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
-        <label>Monday</label><input type="checkbox" onChange={(newValue) => { setMondayValue(newValue.target.checked); }}></input>
-        <label>Tuesday</label><input type="checkbox" onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }}></input>
-        <label>Wednesday</label><input type="checkbox" onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }}></input>
-        <label>Thursday</label><input type="checkbox" onChange={(newValue) => { setThursdayValue(newValue.target.checked); }}></input>
-        <label>Friday</label><input type="checkbox" onChange={(newValue) => { setFridayValue(newValue.target.checked); }}></input>
-        <label>Saturday</label><input type="checkbox" onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input>
+    const handleDaysChange = (e) => {
+        setDays((prev => ({...prev, [e.target.name]: e.target.checked})));
+    }
+
+    const daysCheckboxes = <div id="daysDiv">
+        <label>Sunday</label><input type="checkbox" name="sundayValue" onChange={handleDaysChange}></input>
+        <label>Monday</label><input type="checkbox" name="mondayValue" onChange={handleDaysChange}></input>
+        <label>Tuesday</label><input type="checkbox" name="tuesdayValue" onChange={handleDaysChange}></input>
+        <label>Wednesday</label><input type="checkbox" name="wednesdayValue" onChange={handleDaysChange}></input>
+        <label>Thursday</label><input type="checkbox" name="thursdayValue" onChange={handleDaysChange}></input>
+        <label>Friday</label><input type="checkbox" name="fridayValue" onChange={handleDaysChange}></input>
+        <label>Saturday</label><input type="checkbox" name="saturdayValue" onChange={handleDaysChange}></input>
     </div>
+
 
     const handleCreateClick = async () => {
         try {
-            const days = getCheckedDays(); // TODO: change to numbers to match FullCalendar
+            const checkedDays = getCheckedDays(); // TODO: change to numbers to match FullCalendar
 
             const body = {
-                days: days,
+                days: checkedDays,
                 forbiddenStartDate: constraintStartTime,
                 forbiddenEndDate: constraintEndTime,
                 title: constraintNameValue,
@@ -72,37 +79,37 @@ export const Constraints = () => {
     }
 
     const getCheckedDays = () => {
-        const days = [];
+        const checkedDays = [];
 
-        if (sundayValue) {
-            days.push("0");
+        if (days.sundayValue) {
+            checkedDays.push("0");
         }
 
-        if (mondayValue) {
-            days.push("1");
+        if (days.mondayValue) {
+            checkedDays.push("1");
         }
 
-        if (tuesdayValue) {
-            days.push("2");
+        if (days.tuesdayValue) {
+            checkedDays.push("2");
         }
 
-        if (wednesdayValue) {
-            days.push("3");
+        if (days.wednesdayValue) {
+            checkedDays.push("3");
         }
 
-        if (thursdayValue) {
-            days.push("4");
+        if (days.thursdayValue) {
+            checkedDays.push("4");
         }
 
-        if (fridayValue) {
-            days.push("5");
+        if (days.fridayValue) {
+            checkedDays.push("5");
         }
 
-        if (saturdayValue) {
-            days.push("6");
+        if (days.saturdayValue) {
+            checkedDays.push("6");
         }
 
-        return days;
+        return checkedDays;
     }
 
     const fetchConstraints = async () => {
@@ -189,7 +196,7 @@ export const Constraints = () => {
                     <tr>
                         <td><label>Day:</label></td>
                         <td>
-                            {days}
+                            {daysCheckboxes}
                         </td>
                     </tr>
                     <tr>
