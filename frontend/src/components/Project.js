@@ -146,7 +146,7 @@ export const Project = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start date: </label></td>
-                        <td className="whiteFont">
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
@@ -159,7 +159,7 @@ export const Project = (props) => {
                     </tr>
                     <tr>
                         <td><label>End date:</label></td>
-                        <td className="whiteFont">
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
