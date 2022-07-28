@@ -11,7 +11,7 @@ const constraints = require('./constraints');
 const projects = require('./projects');
 
 // Constants
-const DbUri = `mongodb+srv://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@task-manager.sh855.mongodb.net/TaskManager?retryWrites=true&w=majority"`
+const DbUri = `mongodb+srv://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@task-manager.sh855.mongodb.net/TaskManager?retryWrites=true&w=majority`
 const PORT = process.env.PORT || 3001;
 
 const app = express();

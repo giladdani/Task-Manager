@@ -19,7 +19,7 @@ export const Project = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start time:</label></td>
-                        <td className="whiteFont">
+                        <td>
                             {props.project.start}
                             {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
@@ -32,7 +32,7 @@ export const Project = (props) => {
                     </tr>
                     <tr>
                         <td><label>End time:</label></td>
-                        <td className="whiteFont">
+                        <td>
                             {props.project.end}
                             {/* <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker

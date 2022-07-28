@@ -3,14 +3,19 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from  'react-loader-spinner'
+import EventDialog from '../components/EventDialog'
+import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
 
 export class Schedules extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            currentEvents: [],
-            isLoading: false
+            currentEvents: [],  // TODO: delete? do we use this?
+            isLoading: false,
+            isDialogOpen: false,
+            selectedEvent: { title: "" }
         }
     }
 
@@ -138,7 +143,6 @@ export class Schedules extends React.Component {
             const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
             const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
             const googleEventId = event.id;
-            const eventID = localEventId;
 
             calendarApi.addEvent(
                 {
@@ -208,28 +212,14 @@ export class Schedules extends React.Component {
         }
     }
 
-    // TODO: open a dialog with the ability to edit/delete the event
-    handleEventClick = (clickInfo) => {
-        let event = clickInfo.event;
-        let msg = `You have chosen the event ${event.title}
-        \nStart date: ${event.start}
-        \nEnd date: ${event.end}
-        \nEvent ID: ${event.id}
-        \nProject ID: ${event.extendedProps.projectID}
-        \nBackground Color: ${event.backgroundColor}
-        \nUser Email: ${event.extendedProps.email}
-        \nLater on we will allow the user to edit the event here`;
-        alert(msg);
-        // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
-        //   clickInfo.event.remove()
-        // }
+    toggleDialog = (isOpen) =>{
+        this.setState({isDialogOpen: isOpen});
     }
 
     isConstraintEvent = (event) => {
         if (!event) {
             return false;
         }
-
         if (!event.extendedProps || !event.extendedProps.isConstraint) {
             return false;
         }
@@ -284,8 +274,7 @@ export class Schedules extends React.Component {
             if (event.extendedProps.isConstraint !== undefined && event.extendedProps.isConstraint === true) {
                 event.setProp("display", displayType);
             }
-        }
-        )
+        })
     }
 
     setShowConstraintsValue = (newValue) => {
@@ -326,7 +315,7 @@ export class Schedules extends React.Component {
 
         let generatedEvents = allEvents.filter(event => event.extendedProps.unexportedEvent === true);
 
-        if (generatedEvents.length == 0) {
+        if (generatedEvents.length === 0) {
             return;
         }
 
@@ -339,7 +328,6 @@ export class Schedules extends React.Component {
         const resJson = this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
         alert("Events added to Google Calendar!");
     }
-
 
     insertGeneratedEventsToGoogleCalendar = async (events, googleCalendarID) => {
         try {
@@ -393,39 +381,73 @@ export class Schedules extends React.Component {
         }
     }
 
+    handleEventClick = (clickInfo) => {
+        this.setState({selectedEvent: clickInfo.event});
+        this.toggleDialog(true);
+        // Some useful event properties:
+        // event.start
+        // event.end
+        // event.id
+        // event.extendedProps.projectID
+        // event.backgroundColor
+        // event.extendedProps.email
+        // clickInfo.event.remove()
+    }
+
+    handleEventEdit = (updatedEvent) => {
+        //TODO:
+    }
+
+    handleEventDelete = (event) => {
+        // TODO:
+    }
+
     render() {
         return (
-            <div className='demo-app'>
-            <div hidden={!this.state.isLoading}>
-                <h3>Loading your schedule</h3>
-                <ThreeDots color="#00BFFF" height={80} width={80} />
+            <div>
+                <div hidden={!this.state.isLoading}>
+                    <h3>Loading your schedule</h3>
+                    <ThreeDots color="#00BFFF" height={80} width={80} />
+                </div>
+                <div hidden={this.state.isLoading}>
+                    <div>
+                        <label>Show Constraints</label>
+                        <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
+                    </div>
+                    <div>
+                        <Button variant="contained" color="primary" onClick={this.exportProjectEventsToGoogleCalendar}>Export generated events to Google Calendar</Button>
+                    </div>
+                    <FullCalendar
+                        plugins={[timeGridPlugin, interactionPlugin]}
+                        headerToolbar={{
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'timeGridWeek,timeGridDay'
+                        }}
+                        initialView='timeGridWeek'
+                        allDaySlot={false}
+                        height="auto"
+                        selectable={true}
+                        editable={true}
+                        // selectMirror={true}
+                        // dayMaxEvents={true}
+                        eventContent={this.renderEventContent}
+                        select={this.handleDateSelect}
+                        eventClick={this.handleEventClick}
+                        eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
+                        eventDrop={this.handleEventDragged}
+                        ref={this.calendarRef}
+                    />
+
+                    <EventDialog
+                        event={this.state.selectedEvent}
+                        isOpen={this.state.isDialogOpen}
+                        toggleOpen={this.toggleDialog}
+                        onEventEdit={this.handleEventEdit}
+                        onEventDelete={this.handleEventDelete}
+                    />
+                </div>
             </div>
-            <div hidden={this.state.isLoading}>
-                <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
-                <button onClick={this.exportProjectEventsToGoogleCalendar}>Export generated events to Google Calendar</button>
-                <FullCalendar
-                plugins={[timeGridPlugin, interactionPlugin]}
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
-                }}
-                initialView='timeGridWeek'
-                allDaySlot={false}
-                height="auto"
-                selectable={true}
-                editable={true}
-                // selectMirror={true}
-                // dayMaxEvents={true}
-                eventContent={this.renderEventContent}
-                select={this.handleDateSelect}
-                eventClick={this.handleEventClick}
-                eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
-                eventDrop={this.handleEventDragged}
-                ref={this.calendarRef}
-                />
-            </div>
-        </div>
         )
     }
 }

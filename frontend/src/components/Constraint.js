@@ -101,7 +101,7 @@ export const Constraint = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start Time: </label></td>
-                        <td className="whiteFont">
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={constraintStartTime}
@@ -113,7 +113,7 @@ export const Constraint = (props) => {
                     </tr>
                     <tr>
                         <td><label>End Time: </label></td>
-                        <td className="whiteFont">
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={constraintEndTime}
