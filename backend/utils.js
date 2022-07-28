@@ -35,6 +35,14 @@ const getEmailFromAccessToken = async (accessToken) => {
     return email;
 }
 
+const getAvatarUrlFromAccessToken = async(accessToken) => {
+    const response = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+    headers: {
+        'Authorization': `Bearer ${accessToken}`
+    }});
+    return response.data.picture;
+}
+
 const generateId = () => {
     return uuidv4();
 }
@@ -46,4 +54,5 @@ module.exports = {
     getEmailFromReq: getEmailFromReq,
     getAccessTokenFromCode: getAccessTokenFromCode,
     getEmailFromAccessToken: getEmailFromAccessToken,
+    getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken
 }

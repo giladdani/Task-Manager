@@ -5,7 +5,6 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from  'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox';
-import Button from '@mui/material/Button';
 
 export class Schedules extends React.Component {
     constructor(props) {
