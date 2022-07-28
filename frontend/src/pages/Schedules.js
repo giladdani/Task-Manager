@@ -395,7 +395,7 @@ export class Schedules extends React.Component {
 
     render() {
         return (
-            <div>
+            <>
                 <div hidden={!this.state.isLoading}>
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
@@ -435,7 +435,7 @@ export class Schedules extends React.Component {
                         onEventDelete={this.handleEventDelete}
                     />
                 </div>
-            </div>
+            </>
         )
     }
 }

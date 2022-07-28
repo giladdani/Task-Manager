@@ -80,55 +80,53 @@ export const Constraint = (props) => {
     }
 
     return (
-        <div>
-            <table>
-                <tbody>
-                    <tr>
-                        <td><label>Name: </label></td>
-                        <td><input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue}></input></td>
-                    </tr>
-                    <tr>
-                        <td><label>Days of Week: </label></td>
-                        <td id="daysDiv">
-                            <label>Sunday</label><input type="checkbox" checked={sundayValue} onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
-                            <label>Monday</label><input type="checkbox" checked={mondayValue} onChange={(newValue) => { setMondayValue(newValue.target.checked); }}></input>
-                            <label>Tuesday</label><input type="checkbox" checked={tuesdayValue} onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }}></input>
-                            <label>Wednesday</label><input type="checkbox" checked={wednesdayValue} onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }}></input>
-                            <label>Thursday</label><input type="checkbox" checked={thursdayValue} onChange={(newValue) => { setThursdayValue(newValue.target.checked); }}></input>
-                            <label>Friday</label><input type="checkbox" checked={fridayValue} onChange={(newValue) => { setFridayValue(newValue.target.checked); }}></input>
-                            <label>Saturday</label><input type="checkbox" checked={saturdayValue} onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>Start Time: </label></td>
-                        <td className="whiteTimeFont">
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={constraintStartTime}
-                                    onChange={(newValue) => { setConstraintStartTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>End Time: </label></td>
-                        <td className="whiteTimeFont">
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={constraintEndTime}
-                                    onChange={(newValue) => { setConstraintEndTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><button onClick={handleSaveChangesClick}>Save Changes</button></td>
-                        <td><button onClick={handleDeleteClick}>Delete</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <table>
+            <tbody>
+                <tr>
+                    <td><label>Name: </label></td>
+                    <td><input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue}></input></td>
+                </tr>
+                <tr>
+                    <td><label>Days of Week: </label></td>
+                    <td id="daysDiv">
+                        <label>Sunday</label><input type="checkbox" checked={sundayValue} onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
+                        <label>Monday</label><input type="checkbox" checked={mondayValue} onChange={(newValue) => { setMondayValue(newValue.target.checked); }}></input>
+                        <label>Tuesday</label><input type="checkbox" checked={tuesdayValue} onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }}></input>
+                        <label>Wednesday</label><input type="checkbox" checked={wednesdayValue} onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }}></input>
+                        <label>Thursday</label><input type="checkbox" checked={thursdayValue} onChange={(newValue) => { setThursdayValue(newValue.target.checked); }}></input>
+                        <label>Friday</label><input type="checkbox" checked={fridayValue} onChange={(newValue) => { setFridayValue(newValue.target.checked); }}></input>
+                        <label>Saturday</label><input type="checkbox" checked={saturdayValue} onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label>Start Time: </label></td>
+                    <td className="whiteTimeFont">
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <TimePicker
+                                value={constraintStartTime}
+                                onChange={(newValue) => { setConstraintStartTime(newValue) }}
+                                renderInput={(params) => <TextField {...params} />}
+                            />
+                        </LocalizationProvider>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label>End Time: </label></td>
+                    <td className="whiteTimeFont">
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <TimePicker
+                                value={constraintEndTime}
+                                onChange={(newValue) => { setConstraintEndTime(newValue) }}
+                                renderInput={(params) => <TextField {...params} />}
+                            />
+                        </LocalizationProvider>
+                    </td>
+                </tr>
+                <tr>
+                    <td><button onClick={handleSaveChangesClick}>Save Changes</button></td>
+                    <td><button onClick={handleDeleteClick}>Delete</button></td>
+                </tr>
+            </tbody>
+        </table>
     )
 }

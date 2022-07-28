@@ -29,8 +29,6 @@ export const AvatarPhoto = () => {
     });
 
     return (
-        <div>
-            <Avatar src={avatarUrl} />
-        </div>
+        <Avatar src={avatarUrl} />
     )
 }

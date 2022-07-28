@@ -89,7 +89,7 @@ export const ProjectManagement = (props) => {
 
 
     return (
-        <div>
+        <>
             {allProjects.length == 0 &&
                 <p>User has no projects!</p>
             }
@@ -99,6 +99,6 @@ export const ProjectManagement = (props) => {
                 deleteProject={deleteProject}
                 exportProject={exportProject}
             ></ProjectsList>
-        </div>
+        </>
     )
 }

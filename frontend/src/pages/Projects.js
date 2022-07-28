@@ -135,7 +135,7 @@ export const Projects = (props) => {
     }
 
     return (
-        <div>
+        <>
             <h1>Generate</h1>
             <table>
                 <tbody>
@@ -223,6 +223,6 @@ export const Projects = (props) => {
                     </tr>
                 </tbody>
             </table>
-        </div>
+        </>
     )
 }

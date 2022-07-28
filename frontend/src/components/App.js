@@ -22,7 +22,7 @@ const App = () => {
   }
 
   const NavbarContainer = () => (
-    <div>
+    <>
       <div>{<AvatarPhoto/>}</div>
       <div className="app-header">
         <nav className="nav-bar">
@@ -48,7 +48,7 @@ const App = () => {
             <Route path="/projectmanagement" element={<ProjectManagement allEvents={allEvents}/>}></Route>
           </Routes>
       </div>
-    </div>
+    </>
   )
 
   return (
