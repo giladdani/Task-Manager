@@ -23,20 +23,20 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
-        this.setState({isLoading: true});
+        this.setState({ isLoading: true });
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
 
         let constraintEvents = await this.fetchConstraints();
-        constraintEvents.forEach(constraint => { constraint.editable = false})
+        constraintEvents.forEach(constraint => { constraint.editable = false })
         this.addEventsToScheduleFullCalendar(constraintEvents);
-        
+
         let projectEvents = await this.fetchProjectEvents();
         this.addEventsToScheduleFullCalendar(projectEvents);
-        
-        this.setState({isLoading: false});
+
+        this.setState({ isLoading: false });
 
         const allEvents = calendarApi.getEvents();
         this.props.setEvents(allEvents);
@@ -52,11 +52,15 @@ export class Schedules extends React.Component {
                 },
                 method: 'GET'
             });
-            if (response.status !== 200) throw new Error('Error while fetching events');
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -72,11 +76,14 @@ export class Schedules extends React.Component {
                 method: 'GET'
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -92,11 +99,14 @@ export class Schedules extends React.Component {
                 method: 'GET'
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -108,7 +118,7 @@ export class Schedules extends React.Component {
                 googleCalendarId: event.extendedProps.googleCalendarId
             };
 
-            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+            const response = await fetch(`http://localhost:3001/api/calendar/events/google`, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -118,18 +128,21 @@ export class Schedules extends React.Component {
                 body: JSON.stringify(body)
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
             const data = await response.json();
+
             return data;
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
         }
     }
 
     addEventsToScheduleFullCalendar = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
-        
+
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
@@ -140,7 +153,9 @@ export class Schedules extends React.Component {
 
         events.forEach(event => {
             const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
-            const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
+            // const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
+            const backgroundColor = event.backgroundColor;
+
             const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
             const googleEventId = event.id;
 
@@ -154,7 +169,7 @@ export class Schedules extends React.Component {
                     start: event.start.dateTime,
                     end: event.end.dateTime,
                     allDay: false, // TODO: change based on Google?
-                    fullCalendarProjectId: fullCalendarProjectId,
+                    projectId: fullCalendarProjectId,
                     backgroundColor: backgroundColor,
                 }
             )
@@ -170,7 +185,7 @@ export class Schedules extends React.Component {
             return null;
         }
 
-        return googleEvent.extendedProperties.private.fullCalendarProjectID;
+        return googleEvent.extendedProperties.private.fullCalendarProjectId;
     }
 
     fetchBackgroundColorFromGoogleEvent = (googleEvent) => {
@@ -194,7 +209,7 @@ export class Schedules extends React.Component {
             return null;
         }
 
-        return googleEvent.extendedProperties.private.fullCalendarEventID;
+        return googleEvent.extendedProperties.private.fullCalendarEventId;
     }
 
     handleDateSelect = (selectInfo) => {
@@ -214,6 +229,11 @@ export class Schedules extends React.Component {
 
     toggleDialog = (isOpen) =>{
         this.setState({isDialogOpen: isOpen});
+    }
+    
+    handleEventClick = (clickInfo) => {
+        this.setState({selectedEvent: clickInfo.event});
+        this.toggleDialog(true);
     }
 
     isConstraintEvent = (event) => {
@@ -249,8 +269,30 @@ export class Schedules extends React.Component {
         }
     }
 
-    updateUnexportedProjectEvent(event) {
-        console.log(`Updating unexported project event: ${event.title}`)
+    async updateUnexportedProjectEvent(event) {
+        try {
+            const body = {
+                event: event,
+            };
+
+            const response = await fetch(`http://localhost:3001/api/calendar/events/unexported`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token')
+                },
+                method: 'PUT',
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert(err);
+        }
     }
 
     handleEvents = (events) => {
@@ -289,111 +331,6 @@ export class Schedules extends React.Component {
         this.updateConstraintDisplayValue(displayType);
     }
 
-    // TODO:
-    exportProjectEventsToGoogleCalendar = async () => {
-        /*
-        1. Get all generated events:
-            get all events
-            Alternatively: save all generated events in a special field
-            get all events of the project (by id?)
-        
-        2. Create calendar in Google
-            Base on event name
-
-        3. Send to google calendar API, insert to the newly created calendar
-            Add extended properties for our project ID
-
-        4. Delete from database all exported events
-
-        5. Refresh page
-        */
-
-
-        // Get all generated events
-        let calendarApi = this.calendarRef.current.getApi();
-        const allEvents = calendarApi.getEvents();
-
-        let generatedEvents = allEvents.filter(event => event.extendedProps.unexportedEvent === true);
-
-        if (generatedEvents.length === 0) {
-            return;
-        }
-
-        let newCalendarName = generatedEvents[0].title; 
-
-        const googleResJson = await this.createGoogleCalendar(newCalendarName);
-
-        const googleCalendarID = googleResJson.data.id;
-
-        const resJson = this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
-        alert("Events added to Google Calendar!");
-    }
-
-    insertGeneratedEventsToGoogleCalendar = async (events, googleCalendarID) => {
-        try {
-            const body = {
-                events: events,
-                googleCalendarId: googleCalendarID,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/events/generated`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) throw new Error('Error while inserting events to Google calendar');
-            const resJson = await response.json();
-            return resJson;
-        }
-        catch (err) {
-            console.error(err);
-        }
-    }
-
-    createGoogleCalendar = async (newCalendarName) => {
-        try {
-            const body = {
-                calendarName: newCalendarName,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) throw new Error('Error while creating new calendar');
-            const googleResJson = await response.json();
-            return googleResJson;
-        }
-        catch (err) {
-            console.error(err);
-            return null;
-        }
-    }
-
-    handleEventClick = (clickInfo) => {
-        this.setState({selectedEvent: clickInfo.event});
-        this.toggleDialog(true);
-        // Some useful event properties:
-        // event.start
-        // event.end
-        // event.id
-        // event.extendedProps.projectID
-        // event.backgroundColor
-        // event.extendedProps.email
-        // clickInfo.event.remove()
-    }
-
     handleEventEdit = (updatedEvent) => {
         //TODO:
     }
@@ -413,9 +350,6 @@ export class Schedules extends React.Component {
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
-                    </div>
-                    <div>
-                        <Button variant="contained" color="primary" onClick={this.exportProjectEventsToGoogleCalendar}>Export generated events to Google Calendar</Button>
                     </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}

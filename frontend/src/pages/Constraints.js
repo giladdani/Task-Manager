@@ -124,6 +124,7 @@ export const Constraints = () => {
 
         if (response.status !== 200) throw new Error('Error while fetching constraints')
         const data = await response.json();
+        
         return data;
     }
 
@@ -221,16 +222,6 @@ export const Constraints = () => {
                                     renderInput={(params) => <TextField {...params} />}
                                 />
                             </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>Repeat:</label></td>
-                        <td>
-                            <select>
-                                <option>Daily</option>
-                                <option>Weekly</option>
-                                <option>Monthly</option>
-                            </select>
                         </td>
                     </tr>
                     <tr>

@@ -2,6 +2,7 @@ const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
 const ProjectModel = require('./models/project')
+const { google } = require('googleapis');
 
 const algorithm = require('./algorithm');
 const utils = require('./utils');
@@ -11,6 +12,9 @@ const router = express.Router();
 router.get('/', (req, res) => { getProjects(req, res) });
 router.get('/events', (req, res) => { getProjectEvents(req, res) });
 router.post('/', (req, res) => { createProject(req, res) });
+router.post('/export/:id', (req, res) => { exportProject(req, res) });
+router.delete('/:id', (req, res) => { deleteProject(req, res) });
+
 
 // Functions
 const getProjects = async (req, res) => {
@@ -62,6 +66,183 @@ const createProject = async (req, res) => {
                 }
         } catch (err) {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error');
+        }
+}
+
+const exportProject = async (req, res) => {
+        let errorMsg = null;
+        const projectId = req.params.id;
+        let project = null;
+
+        try {
+                project = await ProjectModel.findOne({ 'id': projectId });
+
+                if (!project) {
+                        res.status(StatusCodes.BAD_REQUEST).send(`Could not find project matching ID ${projectId}`);
+                        return;
+                }
+
+                if (project.exportedToGoogle) {
+                        res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} is already exported to Google.`);
+                        return;
+                }
+
+                const allEvents = req.body.events;
+                const allProjectEvents = allEvents.filter(event => {
+                        return event.extendedProps.unexportedEvent === true &&
+                                event.extendedProps.projectId === project.id
+                });
+
+                if (allProjectEvents.length == 0) {
+                        res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it..`);
+                        return;
+                }
+
+                const googleResJson = await createGoogleCalendar(req, project);
+                const googleCalendarId = googleResJson.data.id;
+                const errMsg = await insertEventsToGoogleCalendar(req, allProjectEvents, project, googleCalendarId);
+
+                let docs = await EventModel.deleteMany({ 'projectId': projectId });
+                docs = await ProjectModel.updateOne({ 'id': projectId },
+                        {
+                                $set: {
+                                        exportedToGoogle: true,
+                                        googleCalendarId: googleCalendarId,
+                                }
+                        });
+        } catch (err) {
+                errorMsg = err;
+        }
+
+        if (errorMsg == null) {
+                console.log(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
+                res.status(StatusCodes.OK).send(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
+        } else {
+                console.log(`ERROR: Failed to export project ${project.title} (ID: ${projectId})`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
+        }
+}
+
+const createGoogleCalendar = async (req, project) => {
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({ access_token: accessToken });
+        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+        let res = null;
+
+        try {
+                const googleRes = await googleCalendarApi.calendars.insert({
+                        auth: utils.oauth2Client,
+                        resource: {
+                                summary: project.title,
+                        }
+                })
+
+                res = googleRes;
+        }
+        catch (err) {
+                console.log(err);
+                res = err;
+        }
+
+        return res;
+}
+
+const insertEventsToGoogleCalendar = async (req, events, projet, calendarId) => {
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({ access_token: accessToken });
+        const calendar = google.calendar('v3');
+        let errMsg = null;
+
+        try {
+                // TODO: change this to batch
+                for (const event of events) {
+                        const eventId = event.id;
+                        const projectId = event.extendedProps.projectId;
+                        const backgroundColor = event.backgroundColor;
+
+                        const response = await calendar.events.insert({
+                                auth: utils.oauth2Client,
+                                calendarId: calendarId,
+                                requestBody: {
+                                        summary: event.title,
+                                        start: {
+                                                dateTime: new Date(event.start)
+                                        },
+                                        end: {
+                                                dateTime: new Date(event.end)
+                                        },
+                                        extendedProperties: {
+                                                private: {
+                                                        fullCalendarEventId: eventId,
+                                                        fullCalendarProjectId: projectId,
+                                                        fullCalendarBackgroundColor: backgroundColor,
+                                                },
+                                        }
+                                }
+                        })
+                }
+        } catch (error) {
+                console.log(`[insertGeneratedEventsToGoogleCalendar] ${error}`);
+                errMsg = error;
+        }
+
+        return errMsg;
+}
+
+
+
+
+
+
+
+
+
+
+
+const deleteProject = async (req, res) => {
+        let errorMsg = null;
+        const projectId = req.params.id;
+        let project = null;
+
+        try {
+                project = await ProjectModel.findOne({ 'id': projectId });
+
+                if (!project) {
+                        return;
+                }
+
+                if (project.exportedToGoogle) {
+                        const accessToken = utils.getAccessTokenFromRequest(req);
+                        utils.oauth2Client.setCredentials({ access_token: accessToken });
+                        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+                        let res = null;
+                        let googleCalendarId = project.googleCalendarId;
+
+                        if (!googleCalendarId) {
+                                throw (`Project is not associated with any Google calendar ID.`);
+                        }
+
+                        const googleRes = await googleCalendarApi.calendars.delete({
+                                auth: utils.oauth2Client,
+                                calendarId: googleCalendarId,
+                        })
+
+                        res = googleRes;
+                }
+
+                let docs = await EventModel.deleteMany({ 'projectId': projectId });
+                docs = await ProjectModel.deleteOne({ 'id': projectId });
+        } catch (err) {
+                errorMsg = err;
+                console.error(err);
+        }
+
+        if (errorMsg == null) {
+                console.log(`Deleted project ${project.title} (ID: ${projectId})`);
+                res.status(StatusCodes.OK).send(`Deleted project ${project.title} (ID: ${projectId})`);
+        } else {
+                console.log(`ERROR: Failed to delete project ${project.title} (ID: ${projectId})`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
         }
 }
 
@@ -127,13 +308,13 @@ function isPositiveInteger(input) {
 }
 
 const createNewProject = async (req) => {
-        const projectID = utils.generateId();
+        const projectId = utils.generateId();
         const userEmail = await utils.getEmailFromReq(req);
         const backgroundColor = getRandomColor();
 
         const newProject = {
                 title: req.body.projectName,
-                id: projectID,
+                id: projectId,
                 eventsID: [],
                 timeEstimate: req.body.estimatedTime,
                 start: req.body.startDate,
@@ -142,6 +323,7 @@ const createNewProject = async (req) => {
                 spacingLengthMinutes: req.body.spacingLengthMinutes,
                 backgroundColor: backgroundColor,
                 email: userEmail,
+                exportedToGoogle: false,
         }
 
         return newProject;
