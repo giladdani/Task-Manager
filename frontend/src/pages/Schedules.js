@@ -2,15 +2,20 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { ThreeDots } from 'react-loader-spinner'
+import { ThreeDots } from  'react-loader-spinner'
+import EventDialog from '../components/EventDialog'
+import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
 
 export class Schedules extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            currentEvents: [],
-            isLoading: false
+            currentEvents: [],  // TODO: delete? do we use this?
+            isLoading: false,
+            isDialogOpen: false,
+            selectedEvent: { title: "" }
         }
     }
 
@@ -153,7 +158,6 @@ export class Schedules extends React.Component {
 
             const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
             const googleEventId = event.id;
-            const eventID = localEventId;
 
             calendarApi.addEvent(
                 {
@@ -223,28 +227,19 @@ export class Schedules extends React.Component {
         }
     }
 
-    // TODO: open a dialog with the ability to edit/delete the event
+    toggleDialog = (isOpen) =>{
+        this.setState({isDialogOpen: isOpen});
+    }
+    
     handleEventClick = (clickInfo) => {
-        let event = clickInfo.event;
-        let msg = `You have chosen the event ${event.title}
-        \nStart date: ${event.start}
-        \nEnd date: ${event.end}
-        \nEvent ID: ${event.id}
-        \nProject ID: ${event.extendedProps.projectId}
-        \nBackground Color: ${event.backgroundColor}
-        \nUser Email: ${event.extendedProps.email}
-        \nLater on we will allow the user to edit the event here`;
-        alert(msg);
-        // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
-        //   clickInfo.event.remove()
-        // }
+        this.setState({selectedEvent: clickInfo.event});
+        this.toggleDialog(true);
     }
 
     isConstraintEvent = (event) => {
         if (!event) {
             return false;
         }
-
         if (!event.extendedProps || !event.extendedProps.isConstraint) {
             return false;
         }
@@ -321,8 +316,7 @@ export class Schedules extends React.Component {
             if (event.extendedProps.isConstraint !== undefined && event.extendedProps.isConstraint === true) {
                 event.setProp("display", displayType);
             }
-        }
-        )
+        })
     }
 
     setShowConstraintsValue = (newValue) => {
@@ -337,15 +331,26 @@ export class Schedules extends React.Component {
         this.updateConstraintDisplayValue(displayType);
     }
 
+    handleEventEdit = (updatedEvent) => {
+        //TODO:
+    }
+
+    handleEventDelete = (event) => {
+        // TODO:
+    }
+
     render() {
         return (
-            <div className='demo-app'>
+            <div>
                 <div hidden={!this.state.isLoading}>
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
                 <div hidden={this.state.isLoading}>
-                    <label>Show Constraints</label><input id="showConstraintsCheckbox" type="checkbox" onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></input>
+                    <div>
+                        <label>Show Constraints</label>
+                        <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
+                    </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
                         headerToolbar={{
@@ -366,6 +371,14 @@ export class Schedules extends React.Component {
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}
                         ref={this.calendarRef}
+                    />
+
+                    <EventDialog
+                        event={this.state.selectedEvent}
+                        isOpen={this.state.isDialogOpen}
+                        toggleOpen={this.toggleDialog}
+                        onEventEdit={this.handleEventEdit}
+                        onEventDelete={this.handleEventDelete}
                     />
                 </div>
             </div>

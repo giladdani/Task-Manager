@@ -202,19 +202,19 @@ export const Constraints = () => {
                     </tr>
                     <tr>
                         <td><label>Start time:</label></td>
-                        <td>
-                            <LocalizationProvider dateAdapter={AdapterDateFns} className="whiteFont">
+                        <td className="whiteTimeFont">
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={constraintStartTime}
                                     onChange={(newValue) => { setConstraintStartTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params} className="whiteFont" />}
+                                    renderInput={(params) => <TextField {...params}/>}
                                 />
                             </LocalizationProvider>
                         </td>
                     </tr>
                     <tr>
                         <td><label>End time:</label></td>
-                        <td className="whiteFont">
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={constraintEndTime}

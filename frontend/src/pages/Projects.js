@@ -169,7 +169,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start Date:</label></td>
-                        <td>
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
@@ -181,7 +181,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>End Date:</label></td>
-                        <td>
+                        <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}

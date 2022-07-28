@@ -5,8 +5,12 @@
 }
 
 /* White coloring the text of the TimePicker in Constraints page */
-.MuiOutlinedInput-input{ 
-  color: white !important;;
+.whiteTimeFont .MuiOutlinedInput-input{ 
+  color: white !important;
+}
+
+#editEventTable .MuiFormControl-root{
+  margin: 5px !important;
 }
 
 /* coloring the calendar's day headers (they were white so text was invisible) in Scheduels page */
