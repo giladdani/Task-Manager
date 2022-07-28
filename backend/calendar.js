@@ -72,9 +72,9 @@ const getColorString = (calendar, allGoogleCalendarColors) => {
     */
     const colorId = Number(calendar.colorId);
     const colors = Object.entries(allGoogleCalendarColors);
-    const colorEntry = colors.at(colorId - 1);
-    const background = colorEntry.at(1).background;
-    const foreground = colorEntry.at(1).foreground;
+    const colorEntry = colors[colorId - 1];
+    const background = colorEntry[1].background;
+    const foreground = colorEntry[1].foreground;
 
     return [background, foreground];
 }

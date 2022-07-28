@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+require('dotenv').config({path:__dirname+'/.env'})
 const createError = require('http-errors');
 
 // Local files
