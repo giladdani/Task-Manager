@@ -4,7 +4,6 @@ const Schema = mongoose.Schema;
 const projectSchema = new Schema({
     title: String,
     id: String,
-    eventsID: [String],
     timeEstimate: Number,
     start: Date,
     end: Date,
@@ -12,6 +11,8 @@ const projectSchema = new Schema({
     spacingLengthMinutes: Number,
     backgroundColor: String,
     email: String,
+    exportedToGoogle: Boolean,
+    googleCalendarId: String
 })
 
 const Project = mongoose.model('Project', projectSchema);

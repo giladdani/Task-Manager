@@ -5,8 +5,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import Button from "@material-ui/core/Button";
-
-
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Tooltip from "@material-ui/core/Tooltip";
 
 export const Project = (props) => {
     const allEvents = props.projectEvents;
@@ -16,7 +20,7 @@ export const Project = (props) => {
     const [startDate, setStartDate] = React.useState(new Date(props.project.start));
     const [endDate, setEndDate] = React.useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = React.useState(false);
-
+    const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
 
 
     const oldEvents = allEvents.filter(event => {
@@ -59,9 +63,17 @@ export const Project = (props) => {
         return diffHrsTotal;
     }
 
-    const totalHoursPast = getAllHoursInEvents(oldEvents);
-    const totalHoursFuture = getAllHoursInEvents(futureEvents);
-    const totalHoursExpected = totalHoursPast + totalHoursFuture;
+    let totalHoursPast = getAllHoursInEvents(oldEvents);
+    totalHoursPast = totalHoursPast.toFixed(2);
+    totalHoursPast = parseFloat(totalHoursPast);
+
+    let totalHoursFuture = getAllHoursInEvents(futureEvents);
+    totalHoursFuture = totalHoursFuture.toFixed(2);
+    totalHoursFuture = parseFloat(totalHoursFuture);
+
+    let totalHoursExpected = totalHoursPast + totalHoursFuture;
+    totalHoursExpected = totalHoursExpected.toFixed(2);
+    totalHoursExpected = parseFloat(totalHoursExpected);
 
 
     const handleOnEditClick = () => {
@@ -73,9 +85,25 @@ export const Project = (props) => {
     }
 
     const handleOnSave = () => {
-
         setIsBeingEdited(false);
+    }
 
+    const handleOnDeleteClick = () => {
+        setOpenDeleteDialog(true);
+    }
+
+    const handleCancelDelete = () => {
+        setOpenDeleteDialog(false);
+    }
+
+    const handleConfirmDelete = () => {
+        setOpenDeleteDialog(false);
+
+        props.deleteProject(props.project);
+    }
+
+    const handleOnExportClick = () => {
+        props.exportProject(props.project);
     }
 
     return (
@@ -99,19 +127,19 @@ export const Project = (props) => {
                     </tr>
                     <tr>
                         <td><label>Events finished: </label></td>
-                        <tr>{oldEvents.length}</tr>
+                        <td>{oldEvents.length}</td>
                     </tr>
                     <tr>
                         <td><label>Hours done: </label></td>
-                        <tr>{totalHoursPast}</tr>
+                        <td>{totalHoursPast}</td>
                     </tr>
                     <tr>
                         <td><label>Events left: </label></td>
-                        <tr>{futureEvents.length}</tr>
+                        <td>{futureEvents.length}</td>
                     </tr>
                     <tr>
                         <td><label>Hours left: </label></td>
-                        <tr>{totalHoursFuture}</tr>
+                        <td>{totalHoursFuture}</td>
                     </tr>
                     <tr>
                         <td>On track to perform {totalHoursExpected} out of estimated {props.project.timeEstimate} hours.</td>
@@ -147,6 +175,35 @@ export const Project = (props) => {
             <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited}>Edit</Button>
             <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited}>Cancel</Button>
             <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited}>Save</Button>
+            <Tooltip title="Deletes the project and all its events. If the project is already exported, it deletes the calendar from Google Calendar.">
+                <Button variant='contained' onClick={handleOnDeleteClick}>Delete</Button>
+            </Tooltip>
+            {!props.project.exportedToGoogle &&
+                <Tooltip title="Export all the project's events to your Google calendar. This creates a new Calendar for the events.">
+                    <Button variant='contained' onClick={handleOnExportClick}>Export</Button>
+                </Tooltip>
+            }
+            <Dialog
+                open={openDeleteDialog}
+                onClose={handleCancelDelete}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">
+                    {`Delete ${projectName}?`}
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        Delete the project and all its events from the schedule.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCancelDelete}>Cancel</Button>
+                    <Button onClick={handleConfirmDelete} autoFocus>
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     )
 }

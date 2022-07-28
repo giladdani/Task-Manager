@@ -5,7 +5,7 @@ const projectEventSchema = new Schema({
     title: String,
     id: String,
     projectName: String,
-    projectID: String,
+    projectId: String,
     start: Date,
     end: Date,
     backgroundColor: String,

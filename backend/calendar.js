@@ -6,34 +6,11 @@ const utils = require('./utils');
 
 // Routing
 const router = express.Router();
-router.post('/', (req, res) => { createGoogleCalendar(req, res) });
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
 router.put('/events/google', (req, res) => { updateGoogleEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 router.put('/events/unexported', (req, res) => { updateUnexportedEvent(req, res) });
-
-
-const createGoogleCalendar = async (req, res) => {
-    const accessToken = utils.getAccessTokenFromRequest(req);
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-
-    try {
-        const googleRes = await googleCalendarApi.calendars.insert({
-            auth: utils.oauth2Client,
-            resource: {
-                summary: req.body.calendarName,
-            }
-        })
-
-        res.status(StatusCodes.OK).send(googleRes);
-    }
-    catch (err) {
-        console.log(err);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
-    }
-}
 
 const getAllEventsGoogle = async (req, res) => {
     let allEvents = [];
@@ -157,53 +134,6 @@ const updateUnexportedEvent = async (req, res) => {
     } else {
         console.log("ERROR: Failed to update unexported event.");
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
-    }
-}
-
-const insertGeneratedEventsToCalendar = async (req, res) => {
-    try {
-        const accessToken = utils.getAccessTokenFromRequest(req);
-        utils.oauth2Client.setCredentials({ access_token: accessToken });
-        const calendar = google.calendar('v3');
-
-        const events = req.body.events;
-        const calendarId = req.body.googleCalendarId;
-
-        // TODO: change this to batch
-        for (const event of events) {
-            const eventID = event.id;
-            const projectID = event.extendedProps.projectID;
-            const backgroundColor = event.backgroundColor;
-
-            const response = await calendar.events.insert({
-                auth: utils.oauth2Client,
-                calendarId: calendarId,
-                requestBody: {
-                    summary: event.title,
-                    start: {
-                        dateTime: new Date(event.start)
-                    },
-                    end: {
-                        dateTime: new Date(event.end)
-                    },
-                    extendedProperties: {
-                        private: {
-                            fullCalendarEventID: eventID,
-                            fullCalendarProjectID: projectID,
-                            fullCalendarBackgroundColor: backgroundColor,
-                        },
-                    }
-                }
-            })
-
-            const docs = await EventModel.deleteOne({ id: eventID });
-        }
-
-        res.status(StatusCodes.OK).send();
-    }
-    catch (error) {
-        console.log(error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
 }
 

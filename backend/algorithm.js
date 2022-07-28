@@ -785,7 +785,7 @@ const createEventFromStartTime = async (req, sessionLengthMinutes, startTime, cu
         title: projectName,
         id: eventID,
         projectName: projectName,
-        projectID: project.id,
+        projectId: project.id,
         start: startDate,
         end: endDate,
         backgroundColor: project.backgroundColor,
