@@ -7,7 +7,6 @@ import { Constraints } from '../pages/Constraints';
 import { ProjectManagement } from '../pages/ProjectManagement';
 
 const App = () => {
-  // let allEvents = [];
   let allEvents = {
     events: [],
     unexportedAlgorithmEvents: [],
@@ -15,7 +14,6 @@ const App = () => {
 
   const setEvents = (events) =>{
     allEvents.events = events;
-    // allEvents = events;
   }
 
   const onLogin = () => {
@@ -44,7 +42,7 @@ const App = () => {
           <Route path="/schedules" element={<Schedules setEvents={setEvents} />}></Route>
           <Route path="/projects" element={<Projects events={allEvents} />}></Route>
           <Route path="/constraints" element={<Constraints />}></Route>
-          <Route path="/projectmanagement" element={<ProjectManagement />}></Route>
+          <Route path="/projectmanagement" element={<ProjectManagement allEvents={allEvents}/>}></Route>
         </Routes>
     </div>
   )

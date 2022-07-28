@@ -83,7 +83,6 @@ const deleteConstraint = async (req, res) => {
     }
 }
 
-
 const receiveConstraintFromReq = async (req) => {
     const userEmail = await utils.getEmailFromReq(req);
 

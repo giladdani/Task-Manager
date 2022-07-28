@@ -10,7 +10,7 @@ const utils = require('./utils');
 
 // Routing
 const router = express.Router();
-router.post('/events/generate', (req, res) => { generateSchedule(req, res) });  
+router.post('/events/generate', (req, res) => { generateSchedule(req, res) });
 
 
 /* Schedule Generating Algorithm
@@ -18,7 +18,7 @@ The algorithm receives:
     -   Time estimate of project
     -   Starting Day
     -   Deadline \ timeframe
-    -   Constraints (exist in the database, not part of the request)
+    -   Constraints
         -   General
         -   Specific
         -   Spacing
@@ -33,80 +33,322 @@ const generateSchedule = async (req, project) => {
     let timeLeft = null;
 
     try {
-        const projectName = req.body.projectName;
         let allEvents = req.body.allEvents;
         const estimatedTimeTotal = getTimeEstimate(req);
         let estimatedTimeLeft = estimatedTimeTotal;
-
         const spacingBetweenEventsMinutes = getSpacingBetweenEvents(req);
-        const allConstraintsArr = await getAllConstraints();        // An array of all the constraints
+        const allConstraintsArr = await getAllConstraints();
         const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
         let currentDate = getTaskStartDate(req);
         let endDate = getTaskEndDate(req);
-
         const maxEventsPerDay = Number(req.body.maxEventsPerDay);
         let dayRepetitionFrequency = Number(req.body.dayRepetitionFrequency);
+        const sessionLengthMinutes = getSessionLength(req);
 
-        console.log(`Number of events before filter: ${allEvents.length}`)
+
+        console.log(`[generateSchedule] Number of events before filter: ${allEvents.length}`)
         allEvents = filterEvents(allEvents, currentDate, endDate);
-        console.log(`Number of events after filter: ${allEvents.length}`)
+        console.log(`[generateSchedule] Number of events after filter: ${allEvents.length}`)
 
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
-            const allCurrDayConstraints = getAllCurrDateConstraintsAndEvents(currentDate, allConstraintsSpecialObj);
+            const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
             const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
+            const allConstraintsAsEvents = changeConstraintsToEvents(allCurrDayConstraints, currentDate);
+            allConstraintsAsEvents.forEach(constraintEvent => allCurrDayEvents.push(constraintEvent));
+
+
             const allForbiddenWindowsDayConstraint = createDayConstraintFromAllCurrDayConstraints(currentDate, allCurrDayConstraints, allCurrDayEvents);
             const dayConstraintAllPossibleWindows = createPossibleWindowsFromForbidden(allForbiddenWindowsDayConstraint);
 
             let foundAvailableWindow = true;
-            const sessionLengthMinutes = getSessionLength(req);
 
             let eventsSoFarInDay = 0;
+            let currStartTime = new dataObjects.Time(0, 0);
+            let finalEndTime = new dataObjects.Time(23, 59);
 
-            while (foundAvailableWindow && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
+            while (isLaterTime(finalEndTime, currStartTime) && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
                 const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
+                let endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
+                let timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
 
-                let availableTimeWindowIndex = findAvailableTimeWindowIndex(sessionLengthToFind, dayConstraintAllPossibleWindows) // find available hours matching constraints, such as min\max session length 
-                if (availableTimeWindowIndex == -1) { // No time window found
-                    foundAvailableWindow = false;
+                let allOverlappingEvents = getAllOverlappingEvents(timeWindow, allCurrDayEvents);
+
+                // In the future we can consider specific events and perhaps see if we are allowed to ignore them.
+                // For now if there is an overlap at all our algorithm moves on
+                if (allOverlappingEvents.length > 0) {
+                    // TODO: change this to Reduce for some functional programming practice
+                    let latestEvent = findLatestEvent(allOverlappingEvents);
+                    let latestEventEndTime = getTimeWindowFromEvent(latestEvent).endTime;
+                    currStartTime = cloneTime(latestEventEndTime);
+
                     continue;
+                } else {
+                    // At this point in the code we're not dealing with overlaps.
+                    const closestEarlierEvent = getClosestEarlierEvent(currStartTime, allCurrDayEvents);
+                    if (closestEarlierEvent != null) {
+                        if ( ! isConstraintEvent(closestEarlierEvent)) {
+                            currStartTime = addMinutesToTime(currStartTime, spacingBetweenEventsMinutes, false);
+                            endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
+                            timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
+
+                            // Check again for overlapping events after adding minutes
+                            allOverlappingEvents = getAllOverlappingEvents(timeWindow, allCurrDayEvents);
+                            if (allOverlappingEvents.length > 0) {
+                                latestEvent = findLatestEvent(allOverlappingEvents);
+                                latestEventEndTime = getTimeWindowFromEvent(latestEvent).endTime;
+                                currStartTime = cloneTime(latestEventEndTime);
+
+                                continue;
+                            }
+                        }
+                    }
+
+                    const closestLaterEvent = getClosestLaterEvent(currStartTime, allCurrDayEvents);
+
+                    if (closestLaterEvent != null) {
+                        if ( ! isConstraintEvent(closestLaterEvent)) {
+                            // Check if time between curr time window and event start time is <= spacing between events
+                            endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
+                            timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
+
+                            let closestLaterEventStartTime = getTimeWindowFromEvent(closestLaterEvent).startTime;
+                            let minutesGap = getMinutesBetweenTimes(endTime, closestLaterEventStartTime);
+
+                            if (minutesGap < spacingBetweenEventsMinutes) {
+                                latestEventEndTime = getTimeWindowFromEvent(closestLaterEvent).endTime;
+                                currStartTime = cloneTime(latestEventEndTime);
+
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Create event
+                    let event = await createEventFromStartTime(req, sessionLengthToFind, currStartTime, currentDate, project);
+                    allEventsGeneratedBySchedule.push(event);
+                    allCurrDayEvents.push(event);
+                    project.eventsID.push(event.id);
+                    estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
+                    eventsSoFarInDay++;
+
+                    // Old version
+                    // let availableTimeWindowIndex = findAvailableTimeWindowIndex(sessionLengthToFind, dayConstraintAllPossibleWindows) // find available hours matching constraints, such as min\max session length 
+                    // if (availableTimeWindowIndex == -1) { // No time window found
+                    //     foundAvailableWindow = false;
+                    //     continue;
+                    // }
+
+                    // const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
+                    // let event = await createEventFromStartTime(req, sessionLengthToFind, possibleTimeWindow.startTime, currentDate, project);
+                    // allEventsGeneratedBySchedule.push(event);
+                    // project.eventsID.push(event.id);
+
+                    // shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
+                    // estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
+                    // eventsSoFarInDay++;
                 }
 
-                const possibleTimeWindow = dayConstraintAllPossibleWindows.possibleTimeWindows[availableTimeWindowIndex];
-                let event = await createEventFromTimeWindow(req, sessionLengthToFind, possibleTimeWindow, currentDate, project); 
-                allEventsGeneratedBySchedule.push(event);
-                project.eventsID.push(event.id);
-
-                shrinkChosenWindowFromStartBySessionSize(sessionLengthToFind, availableTimeWindowIndex, dayConstraintAllPossibleWindows, spacingBetweenEventsMinutes); // Indicates that this time frame has been taken
-                estimatedTimeLeft = updateTimeEstimate(estimatedTimeLeft, sessionLengthToFind);
-                eventsSoFarInDay++;
+                // If no time was found in current day to place a single event, 
+                // there's no point skipping ahead with how the day spacing the user wanted.
+                // It could create unwanted situations where events could occur much farther apart than intended.
+                // To avoid that we advance by just one day when no time was found.
             }
 
-            currentDate = advanceDateByDays(currentDate, dayRepetitionFrequency, true);
-        }
+            let daysToAdvanceBy = (eventsSoFarInDay > 0 ? dayRepetitionFrequency : 1);
 
-        timeLeft = estimatedTimeLeft;
+            currentDate = advanceDateByDays(currentDate, daysToAdvanceBy, true);
+
+            timeLeft = estimatedTimeLeft;
+        }
     } catch (err) {
         console.log("error in schedule generating algorithm:" + err);
     }
 
-    console.log("Finished generating schedule. Estimated time left: " + timeLeft);
+    console.log(`[generateSchedule] Finished generating schedule. Events created: ${allEventsGeneratedBySchedule.length}. Estimated time left: ${timeLeft}`);
+    
     return [allEventsGeneratedBySchedule, timeLeft];
 }
 
-const filterEvents = (allEvents, startDate, endDate) => {
+function isConstraintEvent(event) {
+    if (!event) {
+        return false;
+    }
 
+    if (!event.extendedProps) {
+        return false;
+    }
+
+    if (!event.extendedProps.isConstraint) {
+        return false;
+    }
+
+    return event.extendedProps.isConstraint;
+}
+
+/**
+ * This function returns an array of all the events that overlap with the given time window.
+ * An overlap can occur if: 
+ *  -   An event's end is after the time window's start and before its end.
+ *  -   An event's start is after the time window's start and before its end.
+ * @param {*} timeWindow 
+ * @param {*} allCurrDayEvents 
+ */
+function getAllOverlappingEvents(timeWindow, allCurrDayEvents) {
+    let allOverlappingEvents = [];
+
+    for (const event of allCurrDayEvents) {
+        const eventTimeWindow = getTimeWindowFromEvent(event);
+
+        if (isOverlap(timeWindow, eventTimeWindow)) {
+            allOverlappingEvents.push(event);
+        }
+    }
+
+    return allOverlappingEvents;
+}
+
+function findLatestEvent(events) {
+    if (!events || events.length == 0) {
+        return null;
+    }
+
+    let latestEvent = events[0];
+
+    for (const event of events) {
+        const latestEventTime = getTimeWindowFromEvent(latestEvent);
+        const currEventTimeWindow = getTimeWindowFromEvent(event);
+
+        if (isLaterTime(currEventTimeWindow.endTime, latestEventTime.endTime)) {
+            latestEvent = event;
+        }
+    }
+
+    return latestEvent;
+}
+
+function getTimeWindowFromEvent(event) {
+    const eventStartDate = new Date(event.start);
+    const startHour = eventStartDate.getHours();
+    const startMin = eventStartDate.getMinutes();
+    const startTime = new dataobjects.Time(startHour, startMin);
+
+    const eventEndDate = new Date(event.end);
+    const endHour = eventEndDate.getHours();
+    const endMin = eventEndDate.getMinutes();
+    const endTime = new dataobjects.Time(endHour, endMin);
+
+    const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+
+    return timeWindow;
+}
+
+/**
+ * This function returns a new time object, based on the given time, after adding the minutes to add to it.
+ * 
+ * @param {*} time 
+ * @param {*} minutesToAdd 
+ * @param {*} resetPastMidnight determines whether the new time object should be reset at midnight. 
+ * For example, if the time given is 23:50, and minutes to add is 60, 
+ * if reset is set to true then the returned time will be 00:50.
+ * Otherwise the returned time will be 24:50
+ */
+function addMinutesToTime(time, minutesToAdd, resetPastMidnight) {
+    let newTime = cloneTime(time);
+    let addedMinutes = time.minute + minutesToAdd;
+
+    newTime.minute = addedMinutes % 60;
+    newTime.hour = time.hour + Math.floor(addedMinutes / 60);
+
+    if (resetPastMidnight == true) {
+        newTime.hour = newTime.hour % 24;
+    }
+
+    return newTime;
+}
+
+/**
+ * This function finds the closest event that ENDS no later than the given start time.
+ * If there is no such event, the function returns null;
+ * @param {*} startTime 
+ * @param {*} allCurrDayEvents 
+ * @returns 
+ */
+function getClosestEarlierEvent(startTime, allCurrDayEvents) {
+    let closestEarlierEvent = null;
+
+    if (allCurrDayEvents.length > 0) {
+        closestEarlierEvent = allCurrDayEvents[0];
+
+        for (const currEvent of allCurrDayEvents) {
+            const currEventEndTime = getTimeWindowFromEvent(currEvent).endTime;
+
+            if (isLaterOrEqualTime(startTime, currEventEndTime)) {
+                const currClosestEndTime = getTimeWindowFromEvent(closestEarlierEvent).endTime;
+
+                if (isLaterTime(currEventEndTime, currClosestEndTime)) {
+                    closestEarlierEvent = currEvent;
+                }
+            }
+        }
+    }
+
+    return closestEarlierEvent;
+}
+
+/**
+ * This function finds the closest event that starts no sooner than the given end time.
+ * If there is no such event, the function returns null;
+ * @param {*} endTime 
+ * @param {*} allCurrDayEvents 
+ * @returns 
+ */
+function getClosestLaterEvent(endTime, allCurrDayEvents) {
+    let closestLaterEvent = null;
+
+    if (allCurrDayEvents.length > 0) {
+        for (const currEvent of allCurrDayEvents) {
+            const currEventStartTime = getTimeWindowFromEvent(currEvent).startTime;
+
+            if (isLaterOrEqualTime(currEventStartTime, endTime)) {
+                if (closestLaterEvent == null) {
+                    closestLaterEvent = currEvent;
+                }
+
+                const currClosestStartTime = getTimeWindowFromEvent(closestLaterEvent).startTime;
+
+                if (isLaterTime(currClosestStartTime, currEventStartTime)) {
+                    closestLaterEvent = currEvent;
+                }
+            }
+        }
+    }
+
+    return closestLaterEvent;
+}
+
+/**
+ * This function receives two time objects and returns the amount of minutes separating them.
+ * It assumes time1 is earlier than time2.
+ * @param {*} time1 
+ * @param {*} time2 
+ */
+function getMinutesBetweenTimes(time1, time2) {
+    let fullHours;
+
+    fullHours = time2.hour - time1.hour - 1;
+
+    let minutesBetween = (60 - time1.minute) + time2.minute + (fullHours * 60);
+
+    return minutesBetween;
+}
+
+const filterEvents = (allEvents, startDate, endDate) => {
     let eventsWithinDates = allEvents.filter(event => {
         eventStartDate = new Date(event.start);
         eventEndDate = new Date(event.end);
 
-        let notConstraint = true;
-        if (event.extendedProps && event.extendedProps.isConstraint == true) {
-            notConstraint = false;
-        }
-
         return (eventStartDate >= startDate
-            && eventEndDate <= endDate
-            && notConstraint);
+            && eventEndDate <= endDate);
     })
 
     return eventsWithinDates;
@@ -114,7 +356,6 @@ const filterEvents = (allEvents, startDate, endDate) => {
 
 const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, estimatedTimeLeft) => {
     let sessionLengthRes;
-
     let sessionLengthPrefInHours = sessionLengthMinutesPreference / 60;
 
     if (estimatedTimeLeft > sessionLengthPrefInHours) {
@@ -156,6 +397,10 @@ const isNoOverlap = (timeWindow1, timeWindow2) => {
     } else {
         earlierTime = timeWindow2;
         laterTime = timeWindow1;
+    }
+
+    if (doesWindow1ContainWindow2(earlierTime, laterTime)) {
+        return false;
     }
 
     if (earlierTime.endTime.hour < laterTime.startTime.hour) {
@@ -244,26 +489,28 @@ const createPossibleWindowsFromForbidden = (tempDayConstraint) => {
     return allPossibleTimeWindowsDayConstraint;
 }
 
-const cloneTime = (timeWindow) => {
-    const cloneHour = timeWindow.hour;
-    const cloneMinute = timeWindow.minute;
-    const cloneTime = new dataObjects.Time(cloneHour, cloneMinute);
-
-    return cloneTime;
-}
-
 const cloneTimeWindow = (timeWindow) => {
-    const cloneStartHour = timeWindow.startTime.hour;
-    const cloneStartMinute = timeWindow.startTime.minute;
-    const cloneTimeStart = new dataObjects.Time(cloneStartHour, cloneStartMinute);
+    if (!timeWindow) {
+        return null;
+    }
 
-    const cloneEndHour = timeWindow.endTime.hour;
-    const cloneEndMinute = timeWindow.endTime.minute;
-    const cloneTimeEnd = new dataObjects.Time(cloneEndHour, cloneEndMinute);
-
+    const cloneTimeStart = cloneTime(timeWindow.startTime);
+    const cloneTimeEnd = cloneTime(timeWindow.endTime);
     const cloneTimeWindow = new dataObjects.TimeWindow(cloneTimeStart, cloneTimeEnd);
 
     return cloneTimeWindow;
+}
+
+function cloneTime(time) {
+    if (!time) {
+        return null;
+    }
+
+    const cloneHour = time.hour;
+    const cloneMinute = time.minute;
+    const cloneTime = new dataObjects.Time(cloneHour, cloneMinute);
+
+    return cloneTime;
 }
 
 
@@ -369,6 +616,12 @@ const isLaterTime = (time1, time2) => {
     return isLater;
 }
 
+/**
+ * Returns TRUE if time1 starts later or at the same time of time2.
+ * @param {*} time1 
+ * @param {*} time2 
+ * @returns 
+ */
 const isLaterOrEqualTime = (time1, time2) => {
     let isLaterOrEqual = false;
 
@@ -504,14 +757,14 @@ const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
     return estimatedTimeLeft;
 }
 
-const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTimeWindow, currentDate, project) => {
+const createEventFromStartTime = async (req, sessionLengthMinutes, startTime, currentDate, project) => {
     const userEmail = await utils.getEmailFromReq(req);
 
     const projectName = req.body.projectName;
     const eventName = projectName;
 
-    const startHour = availableTimeWindow.startTime.hour;
-    const startMinute = availableTimeWindow.startTime.minute;
+    const startHour = startTime.hour;
+    const startMinute = startTime.minute;
     const startDate = new Date(currentDate);
     startDate.setHours(startHour, startMinute, 00);
 
@@ -532,7 +785,7 @@ const createEventFromTimeWindow = async (req, sessionLengthMinutes, availableTim
         title: projectName,
         id: eventID,
         projectName: projectName,
-        projectID: project.id,
+        projectId: project.id,
         start: startDate,
         end: endDate,
         backgroundColor: project.backgroundColor,
@@ -595,18 +848,7 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
 
     allCurrDayEvents.forEach((dayEvent) => {
         // Create forbidden time window from day hours
-
-        const startDate = new Date(dayEvent.start);
-        const startHour = startDate.getHours();
-        const startMin = startDate.getMinutes();
-        const startTime = new dataobjects.Time(startHour, startMin);
-
-        const endDate = new Date(dayEvent.end);
-        const endHour = endDate.getHours();
-        const endMin = endDate.getMinutes();
-        const endTime = new dataobjects.Time(endHour, endMin);
-
-        const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+        const timeWindow = getTimeWindowFromEvent(dayEvent);
 
         dayConstraintRes.forbiddenTimeWindows.push(timeWindow);
     })
@@ -649,7 +891,7 @@ const createDayConstraintFromAllCurrDayConstraints = (currentDate, allCurrDayCon
  * This function also needs to receive an object of all constraints 
  * @param {*} currentDate 
  */
-const getAllCurrDateConstraintsAndEvents = (currentDate, allConstraintsSpecialObj) => {
+const getAllCurrDateConstraints = (currentDate, allConstraintsSpecialObj) => {
     const dayNum = currentDate.getDay();
 
     let allDayConstraints = null;
@@ -698,6 +940,45 @@ const getAllCurrDayEvents = (currentDate, allEvents) => {
     })
 
     return allCurrDayEvents;
+}
+
+function changeConstraintsToEvents(allCurrDayConstraints, currentDate) {
+    let allConstraintsAsEvents = []
+
+    for(const constraint of allCurrDayConstraints) {        
+        const constraintStartTimeStr = constraint.startTime;
+        const constraintStartTimeStrSplit = constraintStartTimeStr.split(":");
+        const constraintStartHour = Number(constraintStartTimeStrSplit[0])
+        const constraintStartMinute = Number(constraintStartTimeStrSplit[1]);
+        let currDateStart = new Date(currentDate);
+
+        currDateStart.setHours(constraintStartHour);
+        currDateStart.setMinutes(constraintStartMinute);
+        
+        const constraintEndTimeStr = constraint.endTime;
+        const constraintEndTimeStrSplit = constraintEndTimeStr.split(":");
+        const constraintEndHour = Number(constraintEndTimeStrSplit[0])
+        const constraintEndMinute = Number(constraintEndTimeStrSplit[1]);
+        let currDateEnd = new Date(currentDate);
+        currDateEnd.setHours(constraintEndHour);
+        currDateEnd.setMinutes(constraintEndMinute);
+
+        const title = constraint.title;
+        
+        const newEvent = {
+            title: title,
+            start: currDateStart,
+            end: currDateEnd,
+
+            extendedProps: {
+                isConstraint: true,
+            }
+        }
+
+        allConstraintsAsEvents.push(newEvent);
+    }
+
+    return allConstraintsAsEvents;
 }
 
 const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
