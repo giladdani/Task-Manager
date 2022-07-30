@@ -95,7 +95,6 @@ export const Project = (props) => {
 
     const handleConfirmDelete = () => {
         setOpenDeleteDialog(false);
-
         props.deleteProject(props.project);
     }
 
