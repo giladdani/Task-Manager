@@ -39,8 +39,18 @@ const generateSchedule = async (events, project, emails) => {
                 const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
                 let endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
                 let timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
-
-                let allOverlappingEvents = getAllOverlappingEvents(timeWindow, allCurrDayEvents);
+                const tempStartDate = new Date(currentDate);
+                const tempEndDate = new Date(currentDate);
+                tempStartDate.setHours(currStartTime.hour);
+                tempEndDate.setHours(endTime.hour);
+                tempStartDate.setMinutes(currStartTime.minute);
+                tempEndDate.setMinutes(endTime.minute);
+                tempStartDate.setSeconds(0);
+                tempEndDate.setSeconds(0);
+                tempStartDate.setMilliseconds(0);
+                tempEndDate.setMilliseconds(0);
+                const tempEvent = {start: tempStartDate, end: tempEndDate}
+                let allOverlappingEvents = getAllOverlappingEvents(tempEvent, allCurrDayEvents);
 
                 // In the future we can consider specific events and perhaps see if we are allowed to ignore them.
                 // For now if there is an overlap at all our algorithm moves on
@@ -59,9 +69,20 @@ const generateSchedule = async (events, project, emails) => {
                             currStartTime = addMinutesToTime(currStartTime, spacingBetweenEventsMinutes, false);
                             endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
                             timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
+                            const tempStartDate = new Date(currentDate);
+                            const tempEndDate = new Date(currentDate);
+                            tempStartDate.setHours(currStartTime.hour);
+                            tempEndDate.setHours(endTime.hour);
+                            tempStartDate.setMinutes(currStartTime.minute);
+                            tempEndDate.setMinutes(endTime.minute);
+                            tempStartDate.setSeconds(0);
+                            tempEndDate.setSeconds(0);
+                            tempStartDate.setMilliseconds(0);
+                            tempEndDate.setMilliseconds(0);
+                            const tempEvent = {start: tempStartDate, end: tempEndDate}
 
                             // Check again for overlapping events after adding minutes
-                            allOverlappingEvents = getAllOverlappingEvents(timeWindow, allCurrDayEvents);
+                            allOverlappingEvents = getAllOverlappingEvents(tempEvent, allCurrDayEvents);
                             if (allOverlappingEvents.length > 0) {
                                 latestEvent = findLatestEvent(allOverlappingEvents);
                                 latestEventEndTime = getTimeWindowFromEvent(latestEvent).endTime;
@@ -143,16 +164,16 @@ function isConstraintEvent(event) {
  * An overlap can occur if: 
  *  -   An event's end is after the time window's start and before its end.
  *  -   An event's start is after the time window's start and before its end.
- * @param {*} timeWindow 
+ * @param {*} event1 
  * @param {*} allCurrDayEvents 
  */
-function getAllOverlappingEvents(timeWindow, allCurrDayEvents) {
+function getAllOverlappingEvents(event1, allCurrDayEvents) {
     let allOverlappingEvents = [];
 
     for (const event of allCurrDayEvents) {
-        const eventTimeWindow = getTimeWindowFromEvent(event);
+        // const event = getTimeWindowFromEvent(event);
 
-        if (isOverlap(timeWindow, eventTimeWindow)) {
+        if (isOverlap(event1, event)) {
             allOverlappingEvents.push(event);
         }
     }
@@ -322,37 +343,47 @@ const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, e
     return sessionLengthRes;
 }
 
-const isNoOverlap = (timeWindow1, timeWindow2) => {
-    let earlierTime = null;
-    let laterTime = null;
+const isNoOverlap = (event1, event2) => {
+    let earlierEvent = null;
+    let laterEvent = null;
 
-    if (isEarlierStartTimeTime(timeWindow1, timeWindow2)) {
-        earlierTime = timeWindow1;
-        laterTime = timeWindow2;
+    event1.start.setSeconds(0);
+    event1.end.setSeconds(0);
+    event1.start.setMilliseconds(0);
+    event1.end.setMilliseconds(0);
+    event2.start.setSeconds(0);
+    event2.end.setSeconds(0);
+    event2.start.setMilliseconds(0);
+    event2.end.setMilliseconds(0);
+    
+    // if (isEarlierStartTimeTime(timeWindow1, timeWindow2)) {
+    //     earlierTime = timeWindow1;
+    //     laterTime = timeWindow2;
+    // } else {
+    //     earlierTime = timeWindow2;
+    //     laterTime = timeWindow1;
+    // }
+    if(event1.start <= event2.start) {
+        earlierEvent = event1;
+        laterEvent = event2;
     } else {
-        earlierTime = timeWindow2;
-        laterTime = timeWindow1;
+        earlierEvent = event2;
+        laterEvent = event1;
     }
 
-    if (doesWindow1ContainWindow2(earlierTime, laterTime)) {
+    if (doesEvent1ContainEvent2(earlierEvent, laterEvent)) {
         return false;
     }
 
-    if (earlierTime.endTime.hour < laterTime.startTime.hour) {
+    if (earlierEvent.end <= laterEvent.start) {
         return true;
+    } else{
+        return false;
     }
-
-    if (earlierTime.endTime.hour == laterTime.startTime.hour) {
-        if (earlierTime.endTime.minute <= laterTime.startTime.minute) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
-const isOverlap = (timeWindow1, timeWindow2) => {
-    return !isNoOverlap(timeWindow1, timeWindow2);
+const isOverlap = (event1, event2) => {
+    return !isNoOverlap(event1, event2);
 }
 
 const cloneTimeWindow = (timeWindow) => {
@@ -377,6 +408,18 @@ function cloneTime(time) {
     const cloneTime = new dataObjects.Time(cloneHour, cloneMinute);
 
     return cloneTime;
+}
+
+const doesEvent1ContainEvent2 = (event1, event2) => {
+    let doesContain = false;
+
+    if (event1.start <= event2.start) {
+        if (event1.end >= event2.end) {
+            doesContain = true;
+        }
+    }
+
+    return doesContain;
 }
 
 const doesWindow1ContainWindow2 = (timeWindow1, timeWindow2) => {

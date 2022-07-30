@@ -291,16 +291,6 @@ const insertEventsToGoogleCalendar = async (req, events, projet, calendarId) => 
         return errMsg;
 }
 
-
-
-
-
-
-
-
-
-
-
 const deleteProject = async (req, res) => {
         let errorMsg = null;
         const projectId = req.params.id;
