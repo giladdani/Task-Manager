@@ -2,6 +2,9 @@ const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
 const ProjectModel = require('./models/project')
+const PendingProjectEvents = require('./models/pendingprojectevents')
+const PendingProject = require('./models/pendingprojects')
+
 const { google } = require('googleapis');
 
 const algorithm = require('./algorithm');
@@ -11,7 +14,11 @@ const router = express.Router();
 // Routing
 router.get('/', (req, res) => { getProjects(req, res) });
 router.get('/events', (req, res) => { getProjectEvents(req, res) });
-router.post('/', (req, res) => { createProject(req, res) });
+router.get('/pending', (req, res) => { getPendingProjects(req, res) });
+
+router.post('/', async (req, res) => { await createProject(req, res) });
+router.post('/shared', (req, res) => { requestSharedProject(req, res) });
+router.post('/shared/approved', async (req, res) => { await createSharedProject(req, res) });
 router.post('/export/:id', (req, res) => { exportProject(req, res) });
 router.delete('/:id', (req, res) => { deleteProject(req, res) });
 
@@ -23,10 +30,111 @@ const getProjects = async (req, res) => {
         res.status(StatusCodes.OK).send(allProjects);
 }
 
+const getPendingProjects = async (req, res) => {
+        const userEmail = await utils.getEmailFromReq(req);
+        const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
+        res.status(StatusCodes.OK).send(pendingProjects);
+}
+
 const getProjectEvents = async (req, res) => {
         const userEmail = await utils.getEmailFromReq(req);
         const allProjectEvents = await EventModel.find({ 'email': userEmail });
         res.status(StatusCodes.OK).send(allProjectEvents);
+}
+
+const createSharedProject = async (req, res) => {
+        const requestingUserEmail = req.body.project.requestingUser;
+        const approverEmail = await utils.getEmailFromReq(req);
+        // TODO: what fields should we use to find all the relevant events? friend email? requesting email? project id?
+        const allRequestingUserEvents = await PendingProjectEvents.find({ 'friendEmail': approverEmail });
+        // console.log(`All requesting user events number: ${allRequestingUserEvents.length}`)
+        // console.log(`All approving user events number: ${req.body.allEvents.length}`)
+        const allEventsJoined = req.body.allEvents.concat(allRequestingUserEvents);
+        // console.log(`All joined events number: ${allEventsJoined.length}`);
+        const project = req.body.project;
+        project._id = null;
+        let emails = [];
+        emails.push(requestingUserEmail);
+        emails.push(approverEmail);
+
+        const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEventsJoined, project, emails);
+
+        let errorMsg = null;
+        const originalProjectId = project.id;
+        const originalProjectSharedId = project.sharedId;
+
+        // Insert for all users. This allows later on expanding to creating a schedule between 3 and more users.
+        for (const email of emails) {
+                await insertProjectAndEvents(email, project, events);
+        }
+
+        let docsEvents1 = await PendingProjectEvents.deleteMany({ 'projectSharedId': originalProjectSharedId });
+        let docsEvents2 = await PendingProject.deleteOne({ 'sharedId': originalProjectSharedId });
+
+
+
+
+        resBody = {
+                estimatedTimeLeft: estimatedTimeLeft,
+        };
+
+        if (errorMsg === null) {
+                console.log(`[createSharedproject] Created a shared schedule between ${requestingUserEmail} and ${approverEmail}`);
+                res.status(StatusCodes.OK).send(resBody);
+        } else {
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);
+        }
+}
+
+const insertProjectAndEvents = async (email, project, events) => {
+        project.email = email;
+        project.id = utils.generateId();
+
+        const docsProject = await ProjectModel.create(project);
+
+        events.forEach(event => {
+                event.email = email
+                event.id = utils.generateId();
+                event.projectId = project.id;
+        });
+
+        const docsEvents = await EventModel.insertMany(events);
+}
+
+const requestSharedProject = async (req, res) => {
+        let inputErrorMsg = checkInputValidity(req);
+        if (inputErrorMsg != null) {
+                res.status(StatusCodes.BAD_REQUEST).send(inputErrorMsg);
+                return;
+        }
+
+        if (req.body.userEmailToShareWith != null && req.body.userEmailToShareWith.length > 0) {
+                const friendEmail = req.body.userEmailToShareWith;
+                let project = await createProjectObject(req, true);
+                const userEmail = await utils.getEmailFromReq(req);
+                project.requestingUser = userEmail;
+                project.awaitingUserApproval = friendEmail;
+
+                const allEvents = req.body.allEvents;
+                allEvents.forEach(event => {
+                        event.friendEmail = friendEmail;
+                        event.email = userEmail;
+                        event.projectSharedId = project.sharedId;
+                }
+                );
+
+                let errorMsg = null;
+
+                const docsEvents = await PendingProjectEvents.insertMany(allEvents);
+                const docsProject = await PendingProject.create(project);
+
+                if (errorMsg === null) {
+                        console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${friendEmail}`);
+                        res.status(StatusCodes.OK).send();
+                } else {
+                        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Something fucker up`);
+                }
+        }
 }
 
 const createProject = async (req, res) => {
@@ -37,23 +145,17 @@ const createProject = async (req, res) => {
                         return;
                 }
 
-                const project = await createNewProject(req);
-                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(req, project);
+                const project = await createProjectObject(req, false);
+                const allEvents = req.body.allEvents;
+                const email = await utils.getEmailFromReq(req);
+                let emails = [];
+                emails.push(email);
+
+                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEvents, project, emails);
                 let errorMsg = null;
 
-                const docsEvents = await EventModel.insertMany(events, (err) => {
-                        if (err != null) {
-                                console.error(err);
-                                errorMsg = err;
-                        }
-                });
-
-                const docsProject = await ProjectModel.create(project, (err, b) => {
-                        if (err != null) {
-                                console.error(err);
-                                errorMsg = err;
-                        }
-                });
+                const docsEvents = await EventModel.insertMany(events);
+                const docsProjects = await ProjectModel.create(project);
 
                 resBody = {
                         estimatedTimeLeft: estimatedTimeLeft,
@@ -254,7 +356,7 @@ const deleteProject = async (req, res) => {
 function checkInputValidity(req) {
         let errorMsg = "";
 
-        if (!req.body.projectName || req.body.projectName.length === 0) {
+        if (!req.body.projectTitle || req.body.projectTitle.length === 0) {
                 errorMsg += "   - Must enter project name.\n";
         }
 
@@ -307,15 +409,20 @@ function isPositiveInteger(input) {
         return false;
 }
 
-const createNewProject = async (req) => {
+const createProjectObject = async (req, isSharedProject) => {
         const projectId = utils.generateId();
         const userEmail = await utils.getEmailFromReq(req);
         const backgroundColor = getRandomColor();
+        let sharedProjectId = null;
+
+        if (isSharedProject === true) {
+                sharedProjectId = utils.generateId();
+        }
 
         const newProject = {
-                title: req.body.projectName,
+                title: req.body.projectTitle,
                 id: projectId,
-                eventsID: [],
+                sharedId: sharedProjectId,
                 timeEstimate: req.body.estimatedTime,
                 start: req.body.startDate,
                 end: req.body.endDate,
@@ -324,6 +431,8 @@ const createNewProject = async (req) => {
                 backgroundColor: backgroundColor,
                 email: userEmail,
                 exportedToGoogle: false,
+                maxEventsPerDay: req.body.maxEventsPerDay,
+                dayRepetitionFrequency: req.body.dayRepetitionFrequency,
         }
 
         return newProject;

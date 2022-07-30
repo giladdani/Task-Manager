@@ -1,7 +1,7 @@
 const mongoose  = require("mongoose");
 const Schema = mongoose.Schema;
 
-const projectSchema = new Schema({
+const pendingProjectSchema = new Schema({
     title: String,
     id: String,
     sharedId: String,
@@ -16,7 +16,10 @@ const projectSchema = new Schema({
     googleCalendarId: String,
     maxEventsPerDay: Number,
     dayRepetitionFrequency: Number,
+    
+    requestingUser: String,
+    awaitingUserApproval: String,
 })
 
-const Project = mongoose.model('Project', projectSchema);
-module.exports = Project;
+const PendingProject = mongoose.model('PendingProject', pendingProjectSchema);
+module.exports = PendingProject;

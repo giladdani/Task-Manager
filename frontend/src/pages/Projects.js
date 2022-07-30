@@ -10,13 +10,15 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import { PendingProjectsList } from '../components/PendingProjectList';
 
 export const Projects = (props) => {
 
     // Hooks
     const [successDialogOpen, toggleSuccessDialog] = React.useState(false);
     const [isLoading, toggleLoading] = React.useState(false);
-    const [projectName, setProjectName] = React.useState('');
+    const [projectTitle, setProjectName] = React.useState('');
+    const [userEmailToShareWith, setUserEmailToShareWith] = React.useState('');
     const [estimatedTime, setEstimatedTime] = React.useState(0);
     const [sessionLengthMinutes, setSessionLengthMinutes] = React.useState(0);
     const [spacingLengthMinutes, setSpacingLengthMinutes] = React.useState(0);
@@ -24,6 +26,11 @@ export const Projects = (props) => {
     const [endDate, setEndDate] = React.useState(new Date());
     const [maxEventsPerDay, setMaxEventsPerDay] = React.useState();
     const [dayRepetitionFrequency, setDayRepetitionFrequency] = React.useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
+    const [pendingProjects, setPendingProjects] = React.useState([]);
+
+
+    React.useEffect(async () => {
+    });
 
     const handleGenerateClick = async () => {
         try {
@@ -32,10 +39,11 @@ export const Projects = (props) => {
                 alert(errorMsg);
                 return;
             }
-            
+
             const allEvents = props.events.events;
             const body = {
-                projectName: projectName,
+                userEmailToShareWith: userEmailToShareWith,
+                projectTitle: projectTitle,
                 sessionLengthMinutes: sessionLengthMinutes,
                 spacingLengthMinutes: spacingLengthMinutes,
                 estimatedTime: estimatedTime,
@@ -46,37 +54,56 @@ export const Projects = (props) => {
                 dayRepetitionFrequency: dayRepetitionFrequency,
             };
 
-            toggleLoading(true);
+            if (userEmailToShareWith && userEmailToShareWith.length > 0) { // TODO: add regex check for email
+                const response = await fetch('http://localhost:3001/api/projects/shared', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'access_token': sessionStorage.getItem('access_token'),
+                    },
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                });
 
-            const response = await fetch('http://localhost:3001/api/projects', {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'POST',
-                body: JSON.stringify(body),
-            });
+                if (response.status !== 200) {
+                    let errorMsg = await response.text();
+                    throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
+                }
 
-            if (response.status !== 200) {
-                let errorMsg = await response.text();
-                throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
-            }
-
-            let jsonRes = await response.json();
-            let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
-            let msg = "";
-            if (estimatedTimeLeft > 0) {
-                msg = `Project added.
-                \nNote! There was not enough time to match the estimated hours.
-                Estimated time left: ${estimatedTimeLeft}`
+                console.log(`Sent request for a shared project with ${userEmailToShareWith}`);
+                alert(`Sent a request to ${userEmailToShareWith}. Awaiting his approval.`);
             } else {
-                msg = `Project added.`;
-            }
+                toggleLoading(true);
+                const response = await fetch('http://localhost:3001/api/projects', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'access_token': sessionStorage.getItem('access_token'),
+                    },
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                });
 
-            toggleLoading(false);
-            console.log(msg);
-            toggleSuccessDialog(true);
+                if (response.status !== 200) {
+                    let errorMsg = await response.text();
+                    throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
+                }
+
+                let jsonRes = await response.json();
+                let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
+                let msg = "";
+                if (estimatedTimeLeft > 0) {
+                    msg = `Project added.
+                    \nNote! There was not enough time to match the estimated hours.
+                    Estimated time left: ${estimatedTimeLeft}`
+                } else {
+                    msg = `Project added.`;
+                }
+
+                toggleLoading(false);
+                console.log(msg);
+                toggleSuccessDialog(true);
+            }
         }
         catch (err) {
             console.error(err);
@@ -91,7 +118,7 @@ export const Projects = (props) => {
     function checkInputValidity() {
         let errorMsg = "";
 
-        if (!projectName || projectName.length === 0) {
+        if (!projectTitle || projectTitle.length === 0) {
             errorMsg += "   - Must enter project name.\n";
         }
 
@@ -152,6 +179,12 @@ export const Projects = (props) => {
             <h1>Create project schedule</h1>
             <table>
                 <tbody>
+                    <tr>
+                        <td><label>Share with user: </label></td>
+                        <td>
+                            <input type="text" onChange={(newValue) => { setUserEmailToShareWith(newValue.target.value) }}></input>
+                        </td>
+                    </tr>
                     <tr>
                         <td><label>Project Name:</label></td>
                         <td>
@@ -249,6 +282,8 @@ export const Projects = (props) => {
                     <Button onClick={handleDialogClose}>Close</Button>
                 </DialogActions>
             </Dialog>
+            
+            <PendingProjectsList allEvents={props.events}/>
         </>
     )
 }
