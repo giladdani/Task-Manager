@@ -16,7 +16,7 @@ export const Project = (props) => {
     const allEvents = props.projectEvents;
 
 
-    const [projectName, setProjectName] = React.useState(props.project.title);
+    const [projectTitle, setProjectName] = React.useState(props.project.title);
     const [startDate, setStartDate] = React.useState(new Date(props.project.start));
     const [endDate, setEndDate] = React.useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = React.useState(false);
@@ -115,7 +115,7 @@ export const Project = (props) => {
                         <td>
                             <input
                                 type="text"
-                                value={projectName}
+                                value={projectTitle}
                                 disabled={!isBeingEdited}
                                 onChange={(newValue) => { setProjectName(newValue.target.value) }}>
                             </input>
@@ -190,7 +190,7 @@ export const Project = (props) => {
                 aria-describedby="alert-dialog-description"
             >
                 <DialogTitle id="alert-dialog-title">
-                    {`Delete ${projectName}?`}
+                    {`Delete ${projectTitle}?`}
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-description">

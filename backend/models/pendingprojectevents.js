@@ -1,7 +1,7 @@
 const mongoose  = require("mongoose");
 const Schema = mongoose.Schema;
 
-const projectEventSchema = new Schema({
+const pendingProjectEventSchema = new Schema({
     title: String,
     id: String,
     sharedId: String,
@@ -13,7 +13,11 @@ const projectEventSchema = new Schema({
     backgroundColor: String,
     unexportedEvent: Boolean,
     email: String,
+    friendEmail: String,
+    extendedProps: {
+        isConstraint: Boolean,
+    }
 })
 
-const ProjectEvent = mongoose.model('ProjectEvent', projectEventSchema);
-module.exports = ProjectEvent;
+const PendingProjectEvent = mongoose.model('PendingProjectEvent', pendingProjectEventSchema);
+module.exports = PendingProjectEvent;
