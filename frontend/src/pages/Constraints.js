@@ -184,7 +184,7 @@ export const Constraints = () => {
     }
 
     return (
-        <div>
+        <>
             <h1>Create constraint</h1>
             <table>
                 <tbody>
@@ -235,6 +235,6 @@ export const Constraints = () => {
                 handleConstraintDelete={handleConstraintDelete}
             >
             </ConstraintsList>
-        </div>
+        </>
     )
 }

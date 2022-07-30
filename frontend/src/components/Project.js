@@ -14,14 +14,11 @@ import Tooltip from "@material-ui/core/Tooltip";
 
 export const Project = (props) => {
     const allEvents = props.projectEvents;
-
-
     const [projectTitle, setProjectName] = React.useState(props.project.title);
     const [startDate, setStartDate] = React.useState(new Date(props.project.start));
     const [endDate, setEndDate] = React.useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = React.useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
-
 
     const oldEvents = allEvents.filter(event => {
         const currDate = new Date();
@@ -98,7 +95,6 @@ export const Project = (props) => {
 
     const handleConfirmDelete = () => {
         setOpenDeleteDialog(false);
-
         props.deleteProject(props.project);
     }
 
@@ -107,7 +103,7 @@ export const Project = (props) => {
     }
 
     return (
-        <div>
+        <>
             <table>
                 <tbody>
                     <tr>
@@ -204,6 +200,6 @@ export const Project = (props) => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </div>
+        </>
     )
 }

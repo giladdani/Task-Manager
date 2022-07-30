@@ -5,12 +5,18 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import Button from "@material-ui/core/Button";
 import Tooltip from "@material-ui/core/Tooltip";
+import { ThreeDots } from  'react-loader-spinner'
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
-
 
 export const Projects = (props) => {
 
     // Hooks
+    const [successDialogOpen, toggleSuccessDialog] = React.useState(false);
+    const [isLoading, toggleLoading] = React.useState(false);
     const [projectTitle, setProjectName] = React.useState('');
     const [userEmailToShareWith, setUserEmailToShareWith] = React.useState('');
     const [estimatedTime, setEstimatedTime] = React.useState(0);
@@ -67,6 +73,7 @@ export const Projects = (props) => {
                 console.log(`Sent request for a shared project with ${userEmailToShareWith}`);
                 alert(`Sent a request to ${userEmailToShareWith}. Awaiting his approval.`);
             } else {
+                toggleLoading(true);
                 const response = await fetch('http://localhost:3001/api/projects', {
                     headers: {
                         'Accept': 'application/json',
@@ -93,8 +100,9 @@ export const Projects = (props) => {
                     msg = `Project added.`;
                 }
 
+                toggleLoading(false);
                 console.log(msg);
-                alert(msg);
+                toggleSuccessDialog(true);
             }
         }
         catch (err) {
@@ -163,9 +171,12 @@ export const Projects = (props) => {
         return false;
     }
 
+    function handleDialogClose() {
+        toggleSuccessDialog(false);
+    }
     return (
-        <div>
-            <h1>Generate</h1>
+        <>
+            <h1>Create project schedule</h1>
             <table>
                 <tbody>
                     <tr>
@@ -254,11 +265,25 @@ export const Projects = (props) => {
                         </td>
                     </tr>
                     <tr>
-                        <td><Button variant='contained' onClick={handleGenerateClick}>Generate</Button></td>
+                        <td><Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button></td>
                     </tr>
                 </tbody>
             </table>
+
+            <Dialog open={isLoading}>
+                <DialogTitle>generating project schedule...</DialogTitle>
+                <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
+            </Dialog>
+            
+            <Dialog open={successDialogOpen}>
+                <DialogTitle>Success!</DialogTitle>
+                <DialogContent>Project created successfully</DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDialogClose}>Close</Button>
+                </DialogActions>
+            </Dialog>
+            
             <PendingProjectsList allEvents={props.events}/>
-        </div>
+        </>
     )
 }

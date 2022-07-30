@@ -24,7 +24,7 @@ export default function EventDialog(props) {
   }
 
   return (
-    <div>
+    <>
       <Dialog open={props.isOpen} aria-labelledby="draggable-dialog-title" PaperComponent={PaperComponent} BackdropProps={{ style: { backgroundColor: "transparent" } }} disableScrollLock disableRestoreFocus>
         <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit event</DialogTitle>
         <DialogContent>
@@ -69,7 +69,7 @@ export default function EventDialog(props) {
           <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </>
   );
 }
 
