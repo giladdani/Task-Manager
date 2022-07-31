@@ -2,7 +2,7 @@ import React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { ThreeDots } from  'react-loader-spinner'
+import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox';
 
@@ -22,20 +22,20 @@ export class Schedules extends React.Component {
     // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
-        this.setState({isLoading: true});
+        this.setState({ isLoading: true });
         const events = await this.fetchEventsGoogle();
         this.addEventsToScheduleGoogle(events);
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
 
         let constraintEvents = await this.fetchConstraints();
-        constraintEvents.forEach(constraint => { constraint.editable = false})
+        constraintEvents.forEach(constraint => { constraint.editable = false })
         this.addEventsToScheduleFullCalendar(constraintEvents);
-        
+
         let projectEvents = await this.fetchProjectEvents();
         this.addEventsToScheduleFullCalendar(projectEvents);
-        
-        this.setState({isLoading: false});
+
+        this.setState({ isLoading: false });
 
         const allEvents = calendarApi.getEvents();
         this.props.setEvents(allEvents);
@@ -128,7 +128,7 @@ export class Schedules extends React.Component {
 
     addEventsToScheduleFullCalendar = (events) => {
         let calendarApi = this.calendarRef.current.getApi();
-        
+
         events.forEach(event => {
             calendarApi.addEvent(event)
         });
@@ -211,8 +211,8 @@ export class Schedules extends React.Component {
         }
     }
 
-    toggleDialog = (isOpen) =>{
-        this.setState({isDialogOpen: isOpen});
+    toggleDialog = (isOpen) => {
+        this.setState({ isDialogOpen: isOpen });
     }
 
     isConstraintEvent = (event) => {
@@ -318,7 +318,7 @@ export class Schedules extends React.Component {
             return;
         }
 
-        let newCalendarName = generatedEvents[0].title; 
+        let newCalendarName = generatedEvents[0].title;
 
         const googleResJson = await this.createGoogleCalendar(newCalendarName);
 
@@ -381,7 +381,7 @@ export class Schedules extends React.Component {
     }
 
     handleEventClick = (clickInfo) => {
-        this.setState({selectedEvent: clickInfo.event});
+        this.setState({ selectedEvent: clickInfo.event });
         this.toggleDialog(true);
     }
 
@@ -391,6 +391,38 @@ export class Schedules extends React.Component {
 
     handleEventDelete = (event) => {
         // TODO:
+    }
+
+    handleEventReschedule = async (event) => {
+        try {
+            let calendarApi = this.calendarRef.current.getApi();
+            const allEvents = calendarApi.getEvents();
+
+            const body = {
+                event: event,
+                allEvents: allEvents,
+            };
+
+            const response = await fetch(`http://localhost:3001/api/projects/events/reschedule`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token')
+                },
+                method: 'PATCH',
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }
+
+            // const data = await response.json();
+            // return data;
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
     render() {
@@ -433,6 +465,7 @@ export class Schedules extends React.Component {
                         toggleOpen={this.toggleDialog}
                         onEventEdit={this.handleEventEdit}
                         onEventDelete={this.handleEventDelete}
+                        onEventReschedule={this.handleEventReschedule}
                     />
                 </div>
             </>

@@ -13,12 +13,16 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 export default function EventDialog(props) {
   const handleClose = () => {
-      props.toggleOpen(false);
+    props.toggleOpen(false);
   }
   const handleDelete = () => {
     props.onEventDelete(props.event);
   }
-  
+
+  const handleReschedule = () => {
+    props.onEventReschedule(props.event);
+  }
+
   const handleSave = () => {
     props.onEventEdit(props.event);  //TODO: send all form fields
   }
@@ -43,7 +47,7 @@ export default function EventDialog(props) {
                       defaultValue={props.event.start}
                       value={props.event.start}
                       onChange={(newValue) => { /*setConstraintStartTime(newValue)*/ }}
-                      renderInput={(params) => <TextField {...params}/>}
+                      renderInput={(params) => <TextField {...params} />}
                     />
                   </LocalizationProvider>
                 </td>
@@ -55,7 +59,7 @@ export default function EventDialog(props) {
                       label="End time"
                       value={props.event.end}
                       onChange={(newValue) => { /*setConstraintStartTime(newValue)*/ }}
-                      renderInput={(params) => <TextField {...params}/>}
+                      renderInput={(params) => <TextField {...params} />}
                     />
                   </LocalizationProvider>
                 </td>
@@ -67,13 +71,14 @@ export default function EventDialog(props) {
           <Button onClick={handleClose} variant="contained">Cancel</Button>
           <Button onClick={handleSave} variant="contained" color="success">Save</Button>
           <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+          <Button onClick={handleReschedule} variant="contained" color="error">Reschedule</Button>
         </DialogActions>
       </Dialog>
     </>
   );
 }
 
-  // PaperComponent allows dragging the dialog
+// PaperComponent allows dragging the dialog
 function PaperComponent(props) {
   return (
     <Draggable

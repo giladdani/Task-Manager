@@ -4,6 +4,37 @@ const dataObjects = require('./dataobjects');
 const dataobjects = require('./dataobjects');
 const utils = require('./utils');
 
+/**
+ * This function receives an event to reschedule, with the event's project - which holds its parameters.
+ * The function stops upon finding the first available time slow to insert the event.
+ * It returns a single event object with the new dates.
+ * @param {*} event 
+ * @param {*} project 
+ */
+const rescheduleEvent = async (event, allEvents, project) => {
+    let emails = [];
+    emails.push(project.email);
+
+    // Get event length
+    const eventStartDate = new Date(event.start);
+    const eventEndDate = new Date(event.end);
+    let hoursInEvent = Math.abs(eventEndDate - eventStartDate) / 36e5;
+    project.timeEstimate = hoursInEvent;
+
+    const currDate = new Date();
+    if (eventStartDate < currDate) {
+        project.start = currDate;
+    } else {
+        project.start = eventEndDate;
+    }
+
+    // TODO: allow the user to decide to reschedule from current date or from the event's date and onwards
+
+    const [events, estimatedTimeLeft] = await generateSchedule(allEvents, project, emails);
+
+    return [events, estimatedTimeLeft];
+}
+
 const generateSchedule = async (events, project, emails) => {
     let allEventsGeneratedBySchedule = [];
     let timeLeft = null;
@@ -16,6 +47,7 @@ const generateSchedule = async (events, project, emails) => {
         const allConstraintsArr = await getAllConstraints(emails);
         const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
         let currentDate = new Date(project.start);
+        currentDate = resetDateFields(currentDate, false, false, true, true);
         let endDate = new Date(project.end);
         const maxEventsPerDay = Number(project.maxEventsPerDay);
         let dayRepetitionFrequency = Number(project.dayRepetitionFrequency);
@@ -31,8 +63,18 @@ const generateSchedule = async (events, project, emails) => {
             const allConstraintsAsEvents = changeConstraintsToEvents(allCurrDayConstraints, currentDate);
             allConstraintsAsEvents.forEach(constraintEvent => allCurrDayEvents.push(constraintEvent));
 
-            let eventsSoFarInDay = 0; // TODO: go over all curr day events and check if any of them belong to the project
-            let currStartTime = new dataObjects.Time(0, 0);
+            //  go over all curr day events and check if any of them belong to the project
+            let eventsSoFarInDay = 0;
+            for (const event of allCurrDayEvents) {
+                if (event.extendedProps && event.extendedProps.projectId) {
+                    if (event.extendedProps.projectId == project.id) {
+                        eventsSoFarInDay++;
+                    }
+                }
+            }
+
+            // We set the start time based on the current date, in case this is the first day of the project, and the user wants to start from specific hours.
+            let currStartTime = new dataObjects.Time(currentDate.getHours(), currentDate.getMinutes());
             const finalEndTime = new dataObjects.Time(23, 59);
 
             while (isLaterTime(finalEndTime, currStartTime) && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
@@ -42,14 +84,14 @@ const generateSchedule = async (events, project, emails) => {
                 const tempStartDate = new Date(currentDate);
                 const tempEndDate = new Date(currentDate);
                 tempStartDate.setHours(currStartTime.hour);
-                tempEndDate.setHours(endTime.hour);
                 tempStartDate.setMinutes(currStartTime.minute);
-                tempEndDate.setMinutes(endTime.minute);
                 tempStartDate.setSeconds(0);
-                tempEndDate.setSeconds(0);
                 tempStartDate.setMilliseconds(0);
+                tempEndDate.setHours(endTime.hour);
+                tempEndDate.setMinutes(endTime.minute);
+                tempEndDate.setSeconds(0);
                 tempEndDate.setMilliseconds(0);
-                const tempEvent = {start: tempStartDate, end: tempEndDate}
+                const tempEvent = { start: tempStartDate, end: tempEndDate }
                 let allOverlappingEvents = getAllOverlappingEvents(tempEvent, allCurrDayEvents);
 
                 // In the future we can consider specific events and perhaps see if we are allowed to ignore them.
@@ -79,7 +121,7 @@ const generateSchedule = async (events, project, emails) => {
                             tempEndDate.setSeconds(0);
                             tempStartDate.setMilliseconds(0);
                             tempEndDate.setMilliseconds(0);
-                            const tempEvent = {start: tempStartDate, end: tempEndDate}
+                            const tempEvent = { start: tempStartDate, end: tempEndDate }
 
                             // Check again for overlapping events after adding minutes
                             allOverlappingEvents = getAllOverlappingEvents(tempEvent, allCurrDayEvents);
@@ -344,18 +386,26 @@ const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, e
 }
 
 const isNoOverlap = (event1, event2) => {
+    /**
+     * Throughout this function you'll see that we create new dates, despite already having the dates in the arguments.
+     * The reason is that sometimes the arguments could be JSON, and thus their "dates" are still in string format.
+     * So we make sure we work with actual string objects.
+     */
     let earlierEvent = null;
     let laterEvent = null;
 
-    event1.start.setSeconds(0);
-    event1.end.setSeconds(0);
-    event1.start.setMilliseconds(0);
-    event1.end.setMilliseconds(0);
-    event2.start.setSeconds(0);
-    event2.end.setSeconds(0);
-    event2.start.setMilliseconds(0);
-    event2.end.setMilliseconds(0);
-    
+    let event1Start = new Date(event1.start);
+    let event1End = new Date(event1.end);
+
+    let event2Start = new Date(event2.start);
+    let event2End = new Date(event2.end);
+
+    event1Start = resetDateFields(event1.start, false, false, true, true);
+    event1End = resetDateFields(event1.end, false, false, true, true);
+
+    event2Start = resetDateFields(event2.start, false, false, true, true);
+    event2End = resetDateFields(event2.end, false, false, true, true);
+
     // if (isEarlierStartTimeTime(timeWindow1, timeWindow2)) {
     //     earlierTime = timeWindow1;
     //     laterTime = timeWindow2;
@@ -363,7 +413,7 @@ const isNoOverlap = (event1, event2) => {
     //     earlierTime = timeWindow2;
     //     laterTime = timeWindow1;
     // }
-    if(event1.start <= event2.start) {
+    if (event1Start <= event2Start) {
         earlierEvent = event1;
         laterEvent = event2;
     } else {
@@ -375,9 +425,19 @@ const isNoOverlap = (event1, event2) => {
         return false;
     }
 
-    if (earlierEvent.end <= laterEvent.start) {
+    let earlierEventStart = new Date(earlierEvent.start);
+    let earlierEventEnd = new Date(earlierEvent.end);
+    let laterEventStart = new Date(laterEvent.start);
+    let laterEventEnd = new Date(laterEvent.end);
+
+    // Reset seconds and milliseconds
+    earlierEventStart = resetDateFields(earlierEventStart, false, false, true, true);
+    earlierEventEnd = resetDateFields(earlierEventEnd, false, false, true, true);
+    laterEventStart = resetDateFields(laterEventStart, false, false, true, true);
+    laterEventEnd = resetDateFields(laterEventEnd, false, false, true, true);
+    if (earlierEventEnd <= laterEventStart) {
         return true;
-    } else{
+    } else {
         return false;
     }
 }
@@ -413,8 +473,20 @@ function cloneTime(time) {
 const doesEvent1ContainEvent2 = (event1, event2) => {
     let doesContain = false;
 
-    if (event1.start <= event2.start) {
-        if (event1.end >= event2.end) {
+    /*
+    Create new date objects in case one of the events holds its date as a string, and not an actual date object.
+     */
+    let event1Start = new Date(event1.start);
+    let event1End = new Date(event1.end);
+    let event2Start = new Date(event2.start);
+    let event2End = new Date(event2.end);
+    event1Start = resetDateFields(event1.start, false, false, true, true);
+    event1End = resetDateFields(event1.end, false, false, true, true);
+    event2Start = resetDateFields(event2.start, false, false, true, true);
+    event2End = resetDateFields(event2.end, false, false, true, true);
+
+    if (event1Start <= event2Start) {
+        if (event1End >= event2End) {
             doesContain = true;
         }
     }
@@ -489,10 +561,45 @@ const advanceDateByDays = (originalDate, days, resetToMidnightFlag) => {
     cloneDate.setDate(cloneDate.getDate() + days);
 
     if (resetToMidnightFlag) {
-        cloneDate.setHours(00, 00, 00);
+        cloneDate.setHours(00, 00, 00, 0);
     }
 
     return cloneDate;
+}
+
+/**
+ * 
+ * @param {Date} date 
+ * @param {Boolean} resetHours 
+ * @param {Boolean} resetMinutes 
+ * @param {Boolean} resetSeconds 
+ * @param {Boolean} resetMilliseconds 
+ * @returns 
+ */
+const resetDateFields = (date, resetHours, resetMinutes, resetSeconds, resetMilliseconds) => {
+    if (!date) {
+        return null;
+    }
+
+    let newDate = new Date(date.valueOf());
+
+    if (resetHours) {
+        newDate.setHours(0);
+    }
+
+    if (resetMinutes) {
+        newDate.setMinutes(0);
+    }
+
+    if (resetSeconds) {
+        newDate.setSeconds(0);
+    }
+
+    if (resetMilliseconds) {
+        newDate.setMilliseconds(0);
+    }
+
+    return newDate;
 }
 
 const updateTimeEstimate = (estimatedTimeLeft, sessionLengthMinutes) => {
@@ -728,4 +835,5 @@ const getAllConstraints = async (emails) => {
 
 module.exports = {
     generateSchedule: generateSchedule,
+    rescheduleEvent: rescheduleEvent,
 }
