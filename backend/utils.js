@@ -47,6 +47,24 @@ const generateId = () => {
     return uuidv4();
 }
 
+/**
+ * Returns NULL if no project ID could be found.
+ * @param {*} event 
+ */
+const getEventProjectId = (event) => {
+    let res = null; 
+
+    if (!event) { 
+        return null;
+    }
+
+    if (!event.extendedProps || !event.extendedProps.projectId) {
+        return null;
+    }
+
+    return event.extendedProps.projectId;
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
     generateId: generateId,
@@ -54,5 +72,6 @@ module.exports = {
     getEmailFromReq: getEmailFromReq,
     getAccessTokenFromCode: getAccessTokenFromCode,
     getEmailFromAccessToken: getEmailFromAccessToken,
-    getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken
+    getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken,
+    getEventProjectId: getEventProjectId
 }
