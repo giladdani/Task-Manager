@@ -495,7 +495,7 @@ export class Schedules extends React.Component {
                         isOpen={this.state.isDialogOpen}
                         toggleOpen={this.toggleDialog}
                         onEventEdit={this.handleEventEditOnDialog}
-                        onEventDelete={this.handleEventDelete}
+                        onEventDelete={this.handleEventDeleteOnDialog}
                         onEventReschedule={this.handleEventReschedule}
                     />
                 </div>
