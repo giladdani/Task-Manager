@@ -427,6 +427,13 @@ export class Schedules extends React.Component {
     }
 
     handleEventReschedule = async (event) => {
+        let rescheduledEvents = await this.fetchRescheduledEvents(event);
+
+        return rescheduledEvents;
+    }
+
+    fetchRescheduledEvents = async (event) => {
+        let res = null;
         try {
             let calendarApi = this.calendarRef.current.getApi();
             const allEvents = calendarApi.getEvents();
@@ -450,11 +457,31 @@ export class Schedules extends React.Component {
                 throw new Error('Error while fetching events');
             }
 
-            // const data = await response.json();
-            // return data;
+            const data = await response.json();
+            res = data;
         }
         catch (err) {
             console.error(err);
+        }
+
+        return res;
+    }
+
+    handleConfirmRescheduling = async (eventToReschedule, rescheduledEventsArr) => {
+        if (rescheduledEventsArr.length == 1) {
+            const newEvent = rescheduledEventsArr[0];
+
+            const fieldsToUpdate = {
+                title: newEvent.title,
+                start: newEvent.start,
+                end: newEvent.end,
+            }
+
+            this.handleEventEditOnDialog(fieldsToUpdate);
+        } else {
+            // TODO:
+            // Delete event to reschedule
+            // Insert rescheduled events
         }
     }
 
@@ -497,6 +524,7 @@ export class Schedules extends React.Component {
                         onEventEdit={this.handleEventEditOnDialog}
                         onEventDelete={this.handleEventDeleteOnDialog}
                         onEventReschedule={this.handleEventReschedule}
+                        handleConfirmRescheduling={this.handleConfirmRescheduling}
                     />
                 </div>
             </>

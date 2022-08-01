@@ -114,12 +114,12 @@ const generateSchedule = async (events, project, emails) => {
                             const tempStartDate = new Date(currentDate);
                             const tempEndDate = new Date(currentDate);
                             tempStartDate.setHours(currStartTime.hour);
-                            tempEndDate.setHours(endTime.hour);
                             tempStartDate.setMinutes(currStartTime.minute);
-                            tempEndDate.setMinutes(endTime.minute);
                             tempStartDate.setSeconds(0);
-                            tempEndDate.setSeconds(0);
                             tempStartDate.setMilliseconds(0);
+                            tempEndDate.setHours(endTime.hour);
+                            tempEndDate.setMinutes(endTime.minute);
+                            tempEndDate.setSeconds(0);
                             tempEndDate.setMilliseconds(0);
                             const tempEvent = { start: tempStartDate, end: tempEndDate }
 
@@ -360,13 +360,23 @@ function getMinutesBetweenTimes(time1, time2) {
     return minutesBetween;
 }
 
-const filterEvents = (allEvents, startDate, endDate) => {
+const filterEvents = (allEvents, startDateOriginal, endDate) => {
+    /**
+     * We reset the hours, minutes and seconds of the start date because if the start date is in the middle of a day,
+     * and that day already has project events in it,
+     * we want to take note of those project events.
+     * More generally we want to take note of any events in the day.
+     * For example, if the day has an event at 12:00-13:00, and the start date is 12:30, the 12:00-13:00 event will get filtered.
+     * TODO: if a person has a night shift starting the day before the start date, this still clashes and requires attention.
+     */
+    let startDate = resetDateFields(startDateOriginal, true, true, true, true);
+    
     let eventsWithinDates = allEvents.filter(event => {
         eventStartDate = new Date(event.start);
         eventEndDate = new Date(event.end);
 
-        return (eventStartDate >= startDate
-            && eventEndDate <= endDate);
+        return (eventEndDate >= startDate
+            && eventStartDate <= endDate);
     })
 
     return eventsWithinDates;
@@ -574,7 +584,7 @@ const advanceDateByDays = (originalDate, days, resetToMidnightFlag) => {
  * @param {Boolean} resetMinutes 
  * @param {Boolean} resetSeconds 
  * @param {Boolean} resetMilliseconds 
- * @returns 
+ * @returns a new date object with the stated fields reset to 0. The other fields are left untouched.
  */
 const resetDateFields = (date, resetHours, resetMinutes, resetSeconds, resetMilliseconds) => {
     if (!date) {

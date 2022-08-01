@@ -13,7 +13,7 @@ const App = () => {
     unexportedAlgorithmEvents: [],
   }
 
-  const setEvents = (events) =>{
+  const setEvents = (events) => {
     allEvents.events = events;
   }
 
@@ -23,7 +23,7 @@ const App = () => {
 
   const NavbarContainer = () => (
     <>
-      <div>{<AvatarPhoto/>}</div>
+      <div>{<AvatarPhoto />}</div>
       <div className="app-header">
         <nav className="nav-bar">
           <ul>
@@ -41,25 +41,29 @@ const App = () => {
             </li>
           </ul>
         </nav>
-          <Routes>
-            <Route path="/schedules" element={<Schedules setEvents={setEvents} />}></Route>
-            <Route path="/projects" element={<Projects events={allEvents} />}></Route>
-            <Route path="/constraints" element={<Constraints />}></Route>
-            <Route path="/projectmanagement" element={<ProjectManagement allEvents={allEvents}/>}></Route>
-          </Routes>
+        <Routes>
+          <Route path="/schedules" element={
+            <Schedules
+              setEvents={setEvents}
+            />
+          }></Route>
+          <Route path="/projects" element={<Projects events={allEvents} />}></Route>
+          <Route path="/constraints" element={<Constraints />}></Route>
+          <Route path="/projectmanagement" element={<ProjectManagement allEvents={allEvents} />}></Route>
+        </Routes>
       </div>
     </>
   )
 
   return (
-  <Router>
+    <Router>
       <div className="app-header">
         <Routes>
           <Route path="/" element={<Login to="/login" onLogin={onLogin} />} />
           <Route path="*" element={<NavbarContainer />}></Route>
         </Routes>
       </div>
-  </Router>
+    </Router>
   )
 }
 
