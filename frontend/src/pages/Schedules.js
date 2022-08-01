@@ -5,6 +5,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox';
+const api = require('../api');
+
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -28,7 +30,9 @@ export class Schedules extends React.Component {
         // add events to shared events object in App.js
         let calendarApi = this.calendarRef.current.getApi();
 
-        let constraintEvents = await this.fetchConstraints();
+        // let constraintEvents = await this.fetchConstraints();
+        let constraintEvents = await api.fetchConstraints();
+
         constraintEvents.forEach(constraint => { constraint.editable = false })
         this.addEventsToScheduleFullCalendar(constraintEvents);
 
@@ -41,24 +45,30 @@ export class Schedules extends React.Component {
         this.props.setEvents(allEvents);
     }
 
-    fetchConstraints = async () => {
-        try {
-            const response = await fetch('http://localhost:3001/api/constraints', {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'GET'
-            });
-            if (response.status !== 200) throw new Error('Error while fetching events');
-            const data = await response.json();
-            return data;
-        }
-        catch (err) {
-            console.error(err);
-        }
-    }
+    /*
+
+Moved to API file!
+TODO: delete if all works well
+
+    */
+    // fetchConstraints = async () => {
+    //     try {
+    //         const response = await fetch('http://localhost:3001/api/constraints', {
+    //             headers: {
+    //                 'Accept': 'application/json',
+    //                 'Content-Type': 'application/json',
+    //                 'access_token': sessionStorage.getItem('access_token')
+    //             },
+    //             method: 'GET'
+    //         });
+    //         if (response.status !== 200) throw new Error('Error while fetching events');
+    //         const data = await response.json();
+    //         return data;
+    //     }
+    //     catch (err) {
+    //         console.error(err);
+    //     }
+    // }
 
     fetchProjectEvents = async () => {
         try {
@@ -113,7 +123,7 @@ export class Schedules extends React.Component {
             event: event,
             fieldsToUpdate: fieldsToUpdate
         }
-        try{
+        try {
             const response = await fetch(`http://localhost:3001/api/calendar/events`, {
                 headers: {
                     'Accept': 'application/json',
@@ -415,7 +425,7 @@ export class Schedules extends React.Component {
 
             if (response.status !== 200) {
                 throw new Error('Error while fetching events');
-            }       
+            }
 
             console.log(`Success in deleting event ${event.title}`);
             event.remove();
@@ -468,7 +478,7 @@ export class Schedules extends React.Component {
     }
 
     handleConfirmRescheduling = async (eventToReschedule, rescheduledEventsArr) => {
-        if (rescheduledEventsArr.length == 1) {
+        if (rescheduledEventsArr.length === 1) {
             const newEvent = rescheduledEventsArr[0];
 
             const fieldsToUpdate = {

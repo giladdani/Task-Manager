@@ -17,7 +17,7 @@ import { PendingProjectsList } from '../components/PendingProjectList';
 export const Projects = (props) => {
 
     let tempEndDate = new Date();
-    tempEndDate.setHours(23,59,0,0);
+    tempEndDate.setHours(23, 59, 0, 0);
     tempEndDate.setMonth(tempEndDate.getMonth() + 1);
 
     // Hooks
@@ -314,10 +314,22 @@ export const Projects = (props) => {
                         </td>
                     </tr>
                     <tr>
-                        <td><Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button></td>
+                        <td>
+                            <label>Constraints to ignore: </label>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="Constraint 1"></option>
+                                <option value="Constraint 2"></option>
+                                <option value="Constraint 3"></option>
+                                <option value="Constraint 4"></option>
+                            </select>
+                        </td>
                     </tr>
                 </tbody>
             </table>
+
+            <Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button>
 
             <Dialog open={isLoading}>
                 <DialogTitle>generating project schedule...</DialogTitle>

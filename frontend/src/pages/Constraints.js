@@ -5,6 +5,8 @@ import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+const api = require('../api');
+
 
 export const Constraints = () => {
     // Hooks
@@ -23,12 +25,40 @@ export const Constraints = () => {
     const [allConstraints, setAllConstraints] = useState([]);
 
     useEffect(async () => {
-        const constraints = await fetchConstraints();
-        setAllConstraints(constraints);
+        // const constraints = await fetchConstraints();
+        // const constraints = await api.fetchConstraints();
+        // setAllConstraints(constraints);
+
+        await fetchAndUpdateConstraints();
     });
 
+    const fetchAndUpdateConstraints = async () => {
+        const constraints = await api.fetchConstraints();
+        setAllConstraints(constraints);
+    }
+
+    /*
+ * TODO: delete if all works well
+Moved this to API file!
+ */
+    // const fetchConstraints = async () => {
+    //     const response = await fetch('http://localhost:3001/api/constraints', {
+    //         headers: {
+    //             'Accept': 'application/json',
+    //             'Content-Type': 'application/json',
+    //             'access_token': sessionStorage.getItem('access_token')
+    //         },
+    //         method: 'GET'
+    //     });
+
+    //     if (response.status !== 200) throw new Error('Error while fetching constraints')
+    //     const data = await response.json();
+
+    //     return data;
+    // }
+
     const handleDaysChange = (e) => {
-        setDays((prev => ({...prev, [e.target.name]: e.target.checked})));
+        setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
     }
 
     const daysCheckboxes = <div id="daysDiv">
@@ -69,8 +99,11 @@ export const Constraints = () => {
                 console.log('Constraint added');
                 alert("Constraints added!");
 
-                const constraints = await fetchConstraints();
-                setAllConstraints(constraints);
+                // const constraints = await utils.fetchConstraints();
+                // setAllConstraints(constraints);
+
+                await fetchAndUpdateConstraints();
+
             }
         }
         catch (err) {
@@ -112,22 +145,6 @@ export const Constraints = () => {
         return checkedDays;
     }
 
-    const fetchConstraints = async () => {
-        const response = await fetch('http://localhost:3001/api/constraints', {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token')
-            },
-            method: 'GET'
-        });
-
-        if (response.status !== 200) throw new Error('Error while fetching constraints')
-        const data = await response.json();
-        
-        return data;
-    }
-
     const handleConstraintUpdate = async (partialConstraintEvent) => {
         console.log(`Updating constraint ${partialConstraintEvent.title}`);
 
@@ -153,8 +170,9 @@ export const Constraints = () => {
             console.log(`Constraint updated: '${partialConstraintEvent.title}'`);
             alert(`Constraint ${body.title} updated successfully`);
 
-            const constraints = await fetchConstraints();
-            setAllConstraints(constraints);
+            // const constraints = await fetchConstraints();
+            // setAllConstraints(constraints);
+            await fetchAndUpdateConstraints();
         }
         catch (err) {
             console.error(err);
@@ -175,8 +193,9 @@ export const Constraints = () => {
             if (response.status !== 200) throw new Error('Error while deleting constraint')
             console.log(`Constraint ${constraintID} deleted`);
 
-            const constraints = await fetchConstraints();
-            setAllConstraints(constraints);
+            // const constraints = await fetchConstraints();
+            // setAllConstraints(constraints);
+            await fetchAndUpdateConstraints();
         }
         catch (err) {
             console.error(err);
@@ -207,7 +226,7 @@ export const Constraints = () => {
                                 <TimePicker
                                     value={constraintStartTime}
                                     onChange={(newValue) => { setConstraintStartTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params}/>}
+                                    renderInput={(params) => <TextField {...params} />}
                                 />
                             </LocalizationProvider>
                         </td>
