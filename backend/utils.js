@@ -47,6 +47,30 @@ const generateId = () => {
     return uuidv4();
 }
 
+isConstraintEvent = (event) => {
+    if (!event) {
+        return false;
+    }
+    
+    if (!event.extendedProps || !event.extendedProps.isConstraint) {
+        return false;
+    }
+
+    return event.extendedProps.isConstraint;
+}
+
+isUnexportedProjectEvent = (event) => {
+    if (!event) {
+        return false;
+    }
+
+    if (!event.extendedProps || !event.extendedProps.unexportedEvent) {
+        return false;
+    }
+
+    return event.extendedProps.unexportedEvent;
+}
+
 /**
  * Returns NULL if no project ID could be found.
  * @param {*} event 
@@ -73,5 +97,7 @@ module.exports = {
     getAccessTokenFromCode: getAccessTokenFromCode,
     getEmailFromAccessToken: getEmailFromAccessToken,
     getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken,
+    isConstraintEvent: isConstraintEvent,
+    isUnexportedProjectEvent: isUnexportedProjectEvent,
     getEventProjectId: getEventProjectId
 }

@@ -100,30 +100,45 @@ export class Schedules extends React.Component {
         }
     }
 
-    updateEventGoogle = async (event) => {
-        try {
-            const body = {
-                event: event,
-                googleCalendarId: event.extendedProps.googleCalendarId
-            };
+    handleEventDragged = (eventInfo) => {
+        const fieldsToUpdate = {
+            start: eventInfo.event.start,
+            end: eventInfo.event.end
+        }
+        this.updateEvent(eventInfo.event, fieldsToUpdate);
+    }
 
+    updateEvent = async (event, fieldsToUpdate) => {
+        const body = {
+            event: event,
+            fieldsToUpdate: fieldsToUpdate
+        }
+        try{
             const response = await fetch(`http://localhost:3001/api/calendar/events`, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'access_token': sessionStorage.getItem('access_token')
                 },
-                method: 'PUT',
+                method: 'PATCH',
                 body: JSON.stringify(body)
             });
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
-            const data = await response.json();
-            return data;
+            if (response.status !== 200) throw new Error('Error while updating events');
+            return response;
         }
         catch (err) {
             console.error(err);
         }
+    }
+
+    handleEventEditOnDialog = async (fieldsToUpdate) => {
+        const res = await this.updateEvent(this.state.selectedEvent, fieldsToUpdate);
+        this.toggleDialog(false);
+        let event = this.state.selectedEvent;
+        event.setProp("title", fieldsToUpdate.title);
+        event.setStart(fieldsToUpdate.start);
+        event.setEnd(fieldsToUpdate.end);
     }
 
     addEventsToScheduleFullCalendar = (events) => {
@@ -155,6 +170,7 @@ export class Schedules extends React.Component {
                     allDay: false, // TODO: change based on Google?
                     fullCalendarProjectId: fullCalendarProjectId,
                     backgroundColor: backgroundColor,
+                    borderColor: event.borderColor
                 }
             )
         });
@@ -174,11 +190,11 @@ export class Schedules extends React.Component {
 
     fetchBackgroundColorFromGoogleEvent = (googleEvent) => {
         if (!googleEvent.extendedProperties) {
-            return googleEvent.colorId;
+            return googleEvent.backgroundColor;
         }
 
         if (!googleEvent.extendedProperties.private) {
-            return googleEvent.colorId;
+            return googleEvent.backgroundColor;
         }
 
         return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
@@ -238,18 +254,8 @@ export class Schedules extends React.Component {
         return event.extendedProps.unexportedEvent;
     }
 
-    handleEventDragged = (eventInfo) => {
-        if (this.isConstraintEvent(eventInfo.event)) {
-            return;
-        } else if (this.isUnexportedProjectEvent(eventInfo.event)) {
-            this.updateUnexportedProjectEvent(eventInfo.event);
-        } else {
-            this.updateEventGoogle(eventInfo.event);
-        }
-    }
-
     updateUnexportedProjectEvent(event) {
-        console.log(`Updating unexported project event: ${event.title}`)
+        console.log(`Updating unexported project event: ${event.title}`);
     }
 
     handleEvents = (events) => {
@@ -385,12 +391,39 @@ export class Schedules extends React.Component {
         this.toggleDialog(true);
     }
 
-    handleEventEdit = (updatedEvent) => {
-        //TODO:
-    }
+    handleEventDeleteOnDialog = async (event) => {
+        // We want to edit constraints only from the constraints page 
+        // because at the moment we're unsure how to handle editing it with recurring events.
+        if (this.isConstraintEvent(event)) {
+            return;
+        }
 
-    handleEventDelete = (event) => {
-        // TODO:
+        try {
+            const body = {
+                event: event
+            };
+
+            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'access_token': sessionStorage.getItem('access_token')
+                },
+                method: 'DELETE',
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) {
+                throw new Error('Error while fetching events');
+            }       
+
+            console.log(`Success in deleting event ${event.title}`);
+            event.remove();
+            this.toggleDialog(false);
+        }
+        catch (err) {
+            console.error(err);
+        }
     }
 
     handleEventReschedule = async (event) => {
@@ -449,8 +482,6 @@ export class Schedules extends React.Component {
                         height="auto"
                         selectable={true}
                         editable={true}
-                        // selectMirror={true}
-                        // dayMaxEvents={true}
                         eventContent={this.renderEventContent}
                         select={this.handleDateSelect}
                         eventClick={this.handleEventClick}
@@ -463,7 +494,7 @@ export class Schedules extends React.Component {
                         event={this.state.selectedEvent}
                         isOpen={this.state.isDialogOpen}
                         toggleOpen={this.toggleDialog}
-                        onEventEdit={this.handleEventEdit}
+                        onEventEdit={this.handleEventEditOnDialog}
                         onEventDelete={this.handleEventDelete}
                         onEventReschedule={this.handleEventReschedule}
                     />

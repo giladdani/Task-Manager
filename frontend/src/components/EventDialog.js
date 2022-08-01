@@ -9,9 +9,20 @@ import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 
 export default function EventDialog(props) {
+
+  const [title, setEventName] = React.useState("");
+  const [start, setEventStart] = React.useState({});
+  const [end, setEventEnd] = React.useState({});
+  
+  React.useEffect(() => {
+    setEventName(props.event.title);
+    setEventStart(props.event.start);
+    setEventEnd(props.event.end);
+  }, [props.event.title])
+
   const handleClose = () => {
     props.toggleOpen(false);
   }
@@ -24,7 +35,7 @@ export default function EventDialog(props) {
   }
 
   const handleSave = () => {
-    props.onEventEdit(props.event);  //TODO: send all form fields
+    props.onEventEdit({title, start, end});
   }
 
   return (
@@ -36,18 +47,18 @@ export default function EventDialog(props) {
             <tbody>
               <tr>
                 <td>
-                  <TextField label="Event name" defaultValue={props.event.title} autoFocus />
+                  <TextField label="Event name" value={title} onChange={(newValue) => setEventName(newValue.target.value)} autoFocus />
                 </td>
               </tr>
               <tr>
                 <td>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <TimePicker
+                    <DateTimePicker
                       label="Start time"
-                      defaultValue={props.event.start}
-                      value={props.event.start}
-                      onChange={(newValue) => { /*setConstraintStartTime(newValue)*/ }}
-                      renderInput={(params) => <TextField {...params} />}
+                      defaultValue={start}
+                      value={start}
+                      onChange={(newValue) => {setEventStart(newValue)}}
+                      renderInput={(params) => <TextField {...params}/>}
                     />
                   </LocalizationProvider>
                 </td>
@@ -55,11 +66,12 @@ export default function EventDialog(props) {
               <tr>
                 <td>
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <TimePicker
+                    <DateTimePicker
                       label="End time"
-                      value={props.event.end}
-                      onChange={(newValue) => { /*setConstraintStartTime(newValue)*/ }}
-                      renderInput={(params) => <TextField {...params} />}
+                      defaultValue={end}
+                      value={end}
+                      onChange={(newValue) => {setEventEnd(newValue)}}
+                      renderInput={(params) => <TextField {...params}/>}
                     />
                   </LocalizationProvider>
                 </td>
