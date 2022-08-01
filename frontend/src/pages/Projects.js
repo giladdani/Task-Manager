@@ -14,6 +14,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
 
+const api = require('../api');
+
+
 export const Projects = (props) => {
 
     let tempEndDate = new Date();
@@ -38,8 +41,12 @@ export const Projects = (props) => {
     const [dailyStartHour, setDailyStartHour] = useState(new Date().setHours(0, 0, 0, 0));
     const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
 
+    const [constraints, setConstraints] = useState([]);
+
 
     React.useEffect(async () => {
+        let tempConstraints = await api.fetchConstraints();
+        setConstraints(tempConstraints);
     });
 
     const handleGenerateClick = async () => {
