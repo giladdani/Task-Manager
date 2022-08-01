@@ -47,6 +47,31 @@ const generateId = () => {
     return uuidv4();
 }
 
+
+isConstraintEvent = (event) => {
+    if (!event) {
+        return false;
+    }
+    
+    if (!event.extendedProps || !event.extendedProps.isConstraint) {
+        return false;
+    }
+
+    return event.extendedProps.isConstraint;
+}
+
+isUnexportedProjectEvent = (event) => {
+    if (!event) {
+        return false;
+    }
+
+    if (!event.extendedProps || !event.extendedProps.unexportedEvent) {
+        return false;
+    }
+
+    return event.extendedProps.unexportedEvent;
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
     generateId: generateId,
@@ -54,5 +79,7 @@ module.exports = {
     getEmailFromReq: getEmailFromReq,
     getAccessTokenFromCode: getAccessTokenFromCode,
     getEmailFromAccessToken: getEmailFromAccessToken,
-    getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken
+    getAvatarUrlFromAccessToken: getAvatarUrlFromAccessToken,
+    isConstraintEvent: isConstraintEvent,
+    isUnexportedProjectEvent: isUnexportedProjectEvent,
 }
