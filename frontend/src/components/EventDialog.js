@@ -24,12 +24,16 @@ export default function EventDialog(props) {
   }, [props.event.title])
 
   const handleClose = () => {
-      props.toggleOpen(false);
+    props.toggleOpen(false);
   }
   const handleDelete = () => {
     props.onEventDelete(props.event);
   }
-  
+
+  const handleReschedule = () => {
+    props.onEventReschedule(props.event);
+  }
+
   const handleSave = () => {
     props.onEventEdit({title, start, end});
   }
@@ -79,13 +83,14 @@ export default function EventDialog(props) {
           <Button onClick={handleClose} variant="contained">Cancel</Button>
           <Button onClick={handleSave} variant="contained" color="success">Save</Button>
           <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+          <Button onClick={handleReschedule} variant="contained" color="error">Reschedule</Button>
         </DialogActions>
       </Dialog>
     </>
   );
 }
 
-  // PaperComponent allows dragging the dialog
+// PaperComponent allows dragging the dialog
 function PaperComponent(props) {
   return (
     <Draggable

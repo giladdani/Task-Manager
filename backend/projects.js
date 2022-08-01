@@ -14,6 +14,8 @@ const router = express.Router();
 // Routing
 router.get('/', (req, res) => { getProjects(req, res) });
 router.get('/events', (req, res) => { getProjectEvents(req, res) });
+router.patch('/events/reschedule', (req, res) => { rescheduleProjectEvent(req, res) });
+
 router.get('/pending', (req, res) => { getPendingProjects(req, res) });
 
 router.post('/', async (req, res) => { await createProject(req, res) });
@@ -24,6 +26,17 @@ router.delete('/:id', (req, res) => { deleteProject(req, res) });
 
 
 // Functions
+const rescheduleProjectEvent = async (req, res) => {
+        const event = req.body.event;
+        const allEvents = req.body.allEvents;
+        const projectId = utils.getEventProjectId(event);
+        const project = await ProjectModel.findOne({ 'id': projectId });
+
+        let [events, estimatedTimeLeft] = await algorithm.rescheduleEvent(event, allEvents, project);
+
+        res.status(StatusCodes.OK).send();
+}
+
 const getProjects = async (req, res) => {
         const userEmail = await utils.getEmailFromReq(req);
         const allProjects = await ProjectModel.find({ 'email': userEmail });
