@@ -34,7 +34,12 @@ const rescheduleProjectEvent = async (req, res) => {
 
         let [events, estimatedTimeLeft] = await algorithm.rescheduleEvent(event, allEvents, project);
 
-        res.status(StatusCodes.OK).send();
+        let resBody = {
+                events: events,
+                estimatedTimeLeft: estimatedTimeLeft,
+        }
+
+        res.status(StatusCodes.OK).send(resBody);
 }
 
 const getProjects = async (req, res) => {

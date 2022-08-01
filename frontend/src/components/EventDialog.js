@@ -10,32 +10,66 @@ import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsList';
+
 
 export default function EventDialog(props) {
-
   const [title, setEventName] = React.useState("");
   const [start, setEventStart] = React.useState({});
   const [end, setEventEnd] = React.useState({});
-  
+  const [suggestedEvents, setSuggestedEvents] = React.useState(null);
+
   React.useEffect(() => {
     setEventName(props.event.title);
     setEventStart(props.event.start);
     setEventEnd(props.event.end);
   }, [props.event.title])
 
+
+  const isProjectEvent = (fullCalendarEvent) => {
+    if (!fullCalendarEvent) {
+      return false;
+    }
+
+    if (fullCalendarEvent.projectId) {
+      return fullCalendarEvent.projectId !== null;
+    }
+
+    if (!fullCalendarEvent.extendedProps) {
+      return false;
+    }
+
+    if (!fullCalendarEvent.extendedProps.projectId) {
+      return false;
+    }
+
+    let isProjectEvent = fullCalendarEvent.extendedProps.projectId !== null;
+
+    return isProjectEvent;
+  }
+
   const handleClose = () => {
     props.toggleOpen(false);
+    setSuggestedEvents(null);
   }
   const handleDelete = () => {
     props.onEventDelete(props.event);
   }
 
-  const handleReschedule = () => {
-    props.onEventReschedule(props.event);
+  const handleReschedule = async () => {
+    let rescheduledEventsRes = await props.onEventReschedule(props.event);
+    // let rescheduledEvents = await fetchRescheduledEvents(props.event);
+    setSuggestedEvents(rescheduledEventsRes.events);
   }
 
   const handleSave = () => {
-    props.onEventEdit({title, start, end});
+    props.onEventEdit({ title, start, end });
+  }
+
+  const handleConfirmRescheduling = (suggestedEvents) => {
+    props.handleConfirmRescheduling(props.event, suggestedEvents);
+    setSuggestedEvents(null);
+    // handleClose();
   }
 
   return (
@@ -55,10 +89,10 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="Start time"
-                      defaultValue={start}
-                      value={start}
-                      onChange={(newValue) => {setEventStart(newValue)}}
-                      renderInput={(params) => <TextField {...params}/>}
+                      // defaultValue={start}
+                      value={props.event.start}
+                      onChange={(newValue) => { setEventStart(newValue) }}
+                      renderInput={(params) => <TextField {...params} />}
                     />
                   </LocalizationProvider>
                 </td>
@@ -68,10 +102,10 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="End time"
-                      defaultValue={end}
-                      value={end}
-                      onChange={(newValue) => {setEventEnd(newValue)}}
-                      renderInput={(params) => <TextField {...params}/>}
+                      // defaultValue={end}
+                      value={props.event.end}
+                      onChange={(newValue) => { setEventEnd(newValue) }}
+                      renderInput={(params) => <TextField {...params} />}
                     />
                   </LocalizationProvider>
                 </td>
@@ -83,8 +117,14 @@ export default function EventDialog(props) {
           <Button onClick={handleClose} variant="contained">Cancel</Button>
           <Button onClick={handleSave} variant="contained" color="success">Save</Button>
           <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
-          <Button onClick={handleReschedule} variant="contained" color="error">Reschedule</Button>
+          {isProjectEvent(props.event) &&
+            <Button onClick={handleReschedule} variant="contained" color="error">Reschedule</Button>
+          }
         </DialogActions>
+        <SuggestedEventsList
+          suggestedEvents={suggestedEvents}
+          confirmRescheduling={handleConfirmRescheduling}
+        ></SuggestedEventsList>
       </Dialog>
     </>
   );
