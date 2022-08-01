@@ -47,7 +47,7 @@ const generateSchedule = async (events, project, emails) => {
         const allConstraintsArr = await getAllConstraints(emails);
         const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
         let currentDate = new Date(project.start);
-        currentDate = resetDateFields(currentDate, false, false, true, true);
+        currentDate = resetDateFields(currentDate, false, false, true, true); // Reset the seconds and milliseconds to avoid failing comparisons on inconsequential details
         let endDate = new Date(project.end);
         const maxEventsPerDay = Number(project.maxEventsPerDay);
         let dayRepetitionFrequency = Number(project.dayRepetitionFrequency);
@@ -56,6 +56,8 @@ const generateSchedule = async (events, project, emails) => {
         console.log(`[generateSchedule] Number of events before filter: ${allEvents.length}`)
         allEvents = filterEvents(allEvents, currentDate, endDate);
         console.log(`[generateSchedule] Number of events after filter: ${allEvents.length}`)
+
+        let firstIteration = true;
 
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
             const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
@@ -74,12 +76,29 @@ const generateSchedule = async (events, project, emails) => {
             }
 
             // We set the start time based on the current date, in case this is the first day of the project, and the user wants to start from specific hours.
-            let currStartTime = new dataObjects.Time(currentDate.getHours(), currentDate.getMinutes());
-            const finalEndTime = new dataObjects.Time(23, 59);
+            // let currStartTime = new dataObjects.Time(currentDate.getHours(), currentDate.getMinutes());
+            let currStartTime = getDailyStartTime(project);
+            if (firstIteration) {
+                const currDateTimeWindow = new dataObjects.Time(currentDate.getHours(), currentDate.getMinutes());
+
+                if (isLaterTime(currDateTimeWindow, currStartTime)) {
+                    currStartTime = cloneTime(currDateTimeWindow);
+                }
+            }
+
+            // const finalEndTime = new dataObjects.Time(23, 59);
+            const finalEndTime = getDailyEndTime(project);
+
 
             while (isLaterTime(finalEndTime, currStartTime) && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
                 const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
                 let endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
+
+                if (isLaterTime(endTime, finalEndTime)) {
+                    currStartTime = cloneTime(endTime);
+                    continue;
+                }
+
                 let timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
                 const tempStartDate = new Date(currentDate);
                 const tempEndDate = new Date(currentDate);
@@ -175,6 +194,7 @@ const generateSchedule = async (events, project, emails) => {
             currentDate = advanceDateByDays(currentDate, daysToAdvanceBy, true);
 
             timeLeft = estimatedTimeLeft;
+            firstIteration = false;
         }
     } catch (err) {
         console.log("error in schedule generating algorithm:" + err);
@@ -370,7 +390,7 @@ const filterEvents = (allEvents, startDateOriginal, endDate) => {
      * TODO: if a person has a night shift starting the day before the start date, this still clashes and requires attention.
      */
     let startDate = resetDateFields(startDateOriginal, true, true, true, true);
-    
+
     let eventsWithinDates = allEvents.filter(event => {
         eventStartDate = new Date(event.start);
         eventEndDate = new Date(event.end);
@@ -822,6 +842,25 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
 
 const isCurrDatePastEndDate = (currentDate, endDate) => {
     return new Date(currentDate) > new Date(endDate);
+}
+
+const getDailyStartTime = (project) => {
+    const dailyStartTime = new dataObjects.Time(0, 0);
+    const projectDailyStartTime = new Date(project.dailyStartHour);
+    dailyStartTime.hour = projectDailyStartTime.getHours();
+    dailyStartTime.minute = projectDailyStartTime.getMinutes();
+
+    return dailyStartTime;
+}
+
+const getDailyEndTime = (project) => {
+    // const finalEndTime = new dataObjects.Time(23, 59);
+    const dailyEndTime = new dataObjects.Time(23, 59);
+    const projectDailyEndTime = new Date(project.dailyEndHour);
+    dailyEndTime.hour = projectDailyEndTime.getHours();
+    dailyEndTime.minute = projectDailyEndTime.getMinutes();
+
+    return dailyEndTime;
 }
 
 const isAtMaxEventsPerDay = (maxEventsPerDay, eventsSoFarInDay) => {

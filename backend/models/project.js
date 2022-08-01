@@ -16,6 +16,8 @@ const projectSchema = new Schema({
     googleCalendarId: String,
     maxEventsPerDay: Number,
     dayRepetitionFrequency: Number,
+    dailyStartHour: Date,
+    dailyEndHour: Date,
 })
 
 const Project = mongoose.model('Project', projectSchema);

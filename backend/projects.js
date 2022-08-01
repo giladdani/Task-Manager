@@ -400,6 +400,10 @@ function checkInputValidity(req) {
                 errorMsg += "   - End date must be later than current date.\n";
         }
 
+        if (new Date(req.body.dailyStartHour) >= new Date(req.body.dailyEndHour)) {
+                errorMsg += "   - Daily start hour must be earlier than daily end hour."
+            }
+
         if (errorMsg.length === 0) {
                 errorMsg = null;
         }
@@ -441,6 +445,8 @@ const createProjectObject = async (req, isSharedProject) => {
                 exportedToGoogle: false,
                 maxEventsPerDay: req.body.maxEventsPerDay,
                 dayRepetitionFrequency: req.body.dayRepetitionFrequency,
+                dailyStartHour: req.body.dailyStartHour,
+                dailyEndHour: req.body.dailyEndHour,
         }
 
         return newProject;

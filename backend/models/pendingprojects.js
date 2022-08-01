@@ -16,6 +16,8 @@ const pendingProjectSchema = new Schema({
     googleCalendarId: String,
     maxEventsPerDay: Number,
     dayRepetitionFrequency: Number,
+    dailyStartHour: Date,
+    dailyEndHour: Date,
     
     requestingUser: String,
     awaitingUserApproval: String,

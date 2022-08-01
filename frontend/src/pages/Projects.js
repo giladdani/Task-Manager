@@ -1,11 +1,13 @@
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import Button from "@material-ui/core/Button";
 import Tooltip from "@material-ui/core/Tooltip";
-import { ThreeDots } from  'react-loader-spinner'
+import { ThreeDots } from 'react-loader-spinner'
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -13,6 +15,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
 
 export const Projects = (props) => {
+
+    let tempEndDate = new Date();
+    tempEndDate.setHours(23,59,0,0);
+    tempEndDate.setMonth(tempEndDate.getMonth() + 1);
 
     // Hooks
     const [successDialogOpen, toggleSuccessDialog] = React.useState(false);
@@ -23,10 +29,14 @@ export const Projects = (props) => {
     const [sessionLengthMinutes, setSessionLengthMinutes] = React.useState(0);
     const [spacingLengthMinutes, setSpacingLengthMinutes] = React.useState(0);
     const [startDate, setStartDate] = React.useState(new Date());
-    const [endDate, setEndDate] = React.useState(new Date());
+    // const [endDate, setEndDate] = React.useState(new Date().setHours(23,59,0,0));
+    const [endDate, setEndDate] = React.useState(tempEndDate);
+
     const [maxEventsPerDay, setMaxEventsPerDay] = React.useState();
     const [dayRepetitionFrequency, setDayRepetitionFrequency] = React.useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
     const [pendingProjects, setPendingProjects] = React.useState([]);
+    const [dailyStartHour, setDailyStartHour] = useState(new Date().setHours(0, 0, 0, 0));
+    const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
 
 
     React.useEffect(async () => {
@@ -52,6 +62,8 @@ export const Projects = (props) => {
                 allEvents: allEvents,
                 maxEventsPerDay: maxEventsPerDay,
                 dayRepetitionFrequency: dayRepetitionFrequency,
+                dailyStartHour: dailyStartHour,
+                dailyEndHour: dailyEndHour,
             };
 
             if (userEmailToShareWith && userEmailToShareWith.length > 0) { // TODO: add regex check for email
@@ -106,6 +118,7 @@ export const Projects = (props) => {
             }
         }
         catch (err) {
+            toggleLoading(false);
             console.error(err);
             alert(err);
         }
@@ -152,6 +165,10 @@ export const Projects = (props) => {
 
         if (endDate <= currDate) {
             errorMsg += "   - End date must be later than current date.\n";
+        }
+
+        if (dailyStartHour >= dailyEndHour) {
+            errorMsg += "   - Daily start hour must be earlier than daily end hour."
         }
 
         if (errorMsg.length === 0) {
@@ -238,6 +255,38 @@ export const Projects = (props) => {
                         </td>
                     </tr>
                     <tr>
+
+                    </tr>
+                    <tr>
+                        <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
+                            <p>Daily time frame</p>
+                        </Tooltip>
+                    </tr>
+                    <tr>
+                        <td><label>Start time:</label></td>
+                        <td className="whiteTimeFont">
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                <TimePicker
+                                    value={dailyStartHour}
+                                    onChange={(newValue) => { setDailyStartHour(newValue) }}
+                                    renderInput={(params) => <TextField {...params} />}
+                                />
+                            </LocalizationProvider>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label>End time:</label></td>
+                        <td className="whiteTimeFont">
+                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                <TimePicker
+                                    value={dailyEndHour}
+                                    onChange={(newValue) => { setDailyEndHour(newValue) }}
+                                    renderInput={(params) => <TextField {...params} />}
+                                />
+                            </LocalizationProvider>
+                        </td>
+                    </tr>
+                    <tr>
                         <td>
                             <Tooltip title="How many sessions at maximum per day. Leave undefined for unlimited (as much as possible).">
                                 <label>Max sessions per day: </label>
@@ -274,7 +323,7 @@ export const Projects = (props) => {
                 <DialogTitle>generating project schedule...</DialogTitle>
                 <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
             </Dialog>
-            
+
             <Dialog open={successDialogOpen}>
                 <DialogTitle>Success!</DialogTitle>
                 <DialogContent>Project created successfully</DialogContent>
@@ -282,8 +331,8 @@ export const Projects = (props) => {
                     <Button onClick={handleDialogClose}>Close</Button>
                 </DialogActions>
             </Dialog>
-            
-            <PendingProjectsList allEvents={props.events}/>
+
+            <PendingProjectsList allEvents={props.events} />
         </>
     )
 }
