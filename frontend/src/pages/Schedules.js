@@ -495,6 +495,14 @@ TODO: delete if all works well
         }
     }
 
+    setShowSharedCalendars = async () => {
+
+    }
+
+    shareScheduleWithUser = async () => {
+        
+    }
+
     render() {
         return (
             <>
@@ -506,6 +514,14 @@ TODO: delete if all works well
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
+                    </div>
+                    <div>
+                        <label>Show Shared Calendars</label>
+                        <Checkbox onChange={(newValue) => { this.setShowSharedCalendars(newValue.target.checked); }}></Checkbox>
+                    </div>
+                    <div>
+                        <label>Share schedule with user (uneditable!): </label>
+                        <input type="text" onChange={(newValue) => { this.shareScheduleWithUser(newValue.target.value) }}></input>
                     </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
