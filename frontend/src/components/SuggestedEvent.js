@@ -42,9 +42,11 @@ export const SuggestedEvent = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={start}
+                                    inputFormat="HH:mm dd/MM/yyyy"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -55,9 +57,11 @@ export const SuggestedEvent = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={end}
+                                    inputFormat="HH:mm dd/MM/yyyy"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>

@@ -530,6 +530,7 @@ TODO: delete if all works well
                             center: 'title',
                             right: 'timeGridWeek,timeGridDay'
                         }}
+                        
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
@@ -541,6 +542,9 @@ TODO: delete if all works well
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}
                         ref={this.calendarRef}
+                        eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+                        slotLabelFormat={[{hour: "2-digit",minute: "2-digit", meridiem: false, hour12: false}]}
+                        locale='en-GB'
                     />
 
                     <EventDialog

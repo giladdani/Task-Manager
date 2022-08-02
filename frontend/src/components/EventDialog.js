@@ -89,10 +89,11 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="Start time"
-                      // defaultValue={start}
+                      inputFormat="HH:mm dd/MM/yyyy"
                       value={props.event.start}
                       onChange={(newValue) => { setEventStart(newValue) }}
                       renderInput={(params) => <TextField {...params} />}
+                      ampm={false}
                     />
                   </LocalizationProvider>
                 </td>
@@ -102,10 +103,11 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="End time"
-                      // defaultValue={end}
+                      inputFormat="HH:mm dd/MM/yyyy"
                       value={props.event.end}
                       onChange={(newValue) => { setEventEnd(newValue) }}
                       renderInput={(params) => <TextField {...params} />}
+                      ampm={false}
                     />
                   </LocalizationProvider>
                 </td>
