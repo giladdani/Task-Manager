@@ -14,6 +14,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
 
+
 const api = require('../api');
 
 
@@ -42,6 +43,7 @@ export const Projects = (props) => {
     const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
 
     const [constraints, setConstraints] = useState([]);
+    const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
 
 
     React.useEffect(async () => {
@@ -71,6 +73,7 @@ export const Projects = (props) => {
                 dayRepetitionFrequency: dayRepetitionFrequency,
                 dailyStartHour: dailyStartHour,
                 dailyEndHour: dailyEndHour,
+                ignoredConstraintsIds: ignoredConstraintIds,
             };
 
             if (userEmailToShareWith && userEmailToShareWith.length > 0) { // TODO: add regex check for email
@@ -198,6 +201,19 @@ export const Projects = (props) => {
     function handleDialogClose() {
         toggleSuccessDialog(false);
     }
+
+    const onSelectConstraintChange = (e) => {
+        console.log(`On selected change!`);
+
+        let chosenConstraintIds = [];
+
+        for(const selected of e.target.selectedOptions) {
+            chosenConstraintIds.push(selected.value);
+        }
+
+        setIgnoredConstraintsIds(chosenConstraintIds);
+    }
+
     return (
         <>
             <h1>Create project schedule</h1>
@@ -325,12 +341,15 @@ export const Projects = (props) => {
                             <label>Constraints to ignore: </label>
                         </td>
                         <td>
-                            <select>
-                                <option value="Constraint 1"></option>
-                                <option value="Constraint 2"></option>
-                                <option value="Constraint 3"></option>
-                                <option value="Constraint 4"></option>
-                            </select>
+                            <form >
+                                <select
+                                    onChange={onSelectConstraintChange}
+                                    name="constraints" id="constraints" multiple>
+                                    {constraints.map((constraint, index) => {
+                                        return <option id={constraint.id} value={constraint.id}>{constraint.title}</option>
+                                    })}
+                                </select>
+                            </form>
                         </td>
                     </tr>
                 </tbody>

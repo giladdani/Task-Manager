@@ -62,7 +62,7 @@ const generateSchedule = async (events, project, emails) => {
         while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
             const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
             const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
-            const allConstraintsAsEvents = changeConstraintsToEvents(allCurrDayConstraints, currentDate);
+            const allConstraintsAsEvents = changeConstraintsToEvents(allCurrDayConstraints, currentDate, project);
             allConstraintsAsEvents.forEach(constraintEvent => allCurrDayEvents.push(constraintEvent));
 
             //  go over all curr day events and check if any of them belong to the project
@@ -118,8 +118,19 @@ const generateSchedule = async (events, project, emails) => {
                 if (allOverlappingEvents.length > 0) {
                     // TODO: change this to Reduce for some functional programming practice
                     let latestEvent = findLatestEvent(allOverlappingEvents);
-                    let latestEventEndTime = getTimeWindowFromEvent(latestEvent).endTime;
-                    currStartTime = cloneTime(latestEventEndTime);
+
+                    /**
+                     * If it's an overnight event into the following day, we can't just set currStartTime to the end time of the event.
+                     * It could cause an endless loop if the end hour of the event is earlier than the start (say, start Monday 18:00 and end Tuesday 15:00).
+                     * Therefore if the event ends the next day, we set currStartTime to the end of the day.
+                     */
+
+                    if (new Date(latestEvent.end).getDay() > new Date(latestEvent.start).getDay()) {
+                        currStartTime = cloneTime(finalEndTime);
+                    } else {
+                        let latestEventEndTime = getTimeWindowFromEvent(latestEvent).endTime;
+                        currStartTime = cloneTime(latestEventEndTime);
+                    }
 
                     continue;
                 } else {
@@ -757,10 +768,20 @@ const getAllCurrDayEvents = (currentDate, allEvents) => {
     return allCurrDayEvents;
 }
 
-function changeConstraintsToEvents(allCurrDayConstraints, currentDate) {
+/**
+ * 
+ * @param {*} allCurrDayConstraints 
+ * @param {*} currentDate 
+ * @param {*} project The project object holds all the contstraint IDs to ignore. Such constraint will not be returned from this function.
+ * @returns 
+ */
+function changeConstraintsToEvents(allCurrDayConstraints, currentDate, project) {
     let allConstraintsAsEvents = []
 
     for (const constraint of allCurrDayConstraints) {
+        if (isIgnoredConstraint(constraint, project)) {
+            continue;
+        }
         const constraintStartTimeStr = constraint.startTime;
         const constraintStartTimeStrSplit = constraintStartTimeStr.split(":");
         const constraintStartHour = Number(constraintStartTimeStrSplit[0])
@@ -794,6 +815,19 @@ function changeConstraintsToEvents(allCurrDayConstraints, currentDate) {
     }
 
     return allConstraintsAsEvents;
+}
+
+function isIgnoredConstraint(constraint, project) {
+    let ignoreId = false;
+
+    for(const ignoredConstraintId of project.ignoredConstraintsIds) {
+        if (ignoredConstraintId == constraint.id) {
+            ignoreId = true;
+            break;
+        }
+    }
+
+    return ignoreId;
 }
 
 const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {

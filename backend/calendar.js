@@ -2,6 +2,7 @@ const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
+const SharedEventsModel = require('./models/sharedeventsmodel')
 const utils = require('./utils');
 
 // Routing
@@ -9,10 +10,34 @@ const router = express.Router();
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
+router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
+router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
+
+
+
 router.patch('/events', (req, res) => { updateEvent(req, res) });
 // router.put('/events/google', (req, res) => { updateGoogleEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 // router.put('/events/unexported', (req, res) => { updateUnexportedEvent(req, res) });
+
+const shareEvents = async (req, res) => {
+
+    const userEmail = utils.getEmailFromReq(req);
+
+    let body = {
+        allEvents: allEvents,
+        shareWithUserEmail: userEmail,
+    }
+
+    body.allEvents.forEach(event => {
+        event.email = userEmail;
+        event.shareWithUser = shareWithUserEmail;
+    })
+
+    const docsEvents = await SharedEventsModel.insertMany(allEvents);
+
+    res.status(StatusCodes.OK).send();
+}
 
 const updateEvent = async (req, res) => {
     const event = req.body.event;
@@ -159,6 +184,12 @@ const deleteGoogleEvent = async (req) => {
     }
 
     return errorMsg;
+}
+
+const getAllSharedEvents = async (req, res) => {
+    const userEmail = await utils.getEmailFromReq(req);
+    const allEvents = await SharedEventsModel.find({ 'shareWithUser': userEmail });
+    res.status(StatusCodes.OK).send(allEvents);
 }
 
 const getAllEventsGoogle = async (req, res) => {

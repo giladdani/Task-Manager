@@ -18,6 +18,7 @@ const pendingProjectSchema = new Schema({
     dayRepetitionFrequency: Number,
     dailyStartHour: Date,
     dailyEndHour: Date,
+    ignoredConstraintsIds: [String],
     
     requestingUser: String,
     awaitingUserApproval: String,

@@ -18,6 +18,7 @@ const projectSchema = new Schema({
     dayRepetitionFrequency: Number,
     dailyStartHour: Date,
     dailyEndHour: Date,
+    ignoredConstraintsIds: [String],
 })
 
 const Project = mongoose.model('Project', projectSchema);

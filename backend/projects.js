@@ -447,6 +447,7 @@ const createProjectObject = async (req, isSharedProject) => {
                 dayRepetitionFrequency: req.body.dayRepetitionFrequency,
                 dailyStartHour: req.body.dailyStartHour,
                 dailyEndHour: req.body.dailyEndHour,
+                ignoredConstraintsIds: req.body.ignoredConstraintsIds,
         }
 
         return newProject;
