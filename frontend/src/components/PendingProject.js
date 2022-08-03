@@ -57,7 +57,7 @@ export const PendingProject = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
-                                    inputFormat="HH:mm dd/MM/yyyy"
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
@@ -72,7 +72,7 @@ export const PendingProject = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
-                                    inputFormat="HH:mm dd/MM/yyyy"
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}

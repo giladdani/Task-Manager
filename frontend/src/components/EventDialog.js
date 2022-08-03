@@ -15,15 +15,15 @@ import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsLis
 
 export default function EventDialog(props) {
   const [title, setEventName] = React.useState("");
-  const [start, setEventStart] = React.useState({});
-  const [end, setEventEnd] = React.useState({});
+  const [start, setEventStart] = React.useState(new Date());
+  const [end, setEventEnd] = React.useState(new Date());
   const [suggestedEvents, setSuggestedEvents] = React.useState(null);
 
   React.useEffect(() => {
     setEventName(props.event.title);
     setEventStart(props.event.start);
     setEventEnd(props.event.end);
-  }, [props.event.title])
+  }, [props.event])
 
 
   const isProjectEvent = (fullCalendarEvent) => {
@@ -89,8 +89,8 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="Start time"
-                      inputFormat="HH:mm dd/MM/yyyy"
-                      value={props.event.start}
+                      inputFormat="dd/MM/yyyy HH:mm"
+                      value={start}
                       onChange={(newValue) => { setEventStart(newValue) }}
                       renderInput={(params) => <TextField {...params} />}
                       ampm={false}
@@ -103,8 +103,8 @@ export default function EventDialog(props) {
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DateTimePicker
                       label="End time"
-                      inputFormat="HH:mm dd/MM/yyyy"
-                      value={props.event.end}
+                      inputFormat="dd/MM/yyyy HH:mm"
+                      value={end}
                       onChange={(newValue) => { setEventEnd(newValue) }}
                       renderInput={(params) => <TextField {...params} />}
                       ampm={false}
