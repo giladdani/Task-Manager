@@ -2,6 +2,8 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Logout from '@mui/icons-material/Logout';
+import ListItemIcon from '@mui/material/ListItemIcon';
 
 export const AvatarPhoto = () => {
     const [avatarUrl, setAvatarUrl] = React.useState('');
@@ -49,13 +51,15 @@ export const AvatarPhoto = () => {
         <>
             <Avatar src={avatarUrl} onClick={openMenu} />
             <Menu
-            id="basic-menu"
-            anchorEl={anchorMenu}
-            open={isMenuOpen}
-            onClose={closeMenu}
-            MenuListProps={{'aria-labelledby': 'basic-button'}}
+                anchorEl={anchorMenu}
+                open={isMenuOpen}
+                onClose={closeMenu}
             >
-                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                <MenuItem onClick={handleLogout}>
+                    <ListItemIcon>
+                        <Logout /> Logout
+                    </ListItemIcon>
+                </MenuItem>
             </Menu>
       </>
     )
