@@ -6,6 +6,7 @@ import { Projects } from '../pages/Projects';
 import { Constraints } from '../pages/Constraints';
 import { ProjectManagement } from '../pages/ProjectManagement';
 import { AvatarPhoto } from './AvatarPhoto';
+import { NavBar } from './NavBar';
 
 const App = () => {
   let allEvents = {
@@ -25,28 +26,9 @@ const App = () => {
     <>
       <div>{<AvatarPhoto />}</div>
       <div className="app-header">
-        <nav className="nav-bar">
-          <ul>
-            <li>
-              <Link to="/schedules">Schedules</Link>
-            </li>
-            <li>
-              <Link to="/projects">Projects</Link>
-            </li>
-            <li>
-              <Link to="/constraints">Constraints</Link>
-            </li>
-            <li>
-              <Link to="/projectmanagement">Project Management</Link>
-            </li>
-          </ul>
-        </nav>
+        <NavBar />
         <Routes>
-          <Route path="/schedules" element={
-            <Schedules
-              setEvents={setEvents}
-            />
-          }></Route>
+          <Route path="/schedules" element={<Schedules setEvents={setEvents}/>}></Route>
           <Route path="/projects" element={<Projects events={allEvents} />}></Route>
           <Route path="/constraints" element={<Constraints />}></Route>
           <Route path="/projectmanagement" element={<ProjectManagement allEvents={allEvents} />}></Route>
