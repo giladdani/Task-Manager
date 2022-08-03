@@ -1,22 +1,13 @@
 import * as React from 'react';
 import { Link } from "react-router-dom";
 
-export const NavBar = () => {
+export const NavBar = (props) => {
+    const links = props.pages.map((page, index) => <li key={index}><Link to={page.relativePath}>{page.name}</Link></li>);
+
     return (
         <nav className="nav-bar">
           <ul>
-            <li>
-              <Link to="/schedules">Schedules</Link>
-            </li>
-            <li>
-              <Link to="/projects">Projects</Link>
-            </li>
-            <li>
-              <Link to="/constraints">Constraints</Link>
-            </li>
-            <li>
-              <Link to="/projectmanagement">Project Management</Link>
-            </li>
+            {links}
           </ul>
         </nav>
     )

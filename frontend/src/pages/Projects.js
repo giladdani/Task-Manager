@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -266,12 +266,11 @@ export const Projects = (props) => {
                         </td>
                     </tr>
                     <tr>
-
-                    </tr>
-                    <tr>
-                        <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
-                            <p>Daily time frame</p>
-                        </Tooltip>
+                        <td>
+                            <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
+                                <p>Daily time frame</p>
+                            </Tooltip>
+                        </td>
                     </tr>
                     <tr>
                         <td><label>Start time:</label></td>
