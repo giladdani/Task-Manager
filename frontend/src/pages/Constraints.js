@@ -1,12 +1,10 @@
-import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-const api = require('../api');
-
+const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
 export const Constraints = () => {
     // Hooks
@@ -33,7 +31,7 @@ export const Constraints = () => {
     });
 
     const fetchAndUpdateConstraints = async () => {
-        const constraints = await api.fetchConstraints();
+        const constraints = await ConstraintsAPI.fetchConstraints();
         setAllConstraints(constraints);
     }
 

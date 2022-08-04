@@ -16,9 +16,7 @@ router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
 
 
 router.patch('/events', (req, res) => { updateEvent(req, res) });
-// router.put('/events/google', (req, res) => { updateGoogleEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
-// router.put('/events/unexported', (req, res) => { updateUnexportedEvent(req, res) });
 
 const shareEvents = async (req, res) => {
 

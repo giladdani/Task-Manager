@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Constraint } from './Constraint';
 
 export class ConstraintsList extends React.Component {

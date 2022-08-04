@@ -1,8 +1,14 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Logout from '@mui/icons-material/Logout';
+import ListItemIcon from '@mui/material/ListItemIcon';
 
 export const AvatarPhoto = () => {
-    const [avatarUrl, setAvatarUrl] = React.useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [anchorMenu, setAnchorMenu] = useState(null);
+    const isMenuOpen = Boolean(anchorMenu);
 
     const fetchUserAvatarUrl = async() =>{
         try {
@@ -23,12 +29,38 @@ export const AvatarPhoto = () => {
         }
     }
 
-    React.useEffect(async () => {
+    const openMenu = (event) => {
+        setAnchorMenu(event.currentTarget);
+      };
+
+    const closeMenu = () => {
+        setAnchorMenu(null);
+    };
+
+    const handleLogout = () => {
+        sessionStorage.clear();  
+        window.location = "/";
+    }
+
+    useEffect(async () => {
         const avatarUrlRes = await fetchUserAvatarUrl();
         setAvatarUrl(avatarUrlRes);
     });
 
     return (
-        <Avatar src={avatarUrl} />
+        <>
+            <Avatar src={avatarUrl} onClick={openMenu} />
+            <Menu
+                anchorEl={anchorMenu}
+                open={isMenuOpen}
+                onClose={closeMenu}
+            >
+                <MenuItem onClick={handleLogout}>
+                    <ListItemIcon>
+                        <Logout /> Logout
+                    </ListItemIcon>
+                </MenuItem>
+            </Menu>
+      </>
     )
 }

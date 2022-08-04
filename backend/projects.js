@@ -89,9 +89,6 @@ const createSharedProject = async (req, res) => {
         let docsEvents1 = await PendingProjectEvents.deleteMany({ 'projectSharedId': originalProjectSharedId });
         let docsEvents2 = await PendingProject.deleteOne({ 'sharedId': originalProjectSharedId });
 
-
-
-
         resBody = {
                 estimatedTimeLeft: estimatedTimeLeft,
         };

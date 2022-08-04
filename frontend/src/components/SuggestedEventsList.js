@@ -1,7 +1,5 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { SuggestedEvent as SuggestedEvent } from './SuggestedEvent';
-
 import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 import Paper from '@mui/material/Paper';

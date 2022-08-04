@@ -1,22 +1,15 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import Button from "@material-ui/core/Button";
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import Tooltip from "@material-ui/core/Tooltip";
 
 export const PendingProject = (props) => {
-    const [projectTitle, setProjectName] = React.useState(props.project.title);
-    const [startDate, setStartDate] = React.useState(new Date(props.project.start));
-    const [endDate, setEndDate] = React.useState(new Date(props.project.end));
-    const [isBeingEdited, setIsBeingEdited] = React.useState(false);
+    const [projectTitle, setProjectName] = useState(props.project.title);
+    const [startDate, setStartDate] = useState(new Date(props.project.start));
+    const [endDate, setEndDate] = useState(new Date(props.project.end));
+    const [isBeingEdited, setIsBeingEdited] = useState(false);
 
     const handleOnApproveClick = () => {
         props.approveProject(props.project);
@@ -57,9 +50,11 @@ export const PendingProject = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -70,9 +65,11 @@ export const PendingProject = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>

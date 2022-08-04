@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { PendingProject as PendingProject } from './PendingProject';
 
 export class PendingProjectsList extends React.Component {
