@@ -178,7 +178,7 @@ TODO: delete if all works well
                     start: event.start.dateTime,
                     end: event.end.dateTime,
                     allDay: false, // TODO: change based on Google?
-                    fullCalendarProjectId: fullCalendarProjectId,
+                    projectId: fullCalendarProjectId,
                     backgroundColor: backgroundColor,
                     borderColor: event.borderColor
                 }
@@ -195,19 +195,22 @@ TODO: delete if all works well
             return null;
         }
 
-        return googleEvent.extendedProperties.private.fullCalendarProjectID;
+        return googleEvent.extendedProperties.private.fullCalendarProjectId;
     }
 
     fetchBackgroundColorFromGoogleEvent = (googleEvent) => {
-        if (!googleEvent.extendedProperties) {
-            return googleEvent.backgroundColor;
-        }
+        // if (!googleEvent.extendedProperties) {
+        //     return googleEvent.backgroundColor;
+        // }
 
-        if (!googleEvent.extendedProperties.private) {
-            return googleEvent.backgroundColor;
-        }
+        // if (!googleEvent.extendedProperties.private) {
+        //     return googleEvent.backgroundColor;
+        // }
 
-        return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
+        // return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
+
+
+        return googleEvent.backgroundColor;
     }
 
     fetchAppEventIdFromGoogleEvent = (googleEvent) => {

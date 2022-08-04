@@ -62,6 +62,7 @@ export const ProjectManagement = (props) => {
                 events: allEvents,
             };
 
+            
             const response = await fetch(`http://localhost:3001/api/projects/export/${project.id}`, {
                 headers: {
                     'Accept': 'application/json',

@@ -13,13 +13,12 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
-
-
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import { DynamicInputList as DynamicInputList } from '../components/DynamicInputList';
 const api = require('../api');
 
-
 export const Projects = (props) => {
-
     let tempEndDate = new Date();
     tempEndDate.setHours(23, 59, 0, 0);
     tempEndDate.setMonth(tempEndDate.getMonth() + 1);
@@ -45,6 +44,9 @@ export const Projects = (props) => {
     const [constraints, setConstraints] = useState([]);
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
 
+    const [shareChecked, setShareChecked] = React.useState(false);
+    const [emailList, setEmailList] = React.useState([]);
+
 
     React.useEffect(async () => {
         let tempConstraints = await api.fetchConstraints();
@@ -61,7 +63,7 @@ export const Projects = (props) => {
 
             const allEvents = props.events.events;
             const body = {
-                userEmailToShareWith: userEmailToShareWith,
+                sharedEmails: emailList,
                 projectTitle: projectTitle,
                 sessionLengthMinutes: sessionLengthMinutes,
                 spacingLengthMinutes: spacingLengthMinutes,
@@ -76,7 +78,7 @@ export const Projects = (props) => {
                 ignoredConstraintsIds: ignoredConstraintIds,
             };
 
-            if (userEmailToShareWith && userEmailToShareWith.length > 0) { // TODO: add regex check for email
+            if (shareChecked) { 
                 const response = await fetch('http://localhost:3001/api/projects/shared', {
                     headers: {
                         'Accept': 'application/json',
@@ -141,6 +143,14 @@ export const Projects = (props) => {
     function checkInputValidity() {
         let errorMsg = "";
 
+        for (let [index, val] of emailList.entries()) {
+            if (val.length > 0) {
+                if (!isValidEmail(val)) {
+                    errorMsg += `   - email ${index + 1} ('${val}') is not valid.\n`;
+                }
+            }
+        }
+
         if (!projectTitle || projectTitle.length === 0) {
             errorMsg += "   - Must enter project name.\n";
         }
@@ -188,6 +198,13 @@ export const Projects = (props) => {
         return errorMsg;
     }
 
+    function isValidEmail(email) {
+        const re =
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+        return re.test(String(email).toLowerCase());
+    }
+
     function isPositiveInteger(input) {
         const num = Number(input);
 
@@ -207,11 +224,28 @@ export const Projects = (props) => {
 
         let chosenConstraintIds = [];
 
-        for(const selected of e.target.selectedOptions) {
+        for (const selected of e.target.selectedOptions) {
             chosenConstraintIds.push(selected.value);
         }
 
         setIgnoredConstraintsIds(chosenConstraintIds);
+    }
+
+    const handleShareCheckboxChange = (event) => {
+        // setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
+        setShareChecked(event.target.checked);
+    }
+
+    const updateEmailList = (emailList) => {
+        let newList = [];
+
+        for(const email of emailList) {
+            if (email.value.length > 0) {
+                newList.push(email.value);
+            }
+        }
+
+        setEmailList(newList);
     }
 
     return (
@@ -220,25 +254,48 @@ export const Projects = (props) => {
             <table>
                 <tbody>
                     <tr>
-                        <td><label>Share with user: </label></td>
                         <td>
-                            <input type="text" onChange={(newValue) => { setUserEmailToShareWith(newValue.target.value) }}></input>
+                            <label>Users to share with: </label>
+                        </td>
+                        <td>
+                            <FormControlLabel
+                                control={<Checkbox
+                                    checked={shareChecked}
+                                    onChange={handleShareCheckboxChange}
+                                />}
+                                label="Share"
+                            />
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Project Name:</label></td>
+                        <td></td>
+                        <td>
+                            <DynamicInputList
+                                disabled={!shareChecked}
+                                updateList={updateEmailList}
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label>Project Name:</label>
+                        </td>
                         <td>
                             <input type="text" onChange={(newValue) => { setProjectName(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Estimated Time (Hours):</label></td>
+                        <td>
+                            <label>Estimated Time (Hours):</label>
+                        </td>
                         <td>
                             <input type="number" min="1" step="1" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input>
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Session Length (Minutes):</label></td>
+                        <td>
+                            <label>Session Length (Minutes):</label>
+                        </td>
                         <td>
                             <input type="number" min="1" step="1" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input>
                         </td>
@@ -282,7 +339,9 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
-                            <p>Daily time frame</p>
+                            <td>
+                                <p>Daily time frame</p>
+                            </td>
                         </Tooltip>
                     </tr>
                     <tr>
@@ -346,7 +405,7 @@ export const Projects = (props) => {
                                     onChange={onSelectConstraintChange}
                                     name="constraints" id="constraints" multiple>
                                     {constraints.map((constraint, index) => {
-                                        return <option id={constraint.id} value={constraint.id}>{constraint.title}</option>
+                                        return <option key={index} id={constraint.id} value={constraint.id}>{constraint.title}</option>
                                     })}
                                 </select>
                             </form>

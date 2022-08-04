@@ -11,20 +11,20 @@ export class ProjectsList extends React.Component {
             const allEvents = this.props.allEvents.events;
             const projectEvents = allEvents.filter(event => event.extendedProps.projectId == project.id)
 
-            return <li key={index}>
-                <Project
-                    project={project}
-                    projectEvents={projectEvents}
-                    deleteProject={this.props.deleteProject}
-                    exportProject={this.props.exportProject}
-                ></Project>
-            </li>
-        });
+        return <li key={index}>
+            <Project
+                project={project}
+                projectEvents={projectEvents}
+                deleteProject={this.props.deleteProject}
+                exportProject={this.props.exportProject}
+            ></Project>
+        </li>
+    });
 
-        return (
+    return(
             <ul>
-                {projects}
-            </ul>
+    { projects }
+            </ul >
         )
     }
 }
