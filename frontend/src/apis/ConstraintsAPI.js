@@ -27,5 +27,5 @@ const fetchConstraints = async () => {
 }
 
 module.exports = {
-    fetchConstraints: fetchConstraints,
+    fetchConstraints: fetchConstraints
 }

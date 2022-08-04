@@ -10,9 +10,7 @@ router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
 router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
 router.patch('/events', (req, res) => { updateEvent(req, res) });
-// router.put('/events/google', (req, res) => { updateGoogleEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
-// router.put('/events/unexported', (req, res) => { updateUnexportedEvent(req, res) });
 
 const updateEvent = async (req, res) => {
     const event = req.body.event;

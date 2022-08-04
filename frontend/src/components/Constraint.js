@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -15,16 +15,16 @@ export const Constraint = (props) => {
     endDate.setHours(endHour);
     endDate.setMinutes(endMinute);
 
-    const [sundayValue, setSundayValue] = React.useState(props.constraint.daysOfWeek.includes(0));
-    const [mondayValue, setMondayValue] = React.useState(props.constraint.daysOfWeek.includes(1));
-    const [tuesdayValue, setTuesdayValue] = React.useState(props.constraint.daysOfWeek.includes(2));
-    const [wednesdayValue, setWednesdayValue] = React.useState(props.constraint.daysOfWeek.includes(3));
-    const [thursdayValue, setThursdayValue] = React.useState(props.constraint.daysOfWeek.includes(4));
-    const [fridayValue, setFridayValue] = React.useState(props.constraint.daysOfWeek.includes(5));
-    const [saturdayValue, setSaturdayValue] = React.useState(props.constraint.daysOfWeek.includes(6));
-    const [constraintStartTime, setConstraintStartTime] = React.useState(new Date(startDate));
-    const [constraintEndTime, setConstraintEndTime] = React.useState(new Date(endDate));
-    const [constraintNameValue, setConstraintNameValue] = React.useState(props.constraint.title);
+    const [sundayValue, setSundayValue] = useState(props.constraint.daysOfWeek.includes(0));
+    const [mondayValue, setMondayValue] = useState(props.constraint.daysOfWeek.includes(1));
+    const [tuesdayValue, setTuesdayValue] = useState(props.constraint.daysOfWeek.includes(2));
+    const [wednesdayValue, setWednesdayValue] = useState(props.constraint.daysOfWeek.includes(3));
+    const [thursdayValue, setThursdayValue] = useState(props.constraint.daysOfWeek.includes(4));
+    const [fridayValue, setFridayValue] = useState(props.constraint.daysOfWeek.includes(5));
+    const [saturdayValue, setSaturdayValue] = useState(props.constraint.daysOfWeek.includes(6));
+    const [constraintStartTime, setConstraintStartTime] = useState(new Date(startDate));
+    const [constraintEndTime, setConstraintEndTime] = useState(new Date(endDate));
+    const [constraintNameValue, setConstraintNameValue] = useState(props.constraint.title);
 
     const handleSaveChangesClick = async () => {
         const days = getCheckedDays(); // TODO: change to numbers to match FullCalendar

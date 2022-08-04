@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useState, useEffect } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -13,6 +12,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
+const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
+
 
 export const Projects = (props) => {
 
@@ -21,25 +22,29 @@ export const Projects = (props) => {
     tempEndDate.setMonth(tempEndDate.getMonth() + 1);
 
     // Hooks
-    const [successDialogOpen, toggleSuccessDialog] = React.useState(false);
-    const [isLoading, toggleLoading] = React.useState(false);
-    const [projectTitle, setProjectName] = React.useState('');
-    const [userEmailToShareWith, setUserEmailToShareWith] = React.useState('');
-    const [estimatedTime, setEstimatedTime] = React.useState(0);
-    const [sessionLengthMinutes, setSessionLengthMinutes] = React.useState(0);
-    const [spacingLengthMinutes, setSpacingLengthMinutes] = React.useState(0);
-    const [startDate, setStartDate] = React.useState(new Date());
-    // const [endDate, setEndDate] = React.useState(new Date().setHours(23,59,0,0));
-    const [endDate, setEndDate] = React.useState(tempEndDate);
+    const [successDialogOpen, toggleSuccessDialog] = useState(false);
+    const [isLoading, toggleLoading] = useState(false);
+    const [projectTitle, setProjectName] = useState('');
+    const [userEmailToShareWith, setUserEmailToShareWith] = useState('');
+    const [estimatedTime, setEstimatedTime] = useState(0);
+    const [sessionLengthMinutes, setSessionLengthMinutes] = useState(0);
+    const [spacingLengthMinutes, setSpacingLengthMinutes] = useState(0);
+    const [startDate, setStartDate] = useState(new Date());
+    // const [endDate, setEndDate] = useState(new Date().setHours(23,59,0,0));
+    const [endDate, setEndDate] = useState(tempEndDate);
 
-    const [maxEventsPerDay, setMaxEventsPerDay] = React.useState();
-    const [dayRepetitionFrequency, setDayRepetitionFrequency] = React.useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
-    const [pendingProjects, setPendingProjects] = React.useState([]);
+    const [maxEventsPerDay, setMaxEventsPerDay] = useState();
+    const [dayRepetitionFrequency, setDayRepetitionFrequency] = useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
+    const [pendingProjects, setPendingProjects] = useState([]);
     const [dailyStartHour, setDailyStartHour] = useState(new Date().setHours(0, 0, 0, 0));
     const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
 
+    const [constraints, setConstraints] = useState([]);
 
-    React.useEffect(async () => {
+
+    useEffect(async () => {
+        let tempConstraints = await ConstraintsAPI.fetchConstraints();
+        setConstraints(tempConstraints);
     });
 
     const handleGenerateClick = async () => {
@@ -236,8 +241,10 @@ export const Projects = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -248,19 +255,20 @@ export const Projects = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
                     </tr>
                     <tr>
-
-                    </tr>
-                    <tr>
-                        <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
-                            <p>Daily time frame</p>
-                        </Tooltip>
+                        <td>
+                            <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
+                                <p>Daily time frame</p>
+                            </Tooltip>
+                        </td>
                     </tr>
                     <tr>
                         <td><label>Start time:</label></td>

@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -19,7 +18,7 @@ export const SuggestedEvent = (props) => {
     const [title, setProjectName] = useState(props.event.title);
     const [start, setStartDate] = useState(new Date(props.event.start));
     const [end, setEndDate] = useState(new Date(props.event.end));
-    const [isBeingEdited, setIsBeingEdited] = React.useState(false);
+    const [isBeingEdited, setIsBeingEdited] = useState(false);
 
     return (
         <>
@@ -42,9 +41,11 @@ export const SuggestedEvent = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={start}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -55,9 +56,11 @@ export const SuggestedEvent = (props) => {
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={end}
+                                    inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     disabled={!isBeingEdited}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
