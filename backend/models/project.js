@@ -12,12 +12,14 @@ const projectSchema = new Schema({
     spacingLengthMinutes: Number,
     backgroundColor: String,
     email: String,
+    sharedEmails: [String],
     exportedToGoogle: Boolean,
     googleCalendarId: String,
     maxEventsPerDay: Number,
     dayRepetitionFrequency: Number,
     dailyStartHour: Date,
     dailyEndHour: Date,
+    ignoredConstraintsIds: [String],
 })
 
 const Project = mongoose.model('Project', projectSchema);
