@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -6,10 +6,10 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import Button from "@material-ui/core/Button";
 
 export const PendingProject = (props) => {
-    const [projectTitle, setProjectName] = React.useState(props.project.title);
-    const [startDate, setStartDate] = React.useState(new Date(props.project.start));
-    const [endDate, setEndDate] = React.useState(new Date(props.project.end));
-    const [isBeingEdited, setIsBeingEdited] = React.useState(false);
+    const [projectTitle, setProjectName] = useState(props.project.title);
+    const [startDate, setStartDate] = useState(new Date(props.project.start));
+    const [endDate, setEndDate] = useState(new Date(props.project.end));
+    const [isBeingEdited, setIsBeingEdited] = useState(false);
 
     const handleOnApproveClick = () => {
         props.approveProject(props.project);

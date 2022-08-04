@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { Project } from './Project';
 
 export class ProjectsList extends React.Component {

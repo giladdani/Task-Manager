@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -14,11 +14,11 @@ import Tooltip from "@material-ui/core/Tooltip";
 
 export const Project = (props) => {
     const allEvents = props.projectEvents;
-    const [projectTitle, setProjectName] = React.useState(props.project.title);
-    const [startDate, setStartDate] = React.useState(new Date(props.project.start));
-    const [endDate, setEndDate] = React.useState(new Date(props.project.end));
-    const [isBeingEdited, setIsBeingEdited] = React.useState(false);
-    const [openDeleteDialog, setOpenDeleteDialog] = React.useState(false);
+    const [projectTitle, setProjectName] = useState(props.project.title);
+    const [startDate, setStartDate] = useState(new Date(props.project.start));
+    const [endDate, setEndDate] = useState(new Date(props.project.end));
+    const [isBeingEdited, setIsBeingEdited] = useState(false);
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     const oldEvents = allEvents.filter(event => {
         const currDate = new Date();

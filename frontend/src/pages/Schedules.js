@@ -4,9 +4,8 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
-import Checkbox from '@mui/material/Checkbox';
-const api = require('../api');
-
+import Checkbox from '@mui/material/Checkbox'
+const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -31,7 +30,7 @@ export class Schedules extends React.Component {
         let calendarApi = this.calendarRef.current.getApi();
 
         // let constraintEvents = await this.fetchConstraints();
-        let constraintEvents = await api.fetchConstraints();
+        let constraintEvents = await ConstraintsAPI.fetchConstraints();
 
         constraintEvents.forEach(constraint => { constraint.editable = false })
         this.addEventsToScheduleFullCalendar(constraintEvents);

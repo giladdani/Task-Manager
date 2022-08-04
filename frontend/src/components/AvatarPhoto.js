@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -6,8 +6,8 @@ import Logout from '@mui/icons-material/Logout';
 import ListItemIcon from '@mui/material/ListItemIcon';
 
 export const AvatarPhoto = () => {
-    const [avatarUrl, setAvatarUrl] = React.useState('');
-    const [anchorMenu, setAnchorMenu] = React.useState(null);
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [anchorMenu, setAnchorMenu] = useState(null);
     const isMenuOpen = Boolean(anchorMenu);
 
     const fetchUserAvatarUrl = async() =>{
@@ -42,7 +42,7 @@ export const AvatarPhoto = () => {
         window.location = "/";
     }
 
-    React.useEffect(async () => {
+    useEffect(async () => {
         const avatarUrlRes = await fetchUserAvatarUrl();
         setAvatarUrl(avatarUrlRes);
     });

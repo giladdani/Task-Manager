@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '@mui/material/Button';
 import Draggable from 'react-draggable';
 import Paper from '@mui/material/Paper';
@@ -14,12 +14,12 @@ import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsLis
 
 
 export default function EventDialog(props) {
-  const [title, setEventName] = React.useState("");
-  const [start, setEventStart] = React.useState(new Date());
-  const [end, setEventEnd] = React.useState(new Date());
-  const [suggestedEvents, setSuggestedEvents] = React.useState(null);
+  const [title, setEventName] = useState("");
+  const [start, setEventStart] = useState(new Date());
+  const [end, setEventEnd] = useState(new Date());
+  const [suggestedEvents, setSuggestedEvents] = useState(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setEventName(props.event.title);
     setEventStart(props.event.start);
     setEventEnd(props.event.end);
