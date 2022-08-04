@@ -43,8 +43,8 @@ export const Projects = (props) => {
     const [constraints, setConstraints] = useState([]);
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
 
-    const [shareChecked, setShareChecked] = React.useState(false);
-    const [emailList, setEmailList] = React.useState([]);
+    const [shareChecked, setShareChecked] = useState(false);
+    const [emailList, setEmailList] = useState([]);
 
 
     useEffect(async () => {

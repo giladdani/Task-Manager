@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ProjectsList } from '../components/ProjectsList';
+import { useState, useEffect } from 'react'
+import { ProjectsList } from '../components/ProjectsList'
 
 export const ProjectManagement = (props) => {
     const [allProjects, setAllProjects] = useState([]);
@@ -85,8 +85,6 @@ export const ProjectManagement = (props) => {
             console.error(err);
         }
     }
-
-
 
     return (
         <>
