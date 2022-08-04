@@ -23,8 +23,8 @@ export class ProjectsList extends React.Component {
 
     return(
             <ul>
-    { projects }
-            </ul >
+                { projects }
+            </ul>
         )
     }
 }

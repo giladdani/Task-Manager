@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ProjectsList } from '../components/ProjectsList'
+import { ProjectsAccordion } from '../components/ProjectsAccordion'
 
 export const ProjectManagement = (props) => {
     const [allProjects, setAllProjects] = useState([]);
@@ -89,14 +90,20 @@ export const ProjectManagement = (props) => {
     return (
         <>
             {allProjects.length == 0 &&
-                <p>User has no projects!</p>
+                <div>User has no projects!</div>
             }
-            <ProjectsList
+            <ProjectsAccordion 
+                projects={allProjects}
+                allEvents={props.allEvents}
+                deleteProject={deleteProject}
+                exportProject={exportProject}>
+            </ProjectsAccordion>
+            {/* <ProjectsList
                 projects={allProjects}
                 allEvents={props.allEvents}
                 deleteProject={deleteProject}
                 exportProject={exportProject}
-            ></ProjectsList>
+            ></ProjectsList> */}
         </>
     )
 }
