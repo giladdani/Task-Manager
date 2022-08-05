@@ -16,7 +16,7 @@ export const PendingProject = (props) => {
     }
 
     return (
-        <div>
+        <>
             <table>
                 <tbody>
                     <tr>
@@ -77,6 +77,6 @@ export const PendingProject = (props) => {
                 </tbody>
             </table>
             <Button variant='contained' onClick={handleOnApproveClick}>Approve</Button>
-        </div>
+        </>
     )
 }
