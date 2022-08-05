@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Schedules } from '../pages/Schedules';
 import { Projects } from '../pages/Projects';
 import { Constraints } from '../pages/Constraints';
@@ -40,12 +40,10 @@ export const MainPagesContainer = () => {
     return(
       <>
         <div>{<AvatarPhoto />}</div>
-        <div className="app-header">
           <NavBar pages={pages}/>
           <Routes>
             {routes}
           </Routes>
-        </div>
       </>
     )
   }

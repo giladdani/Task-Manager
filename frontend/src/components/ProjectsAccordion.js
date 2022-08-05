@@ -9,41 +9,34 @@ import { Project } from './Project';
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
-  border: `1px solid ${theme.palette.divider}`,
-  '&:not(:last-child)': {
-    borderBottom: 0,
-  },
-  '&:before': {
-    display: 'none',
-  },
+  border: `1px solid ${theme.palette.divider}`, '&:not(:last-child)': {borderBottom: 0}, '&:before': {display: 'none'},
 }));
 
 const AccordionSummary = styled((props) => (
   <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
+    expandIcon={<ArrowForwardIosSharpIcon />}
     {...props}
   />
 ))(({ theme }) => ({
-  backgroundColor:
-    theme.palette.mode === 'dark'
-      ? 'rgba(255, 255, 255, .05)'
-      : 'rgba(0, 0, 0, .03)',
   flexDirection: 'row-reverse',
+  '& .MuiAccordionSummary-expandIconWrapper': {
+    marginLeft: theme.spacing(2)
+  },
   '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)',
+    transform: 'rotate(90deg)'
   },
   '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(1),
-  },
+    marginLeft: theme.spacing(2)
+  }
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2),
-  borderTop: '1px solid rgba(0, 0, 0, .125)',
+  borderTop: '1px solid rgba(0, 0, 0, .125)'
 }));
 
 export const ProjectsAccordion = (props) => {
-  const [expanded, setExpanded] = useState('panel1');
+  const [expanded, setExpanded] = useState('');
 
   const handleChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
@@ -53,9 +46,9 @@ export const ProjectsAccordion = (props) => {
     const allEvents = props.allEvents.events;
     const projectEvents = allEvents.filter(event => event.extendedProps.projectId == project.id)
     return(
-        <Accordion expanded={expanded === 'panel1'} onChange={handleChange('panel1')} key={index}>
-        <AccordionSummary aria-controls="panel1d-content" id="panel1d-header">
-            <div>{project.title}</div>
+        <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
+        <AccordionSummary>
+            <div><b>{project.title}</b></div>
         </AccordionSummary>
         <AccordionDetails>
             <div>

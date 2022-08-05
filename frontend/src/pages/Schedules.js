@@ -532,7 +532,6 @@ TODO: delete if all works well
                             center: 'title',
                             right: 'timeGridWeek,timeGridDay'
                         }}
-                        
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
