@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import Container from '@mui/material/Container';
 import MenuItem from '@mui/material/MenuItem';
-import AdbIcon from '@mui/icons-material/Adb';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import IconButton from '@mui/material/IconButton';
 import { NavLink } from "react-router-dom";
 import { AvatarPhoto } from './AvatarPhoto';
@@ -37,14 +37,13 @@ export const NavBar = (props) => {
         <Toolbar disableGutters>
 
           {/* LOGO */}
-          <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
+          <CalendarMonthIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
 
           {/* APP NAME */}
           <Typography
             variant="h6"
             noWrap
             component="a"
-            // href="/"
             sx={{
               mr: 2,
               display: { xs: 'none', md: 'flex' },
