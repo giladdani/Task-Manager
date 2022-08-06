@@ -39,8 +39,9 @@ export const MainPagesContainer = () => {
 
     return(
       <>
-        <div>{<AvatarPhoto />}</div>
-          <NavBar pages={pages}/>
+        {/* <div>{<AvatarPhoto />}</div> */}
+          {/* <NavBar pages={pages}/> */}
+          <NavBar pages={pages} />
           <Routes>
             {routes}
           </Routes>
