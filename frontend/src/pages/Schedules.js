@@ -142,7 +142,7 @@ TODO: delete if all works well
     }
 
     handleEventEditOnDialog = async (fieldsToUpdate) => {
-        const res = await this.updateEvent(this.state.selectedEvent, fieldsToUpdate);
+        await this.updateEvent(this.state.selectedEvent, fieldsToUpdate);
         this.toggleDialog(false);
         let event = this.state.selectedEvent;
         event.setProp("title", fieldsToUpdate.title);
@@ -308,24 +308,6 @@ TODO: delete if all works well
 
     // TODO:
     exportProjectEventsToGoogleCalendar = async () => {
-        /*
-        1. Get all generated events:
-            get all events
-            Alternatively: save all generated events in a special field
-            get all events of the project (by id?)
-        
-        2. Create calendar in Google
-            Base on event name
-
-        3. Send to google calendar API, insert to the newly created calendar
-            Add extended properties for our project ID
-
-        4. Delete from database all exported events
-
-        5. Refresh page
-        */
-
-
         // Get all generated events
         let calendarApi = this.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
@@ -342,7 +324,7 @@ TODO: delete if all works well
 
         const googleCalendarID = googleResJson.data.id;
 
-        const resJson = this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
+        this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
         alert("Events added to Google Calendar!");
     }
 

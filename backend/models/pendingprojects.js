@@ -23,6 +23,8 @@ const pendingProjectSchema = new Schema({
     
     requestingUser: String,
     awaitingUserApproval: String,
+    awaitingApproval: [String],
+    approvingUsers: [String],
 })
 
 const PendingProject = mongoose.model('PendingProject', pendingProjectSchema);

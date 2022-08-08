@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -10,6 +10,22 @@ export const PendingProject = (props) => {
     const [startDate, setStartDate] = useState(new Date(props.project.start));
     const [endDate, setEndDate] = useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = useState(false);
+    const [approvingUsersUser, setApprovedByUser] = useState(false);
+    const [approvingUsers, setApprovingUsers] = useState([]);
+    const [awaitingApproval, setAwaitingApproval] = useState([]);
+
+    useEffect(async () => {
+        const userEmail = sessionStorage.getItem('user_email');
+
+        setApprovedByUser(hasUserApprovedProject(userEmail, props.project))
+
+        setApprovingUsers(props.project.approvingUsers);
+        setAwaitingApproval(props.project.awaitingApproval);
+    });
+
+    const hasUserApprovedProject = (userEmail, pendingProject) => {
+        return pendingProject.approvingUsers.includes(userEmail);
+    }
 
     const handleOnApproveClick = () => {
         props.approveProject(props.project);
@@ -74,9 +90,37 @@ export const PendingProject = (props) => {
                             </LocalizationProvider>
                         </td>
                     </tr>
+                    <tr>
+                        <td>
+                            <label>Approved By: </label>
+                        </td>
+                        <td>
+                            {
+                                approvingUsers.map((email, index) => (
+                                    <p key={index}>{email}</p>
+                                ))
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label>Awaiting Approval: </label>
+                        </td>
+                        <td>
+                            {
+                                awaitingApproval.map((email, index) => (
+                                    <p key={index}>{email}</p>
+                                ))
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+
+                    </tr>
                 </tbody>
             </table>
-            <Button variant='contained' onClick={handleOnApproveClick}>Approve</Button>
+            <Button variant='contained' disabled={approvingUsersUser} onClick={handleOnApproveClick}>Approve</Button>
+        </div>
         </>
     )
 }

@@ -14,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { PendingProjectsList } from '../components/PendingProjectList';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { DynamicInputList as DynamicInputList } from '../components/DynamicInputList';
+import { DynamicInputList } from '../components/DynamicInputList';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
 export const Projects = (props) => {
@@ -36,7 +36,6 @@ export const Projects = (props) => {
 
     const [maxEventsPerDay, setMaxEventsPerDay] = useState();
     const [dayRepetitionFrequency, setDayRepetitionFrequency] = useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
-    const [pendingProjects, setPendingProjects] = useState([]);
     const [dailyStartHour, setDailyStartHour] = useState(new Date().setHours(0, 0, 0, 0));
     const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
 
@@ -77,7 +76,7 @@ export const Projects = (props) => {
                 ignoredConstraintsIds: ignoredConstraintIds,
             };
 
-            if (shareChecked) { 
+            if (shareChecked) {
                 const response = await fetch('http://localhost:3001/api/projects/shared', {
                     headers: {
                         'Accept': 'application/json',
@@ -146,6 +145,10 @@ export const Projects = (props) => {
             if (val.length > 0) {
                 if (!isValidEmail(val)) {
                     errorMsg += `   - email ${index + 1} ('${val}') is not valid.\n`;
+                }
+
+                if (val === sessionStorage.getItem('user_email')) {
+                    errorMsg += `   - Cannot insert your own email to share with.\n`
                 }
             }
         }
@@ -238,7 +241,7 @@ export const Projects = (props) => {
     const updateEmailList = (emailList) => {
         let newList = [];
 
-        for(const email of emailList) {
+        for (const email of emailList) {
             if (email.value.length > 0) {
                 newList.push(email.value);
             }
