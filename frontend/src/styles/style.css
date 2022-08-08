@@ -47,14 +47,28 @@ div svg{
 }
 
 /* NavBar*/
+.nav-bar{
+  background-color: rgb(21, 21, 21)!important;
+}
 .nav-bar ul{
   padding: 0px;
-  border-bottom: 1px solid;
+  margin-left: 25%;
+  margin-right: 25%;
 } 
 .nav-bar li{
   padding: 8px;
   display: inline;
-} 
+  /* border-right: 1px solid white; */
+}
+/* .nav-bar li:last-child{
+  border-right: 0px solid white;
+} */
+.nav-bar li a:hover{
+  background-color: #0b0b0b;
+}
+.nav-bar .active{
+  border-bottom: white 2px solid;
+}
 .nav-bar li a{
   color:white;
   text-decoration: none;
@@ -79,3 +93,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 /* General page layout end */
+
+#schedule-container{
+  margin: 1.5%;
+}
