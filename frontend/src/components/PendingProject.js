@@ -120,7 +120,6 @@ export const PendingProject = (props) => {
                 </tbody>
             </table>
             <Button variant='contained' disabled={approvingUsersUser} onClick={handleOnApproveClick}>Approve</Button>
-        </div>
         </>
     )
 }
