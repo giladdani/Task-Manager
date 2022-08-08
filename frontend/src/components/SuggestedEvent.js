@@ -1,16 +1,8 @@
-import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import Button from "@material-ui/core/Button";
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import Tooltip from "@material-ui/core/Tooltip";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import React, { useState } from 'react';
 
 export const SuggestedEvent = (props) => {
     const allEvents = props.projectEvents;

@@ -18,9 +18,9 @@ router.patch('/events/reschedule', (req, res) => { rescheduleProjectEvent(req, r
 
 router.get('/pending', (req, res) => { getPendingProjects(req, res) });
 
-router.post('/', async (req, res) => { await createProject(req, res) });
+router.post('/', (req, res) => { createProject(req, res) });
 router.post('/shared', (req, res) => { requestSharedProject(req, res) });
-router.post('/shared/approved', async (req, res) => { await createSharedProject(req, res) });
+router.post('/shared/approved', (req, res) => { approveSharedProject(req, res) });
 router.post('/export/:id', (req, res) => { exportProject(req, res) });
 router.delete('/:id', (req, res) => { deleteProject(req, res) });
 
@@ -50,7 +50,10 @@ const getProjects = async (req, res) => {
 
 const getPendingProjects = async (req, res) => {
         const userEmail = await utils.getEmailFromReq(req);
-        const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
+        // const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
+
+        const pendingProjects = await PendingProject.find({ 'sharedEmails': userEmail });
+
         res.status(StatusCodes.OK).send(pendingProjects);
 }
 
@@ -60,21 +63,56 @@ const getProjectEvents = async (req, res) => {
         res.status(StatusCodes.OK).send(allProjectEvents);
 }
 
-const createSharedProject = async (req, res) => {
-        const requestingUserEmail = req.body.project.requestingUser;
-        const approverEmail = await utils.getEmailFromReq(req);
-        // TODO: what fields should we use to find all the relevant events? friend email? requesting email? project id?
-        const allRequestingUserEvents = await PendingProjectEvents.find({ 'friendEmail': approverEmail });
-        // console.log(`All requesting user events number: ${allRequestingUserEvents.length}`)
-        // console.log(`All approving user events number: ${req.body.allEvents.length}`)
-        const allEventsJoined = req.body.allEvents.concat(allRequestingUserEvents);
-        // console.log(`All joined events number: ${allEventsJoined.length}`);
-        const project = req.body.project;
-        project._id = null;
-        let emails = [];
-        emails.push(requestingUserEmail);
-        emails.push(approverEmail);
+const addApprovingUserToSharedProject = async (approverEmail, project, allEvents) => {
+        // add user to approving users
+        await PendingProject.updateOne({ 'sharedId': project.sharedId },
+                {
+                        $push: {
+                                approvingUsers: approverEmail,
+                        }
+                });
 
+        // remove user from awaiting approval
+        await PendingProject.updateOne({ 'sharedId': project.sharedId },
+                {
+                        $pull: {
+                                awaitingApproval: approverEmail,
+                        }
+                });
+
+
+        allEvents.forEach(event => {
+                event.email = approverEmail;
+                event.projectSharedId = project.sharedId;
+        }
+        );
+
+        // add user events to DB
+        const docsEvents = await PendingProjectEvents.insertMany(allEvents);
+}
+
+const approveSharedProject = async (req, res) => {
+        const approverEmail = await utils.getEmailFromReq(req);
+        const project = req.body.project;
+        const allEvents = req.body.allEvents;
+        await addApprovingUserToSharedProject(approverEmail, project, allEvents);
+
+        const pendingProject = await PendingProject.findOne({ 'sharedId': project.sharedId });
+        console.log(`[approveSharedProject] User ${approverEmail} approved project '${project.title}'`)
+        if (pendingProject.awaitingApproval.length === 0) {
+                await generateSharedSchedule(pendingProject);
+        } else {
+                res.status(StatusCodes.OK).send();
+                return;
+        }
+}
+
+const generateSharedSchedule = async (project) => {
+        const allEventsJoined = await PendingProjectEvents.find({ 'projectSharedId': project.sharedId });
+        console.log(`All joined events number: ${allEventsJoined.length}`);
+        project._id = null;
+        let emails = project.sharedEmails;
+        
         const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEventsJoined, project, emails);
 
         let errorMsg = null;
@@ -87,25 +125,62 @@ const createSharedProject = async (req, res) => {
         }
 
         let docsEvents1 = await PendingProjectEvents.deleteMany({ 'projectSharedId': originalProjectSharedId });
+        console.log(`[generateSharedSchedule] Deleted ${docsEvents1.deletedCount} events from PendingProjectEvents.`)
         let docsEvents2 = await PendingProject.deleteOne({ 'sharedId': originalProjectSharedId });
+        console.log(`[generateSharedSchedule] Deleted pending project ${project.title} from PendingProjects.`)
 
         resBody = {
                 estimatedTimeLeft: estimatedTimeLeft,
         };
 
         if (errorMsg === null) {
-                console.log(`[createSharedproject] Created a shared schedule between ${requestingUserEmail} and ${approverEmail}`);
+                console.log(`[generateSharedSchedule] Created a shared project ${project.title} between ${emails}`);
                 res.status(StatusCodes.OK).send(resBody);
         } else {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);
         }
 }
 
-const insertProjectAndEvents = async (email, project, events) => {
+/**
+ * Does not create a new ID.
+ * @param {*} project 
+ * @returns 
+ */
+const duplicateProject = (project) => {
+        let ignoredConstraints = []
+
+        for(const id of project.ignoredConstraintsIds) {
+                ignoredConstraints.push(id);
+        }
+
+        const newProject = {
+                title: project.title,
+                id: project.id,
+                sharedId: project.sharedId,
+                timeEstimate: project.timeEstimate,
+                start: project.start,
+                end: project.end,
+                sessionLengthMinutes: project.sessionLengthMinutes,
+                spacingLengthMinutes: project.spacingLengthMinutes,
+                backgroundColor: project.backgroundColor,
+                email: project.email,
+                exportedToGoogle: project.exportedToGoogle,
+                maxEventsPerDay: project.maxEventsPerDay,
+                dayRepetitionFrequency: project.dayRepetitionFrequency,
+                dailyStartHour: project.dailyStartHour,
+                dailyEndHour: project.dailyEndHour,
+                ignoredConstraintsIds: ignoredConstraints,
+        }
+
+        return newProject;
+}
+
+const insertProjectAndEvents = async (email, originalProject, events) => {
+        let project = duplicateProject(originalProject);
         project.email = email;
         project.id = utils.generateId();
 
-        const docsProject = await ProjectModel.create(project);
+        await ProjectModel.create(project);
 
         events.forEach(event => {
                 event.email = email
@@ -113,7 +188,7 @@ const insertProjectAndEvents = async (email, project, events) => {
                 event.projectId = project.id;
         });
 
-        const docsEvents = await EventModel.insertMany(events);
+        await EventModel.insertMany(events);
 }
 
 const requestSharedProject = async (req, res) => {
@@ -123,32 +198,39 @@ const requestSharedProject = async (req, res) => {
                 return;
         }
 
-        if (req.body.userEmailToShareWith != null && req.body.userEmailToShareWith.length > 0) {
-                const friendEmail = req.body.userEmailToShareWith;
-                let project = await createProjectObject(req, true);
-                const userEmail = await utils.getEmailFromReq(req);
-                project.requestingUser = userEmail;
-                project.awaitingUserApproval = friendEmail;
+        if (req.body.sharedEmails.length === 0) {
+                res.status(StatusCodes.BAD_REQUEST).send("Cannot create a shared project without any emails to share.");
+                return;
+        }
 
-                const allEvents = req.body.allEvents;
-                allEvents.forEach(event => {
-                        event.friendEmail = friendEmail;
-                        event.email = userEmail;
-                        event.projectSharedId = project.sharedId;
-                }
-                );
+        let project = await createProjectObject(req, true);
+        const userEmail = await utils.getEmailFromReq(req);
+        project.requestingUser = userEmail;
 
-                let errorMsg = null;
+        let sharedEmails = [];
+        for (const email of req.body.sharedEmails) {
+                sharedEmails.push(email);
+        }
 
-                const docsEvents = await PendingProjectEvents.insertMany(allEvents);
-                const docsProject = await PendingProject.create(project);
+        // We add this check in case the client didn't add the requesting user's email to the list of emails to share with.
+        if (!sharedEmails.includes(userEmail)) {
+                sharedEmails.push(userEmail);
+        }
 
-                if (errorMsg === null) {
-                        console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${friendEmail}`);
-                        res.status(StatusCodes.OK).send();
-                } else {
-                        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Something fucker up`);
-                }
+        project.sharedEmails = sharedEmails;
+        project.awaitingApproval = sharedEmails;
+
+        const docsProject = await PendingProject.create(project);
+
+        const allEvents = req.body.allEvents;
+        await addApprovingUserToSharedProject(userEmail, project, allEvents)
+
+        let errorMsg = null;
+        if (errorMsg === null) {
+                console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${project.sharedEmails}`);
+                res.status(StatusCodes.OK).send();
+        } else {
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Something fucked up`);
         }
 }
 
@@ -361,6 +443,14 @@ const deleteProject = async (req, res) => {
 function checkInputValidity(req) {
         let errorMsg = "";
 
+        for (const email of req.body.sharedEmails) {
+                if (email.length > 0) {
+                        if (!isValidEmail(email)) {
+                                errorMsg += `   - email '${email}' is not valid.\n`;
+                        }
+                }
+        }
+
         if (!req.body.projectTitle || req.body.projectTitle.length === 0) {
                 errorMsg += "   - Must enter project name.\n";
         }
@@ -399,7 +489,7 @@ function checkInputValidity(req) {
 
         if (new Date(req.body.dailyStartHour) >= new Date(req.body.dailyEndHour)) {
                 errorMsg += "   - Daily start hour must be earlier than daily end hour."
-            }
+        }
 
         if (errorMsg.length === 0) {
                 errorMsg = null;
@@ -448,6 +538,13 @@ const createProjectObject = async (req, isSharedProject) => {
         }
 
         return newProject;
+}
+
+function isValidEmail(email) {
+        const re =
+                /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+        return re.test(String(email).toLowerCase());
 }
 
 const getRandomColor = () => {

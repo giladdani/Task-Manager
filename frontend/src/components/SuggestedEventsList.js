@@ -1,16 +1,6 @@
-import React from 'react';
-import { SuggestedEvent as SuggestedEvent } from './SuggestedEvent';
 import Button from '@mui/material/Button';
-import Draggable from 'react-draggable';
-import Paper from '@mui/material/Paper';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import TextField from '@mui/material/TextField';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import React from 'react';
+import { SuggestedEvent } from './SuggestedEvent';
 
 export class SuggestedEventsList extends React.Component {
     constructor(props) {

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import Button from "@material-ui/core/Button";
 import Dialog from '@mui/material/Dialog';
@@ -22,7 +21,6 @@ export const Project = (props) => {
 
     const oldEvents = allEvents.filter(event => {
         const currDate = new Date();
-        const eventStartDate = new Date(event.start);
         const eventEndDate = new Date(event.end);
 
         return eventEndDate <= currDate;
@@ -31,7 +29,6 @@ export const Project = (props) => {
     const futureEvents = allEvents.filter(event => {
         const currDate = new Date();
         const eventStartDate = new Date(event.start);
-        const eventEndDate = new Date(event.end);
 
         return eventStartDate >= currDate;
     })
