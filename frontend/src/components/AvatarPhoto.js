@@ -29,18 +29,18 @@ export const AvatarPhoto = () => {
         }
     }
 
-    const openMenu = (event) => {
-        setAnchorMenu(event.currentTarget);
-      };
+    // const openMenu = (event) => {
+    //     setAnchorMenu(event.currentTarget);
+    //   };
 
-    const closeMenu = () => {
-        setAnchorMenu(null);
-    };
+    // const closeMenu = () => {
+    //     setAnchorMenu(null);
+    // };
 
-    const handleLogout = () => {
-        sessionStorage.clear();  
-        window.location = "/";
-    }
+    // const handleLogout = () => {
+    //     sessionStorage.clear();  
+    //     window.location = "/";
+    // }
 
     useEffect(async () => {
         const avatarUrlRes = await fetchUserAvatarUrl();
@@ -49,8 +49,8 @@ export const AvatarPhoto = () => {
 
     return (
         <>
-            <Avatar src={avatarUrl} onClick={openMenu} />
-            <Menu
+            <Avatar src={avatarUrl} /*onClick={openMenu}*/ />
+            {/* <Menu
                 anchorEl={anchorMenu}
                 open={isMenuOpen}
                 onClose={closeMenu}
@@ -60,7 +60,7 @@ export const AvatarPhoto = () => {
                         <Logout /> Logout
                     </ListItemIcon>
                 </MenuItem>
-            </Menu>
+            </Menu> */}
       </>
     )
 }

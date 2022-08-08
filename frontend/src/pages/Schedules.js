@@ -489,12 +489,12 @@ TODO: delete if all works well
 
     render() {
         return (
-            <>
+            <div>
                 <div hidden={!this.state.isLoading}>
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
-                <div hidden={this.state.isLoading}>
+                <div hidden={this.state.isLoading} id="schedule-container">
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
@@ -514,7 +514,6 @@ TODO: delete if all works well
                             center: 'title',
                             right: 'timeGridWeek,timeGridDay'
                         }}
-                        
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
@@ -541,7 +540,7 @@ TODO: delete if all works well
                         handleConfirmRescheduling={this.handleConfirmRescheduling}
                     />
                 </div>
-            </>
+            </div>
         )
     }
 }
