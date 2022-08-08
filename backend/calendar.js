@@ -13,8 +13,6 @@ router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
 router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
 router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
 
-
-
 router.patch('/events', (req, res) => { updateEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 
