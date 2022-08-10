@@ -2,14 +2,18 @@ const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
+const UserModel = require('./models/user')
+const GoogleEventModel = require('./models/googleevent')
+const googleSync = require('./google-sync');
 const SharedEventsModel = require('./models/sharedeventsmodel')
 const utils = require('./utils');
 
 // Routing
 const router = express.Router();
+router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
+router.get('/events/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
-router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
 router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
 router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
 
@@ -138,15 +142,15 @@ const deleteEvent = async (req, res) => {
 const deleteDBEvent = async (event) => {
     const eventId = event.id;
 
-        let errorMsg = null;
-        let docs = null;
-        try {
-            docs = await EventModel.deleteOne({ 'id': eventId })
-        } catch (err) {
-            errorMsg = err;
-        }
-        
-        return errorMsg;
+    let errorMsg = null;
+    let docs = null;
+    try {
+        docs = await EventModel.deleteOne({ 'id': eventId })
+    } catch (err) {
+        errorMsg = err;
+    }
+
+    return errorMsg;
 }
 
 const deleteGoogleEvent = async (req) => {
@@ -191,71 +195,264 @@ const getAllSharedEvents = async (req, res) => {
 }
 
 const getAllEventsGoogle = async (req, res) => {
-    let allEvents = [];
-    const accessToken = utils.getAccessTokenFromRequest(req);
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-    const allGoogleCalendars = await getAllGoogleCalendars(googleCalendarClient);
-    const allGoogleCalendarColors = await getAllGoogleCalendarColors(googleCalendarClient);
-    for (const calendar of allGoogleCalendars) {
-        const calendarEvents = await getEventsFromCalendar(googleCalendarClient, calendar.id);
-        const [background, foreground] = getColorString(calendar, allGoogleCalendarColors);
-        const calendarEventsWithCalendarId = calendarEvents.map(event => ({ ...event, calendarId: calendar.id, backgroundColor: background, borderColor: foreground }));
-        allEvents = allEvents.concat(calendarEventsWithCalendarId);
-    }
+    const email = await utils.getEmailFromReq(req);
+
+    // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
+    const allEvents = await GoogleEventModel.find({ email: email });
+
     res.status(StatusCodes.OK).send(allEvents);
+
+    GoogleEventModel.updateMany(
+        { email: email },
+        {
+            $set:
+            {
+                fetchedByUser: true,
+            }
+        })
+        .then(res => {
+            console.log(`Finished updating user ${email} Google events to fetched.`);
+        })
 }
 
-const getAllGoogleCalendars = async (calendar) => {
-    const response = await calendar.calendarList.list({});
+const getUnsyncedGoogleEvents = async (req, res) => {
+    const email = await utils.getEmailFromReq(req);
+    const accessToken = await utils.getAccessTokenFromRequest(req);
+    const unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
 
-    return response.data.items;
+    res.status(StatusCodes.OK).send(unsyncedEvents);
 }
 
-const getAllGoogleCalendarColors = async (calendar) => {
-    const response = await calendar.colors.get({});
+// const syncUserGoogleCalendarsAndEvents = async (req, res) => {
+//     let allEvents = [];
+//     const accessToken = utils.getAccessTokenFromRequest(req);
+//     utils.oauth2Client.setCredentials({ access_token: accessToken });
+//     const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+//     const email = await utils.getEmailFromReq(req);
 
-    return response.data.calendar; // An array of all colors of all calendars, see https://developers.google.com/calendar/api/v3/reference/colors/get
-}
+//     // Initial Sync
+//     const unsyncedGoogleCalendars = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
+//     let userDataFind = await UserModel.findOne({ email: email });
+//     let missingCalendarId2Sync = [];
+//     for (const calendar of unsyncedGoogleCalendars) {
+//         const calendarId = calendar.id;
 
-const getEventsFromCalendar = async (googleCalendarApi, calendarId) => {
-    try {
-        const currDate = new Date();
-        const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 1);
-        const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 3);
+//         if (!(userDataFind.eventListCalendarId2SyncToken.some(keyVal => keyVal.key === calendarId))) {
+//             missingCalendarId2Sync.push({
+//                 key: calendarId,
+//                 value: null,
+//             })
+//         }
+//     }
 
-        const response = await googleCalendarApi.events.list({
-            calendarId: calendarId,
-            timeMin: (new Date(timeMinDate)).toISOString(),
-            timeMax: (new Date(timeMaxDate)).toISOString(),
-            singleEvents: true,
-            orderBy: 'startTime',
-        });
+//     // TODO: delete deleted calendar values?
+//     if (missingCalendarId2Sync.length > 0) {
+//         let userDataUpdate = await UserModel.updateOne(
+//             { email: email },
+//             {
+//                 $push: {
+//                     eventListCalendarId2SyncToken: {
+//                         $each: missingCalendarId2Sync,
+//                     }
+//                 }
+//             });
+//     }
 
-        return response.data.items;
-    }
-    catch (err) {
-        console.log(err);
-    }
-}
+//     const allGoogleCalendarColors = await getAllGoogleCalendarColors(googleCalendarClient);
 
-const getColorString = (calendar, allGoogleCalendarColors) => {
-    /*
-    The Google Calendar API for colors was a bit weird for me.
-    I kept failing in the code when I treated it as an array.
-    To better understand enter the debugger and see how the objects are saved.
-    
-    https://developers.google.com/calendar/api/v3/reference/colors/get
-    https://developers.google.com/calendar/api/v3/reference/colors#resource
-    */
-    const colorId = Number(calendar.colorId);
-    const colors = Object.entries(allGoogleCalendarColors);
-    const colorEntry = colors[colorId - 1];
-    const background = colorEntry[1].background;
-    const foreground = colorEntry[1].foreground;
+//     let response = await googleCalendarClient.calendarList.list();
 
-    return [background, foreground];
-}
+//     // for (const calendar of unsyncedGoogleCalendars) {
+//     for (const calendar of response.data.items) {
+//         // for (const calendar of allDBCalendars) {
+//         const calendarEvents = await getEventsFromCalendar(googleCalendarClient, calendar.id, email, calendar.summary);
+//         const [background, foreground] = getColorString(calendar, allGoogleCalendarColors);
+//         const calendarEventsWithCalendarId = calendarEvents.map(event => (
+//             {
+//                 ...event, 
+//                 calendarId: calendar.id, 
+//                 backgroundColor: background, 
+//                 borderColor: foreground,
+//                 email: email,
+//             }));
+//         allEvents = allEvents.concat(calendarEventsWithCalendarId);
+//     }
+
+//     const docsEvents = await GoogleEventModel.insertMany(allEvents);
+
+//     // res.status(StatusCodes.OK).send(allEvents);
+// }
+
+// /**
+//  * Returns unsynced calendars only. Makes use of the sync token. Updates the sync token at the DB.
+//  * @param {*} calendar 
+//  * @param {*} email 
+//  * @returns 
+//  */
+// const getUnsyncedGoogleCalendars = async (calendar, email) => {
+//     const userData = await UserModel.findOne({ email: email });
+//     let syncToken = userData.calendarsSyncToken;
+//     let calendars = [];
+//     let nextSyncToken = null;
+//     let response = null;
+
+//     response = await calendar.calendarList.list({ syncToken: syncToken, });
+
+//     // if (!calendarsSyncToken) {
+//     //     // Initial synchronization
+//     //     response = await calendar.calendarList.list();
+//     // } else {
+//     //     response = await calendar.calendarList.list({ syncToken: syncToken, });
+//     // }
+
+//     calendars = response.data.items;
+//     nextSyncToken = response.data.nextSyncToken;
+//     let updateRes = null;
+//     if (syncToken !== nextSyncToken) {
+//         updateRes = await UserModel.updateOne(
+//             { email: email },
+//             {
+//                 $set:
+//                 {
+//                     calendarsSyncToken: nextSyncToken,
+//                 }
+//             })
+//     }
+
+//     return calendars;
+// }
+
+// const getAllGoogleCalendarColors = async (calendar) => {
+//     const response = await calendar.colors.get({});
+
+//     return response.data.calendar; // An array of all colors of all calendars, see https://developers.google.com/calendar/api/v3/reference/colors/get
+// }
+
+// const getEventsFromCalendar = async (googleCalendarApi, calendarId, email, summary) => {
+//     let events = [];
+//     const userData = await UserModel.findOne({ email: email });
+
+//     // get sync token from user data
+//     const keyValPair = userData.eventListCalendarId2SyncToken.find(element => element.key === calendarId);
+//     let syncToken = null;
+//     if (keyValPair) {
+//         syncToken = keyValPair.value;
+//     }
+
+//     if (syncToken === null) {
+//         events = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
+//     } else {
+//         try {
+//             let pageToken = null;
+//             let nextSyncToken = null;
+//             do {
+//                 response = await googleCalendarApi.events.list({
+//                     calendarId: calendarId,
+//                     singleEvents: true,
+//                     syncToken: syncToken,
+//                     pageToken: pageToken,
+//                 });
+
+//                 events = events.concat(response.data.items);
+//                 nextSyncToken = response.data.nextSyncToken;
+//                 pageToken = response.data.nextPageToken;
+//                 events = events.concat(response.data.items);
+//             } while (pageToken);
+
+//             if (syncToken !== nextSyncToken) {
+//                 let updateRes = await UserModel.updateOne(
+//                     { email: email, "eventListCalendarId2SyncToken.key": calendarId },
+//                     { "$set": { "eventListCalendarId2SyncToken.$.value": nextSyncToken } }
+//                 )
+//             }
+//         }
+//         catch (err) {
+//             console.log(err);
+
+//             // Perform initial sync
+//             if (err.code === 410) {
+//                 events = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
+//             }
+//         }
+//     }
+
+//     return events;
+// }
+
+// /**
+//  * The function also updates the next sync token in the DB.
+//  * @param {*} googleCalendarApi 
+//  * @param {*} calendarId 
+//  * @param {*} email 
+//  * @param {*} calendarSummary 
+//  * @returns 
+//  */
+// const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calendarSummary) => {
+//     const currDate = new Date();
+//     const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 12);
+//     const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 12);
+
+//     let pageToken = null;
+//     let nextSyncToken = null;
+
+//     let events = [];
+
+//     do {
+//         const response = await googleCalendarApi.events.list({
+//             calendarId: calendarId,
+//             timeMin: (new Date(timeMinDate)).toISOString(),
+//             timeMax: (new Date(timeMaxDate)).toISOString(),
+//             singleEvents: true,
+//             pageToken: pageToken,
+//         });
+
+//         events = events.concat(response.data.items);
+//         nextSyncToken = response.data.nextSyncToken;
+//         pageToken = response.data.nextPageToken;
+//     } while (pageToken);
+
+//     let query = {
+//         email: email,
+//         eventListCalendarId2SyncToken: {
+//             key: calendarId,
+//         }
+//     }
+
+//     // Different option
+//     let query2 = {
+//         email: email,
+//         "eventListCalendarId2SyncToken.key": calendarId,
+//     }
+
+//     let updateRes = await UserModel.updateOne(
+//         query2,
+//         {
+//             $set: {
+//                 "eventListCalendarId2SyncToken.$.value": nextSyncToken,
+//             }
+//         }
+//     );
+
+//     return events;
+// }
+
+// const getColorString = (calendar, allGoogleCalendarColors) => {
+//     /*
+//     The Google Calendar API for colors was a bit weird for me.
+//     I kept failing in the code when I treated it as an array.
+//     To better understand enter the debugger and see how the objects are saved.
+
+//     https://developers.google.com/calendar/api/v3/reference/colors/get
+//     https://developers.google.com/calendar/api/v3/reference/colors#resource
+//     */
+//     const colorId = Number(calendar.colorId);
+//     const colors = Object.entries(allGoogleCalendarColors);
+//     const colorEntry = colors[colorId - 1];
+//     const background = colorEntry[1].background;
+//     const foreground = colorEntry[1].foreground;
+
+//     return [background, foreground];
+// }
 
 const insertEventToCalendar = async (req, res) => {
     try {

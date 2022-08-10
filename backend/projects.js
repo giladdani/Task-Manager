@@ -116,7 +116,6 @@ const generateSharedSchedule = async (project) => {
         const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEventsJoined, project, emails);
 
         let errorMsg = null;
-        const originalProjectId = project.id;
         const originalProjectSharedId = project.sharedId;
 
         // Insert for all users. This allows later on expanding to creating a schedule between 3 and more users.
