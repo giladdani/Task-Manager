@@ -242,12 +242,12 @@ const createProject = async (req, res) => {
                 }
 
                 const project = await createProjectObject(req, false);
-                const allEvents = req.body.allEvents;
+                // // const allEvents = req.body.allEvents;
                 const email = await utils.getEmailFromReq(req);
                 let emails = [];
                 emails.push(email);
 
-                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEvents, project, emails);
+                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(project, emails);
                 let errorMsg = null;
 
                 const docsEvents = await EventModel.insertMany(events);

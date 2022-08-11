@@ -84,28 +84,26 @@ export const ProjectsAccordion = (props) => {
     setExpanded(newExpanded ? panel : false);
   };
 
-  const projectsList = allProjects.map((project, index) => {
-    return (
-      <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
-        <AccordionSummary>
-          <div><b>{project.title}</b></div>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div>
-            <Project
-              project={project}
-              deleteProject={deleteProject}
-              exportProject={exportProject}
-            ></Project>
-          </div>
-        </AccordionDetails>
-      </Accordion>
-    )
-  })
-
   return (
     <>
-      {projectsList}
+      {allProjects.map((project, index) => {
+        return (
+          <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
+            <AccordionSummary>
+              <div><b>{project.title}</b></div>
+            </AccordionSummary>
+            <AccordionDetails>
+              <div>
+                <Project
+                  project={project}
+                  deleteProject={deleteProject}
+                  exportProject={exportProject}
+                ></Project>
+              </div>
+            </AccordionDetails>
+          </Accordion>
+        )
+      })}
     </>
   );
 }

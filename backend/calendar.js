@@ -85,25 +85,7 @@ const getProjectEvents = async (req, res) => {
 const getAllEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
 
-    // Get all Google events
-    // Get all unexported events
-
-    // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
-    const allEvents = await GoogleEventModel.find({ email: email });
-
-    res.status(StatusCodes.OK).send(allEvents);
-
-    GoogleEventModel.updateMany(
-        { email: email },
-        {
-            $set:
-            {
-                fetchedByUser: true,
-            }
-        })
-        .then(res => {
-            console.log(`Finished updating user ${email} Google events to fetched.`);
-        })
+    let events = await utils.getAllUserEvents(email);
 }
 
 const shareEvents = async (req, res) => {

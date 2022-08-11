@@ -33,18 +33,14 @@ export const Projects = (props) => {
     const [startDate, setStartDate] = useState(new Date());
     // const [endDate, setEndDate] = useState(new Date().setHours(23,59,0,0));
     const [endDate, setEndDate] = useState(tempEndDate);
-
     const [maxEventsPerDay, setMaxEventsPerDay] = useState();
     const [dayRepetitionFrequency, setDayRepetitionFrequency] = useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
     const [dailyStartHour, setDailyStartHour] = useState(new Date().setHours(0, 0, 0, 0));
     const [dailyEndHour, setDailyEndHour] = useState(new Date().setHours(23, 59, 0, 0));
-
     const [constraints, setConstraints] = useState([]);
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
-
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
-
     const componentMounted = useRef(true);
 
 
@@ -58,8 +54,6 @@ export const Projects = (props) => {
             } else {
                 console.log(`[Projects - update constraints] component is unmounted, not updating constraints! -----------------------------`)
             }
-
-
         }
 
         fetchData();
@@ -77,7 +71,7 @@ export const Projects = (props) => {
                 return;
             }
 
-            const allEvents = props.events.events;
+            // // const allEvents = props.events.events;
             const body = {
                 sharedEmails: emailList,
                 projectTitle: projectTitle,
@@ -86,7 +80,7 @@ export const Projects = (props) => {
                 estimatedTime: estimatedTime,
                 startDate: startDate,
                 endDate: endDate,
-                allEvents: allEvents,
+                // // allEvents: allEvents,
                 maxEventsPerDay: maxEventsPerDay,
                 dayRepetitionFrequency: dayRepetitionFrequency,
                 dailyStartHour: dailyStartHour,

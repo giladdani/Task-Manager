@@ -117,6 +117,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
                             foregroundColor: foreground,
                             email: email,
                             fetchedByUser: false,
+                            isGoogleEvent: true,
                         })
                 }
                 );
