@@ -107,7 +107,7 @@ async function fetchProjectEvents(projectId) {
 
 module.exports = {
     fetchGoogleEvents: fetchGoogleEvents,
-    fetchProjectEvents: fetchAllProjectEvents,
+    fetchAllProjectEvents: fetchAllProjectEvents,
     fetchUnsyncedGoogleEvents: fetchUnsyncedGoogleEvents,
     fetchProjectEvents: fetchProjectEvents,
 }

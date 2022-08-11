@@ -5,7 +5,6 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
-import { isConstructorDeclaration } from 'typescript'
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
 
@@ -21,11 +20,6 @@ export class Schedules extends React.Component {
             fetchedInitialEvents: false,
         }
     }
-
-
-    // ! THIS IS A TEST FOR A NEW EXPERIMENTAL BRANCH
-    // calendarApi = this.state.calendarRef.current.getApi();
-    // TODO: can we do this once at the constructor to save repeating it in every function?
 
     async componentDidMount() {
         this.setState({ isLoading: true });
@@ -43,14 +37,24 @@ export class Schedules extends React.Component {
                 this.addEventsToScheduleFullCalendar(constraintEvents);
             })
 
-        let projectPromise = EventsAPI.fetchProjectEvents()
+        let projectPromise = EventsAPI.fetchAllProjectEvents()
             .then(([projectEvents, errProject]) => {
                 this.addEventsToScheduleFullCalendar(projectEvents);
             })
 
-        // TODO: Promise All -> then set state
         Promise.all([googlePromise, constraintsPromise, projectPromise])
-            .then(responses => this.setState({ isLoading: false }))
+            .then(responses => {
+                this.setState({ isLoading: false })
+
+                /** 
+                 * TODO:
+                 * I want to remove this so that each page can independently request all events from the server,
+                 * and not rely on passing through the Schedules page.
+                 */
+                let calendarApi = this.state.calendarRef.current.getApi();
+                const allEvents = calendarApi.getEvents();
+                this.props.setEvents(allEvents);
+            })
 
         this.setState({ fetchedInitialEvents: true });
         let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
