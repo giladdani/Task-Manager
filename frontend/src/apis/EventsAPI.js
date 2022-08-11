@@ -50,7 +50,7 @@ async function fetchUnsyncedGoogleEvents() {
     return [res, error];
 }
 
-async function fetchProjectEvents() {
+async function fetchAllProjectEvents() {
     let res = null;
     let error = null;
 
@@ -76,8 +76,38 @@ async function fetchProjectEvents() {
     return [res, error];
 }
 
+async function fetchProjectEvents(projectId) {
+    let res = null;
+    let error = null;
+
+    try {
+        const response = await fetch(`http://localhost:3001/api/calendar/${projectId}/events`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token'),
+            },
+            method: 'GET'
+        });
+
+        if (response.status !== 200) {
+            throw new Error('Error while fetching specific project events');
+        }
+
+        const data = await response.json();
+        res = data;
+    }
+    catch (err) {
+        console.error(err);
+        error = err;
+    }
+
+    return [res, error];
+}
+
 module.exports = {
     fetchGoogleEvents: fetchGoogleEvents,
-    fetchProjectEvents: fetchProjectEvents,
+    fetchProjectEvents: fetchAllProjectEvents,
     fetchUnsyncedGoogleEvents: fetchUnsyncedGoogleEvents,
+    fetchProjectEvents: fetchProjectEvents,
 }

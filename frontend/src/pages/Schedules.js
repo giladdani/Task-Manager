@@ -5,9 +5,9 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
+import { isConstructorDeclaration } from 'typescript'
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
-
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -22,64 +22,77 @@ export class Schedules extends React.Component {
         }
     }
 
-    calendarRef = React.createRef();    // we need this to be able to add events
-    // calendarApi = this.calendarRef.current.getApi();
+
+    // ! THIS IS A TEST FOR A NEW EXPERIMENTAL BRANCH
+    // calendarApi = this.state.calendarRef.current.getApi();
+    // TODO: can we do this once at the constructor to save repeating it in every function?
 
     async componentDidMount() {
         this.setState({ isLoading: true });
+        let calendarRef = React.createRef();    // we need this to be able to add events
+        this.setState({ calendarRef: calendarRef });
 
-        if (this.state.fetchedInitialEvents === false) {
-            EventsAPI.fetchGoogleEvents()
-                .then(([events, errGoogle]) => {
-                    this.addEventsToScheduleGoogle(events);
-                })
+        let googlePromise = EventsAPI.fetchGoogleEvents()
+            .then(([events, errGoogle]) => {
+                this.addEventsToScheduleGoogle(events);
+            })
 
-            ConstraintsAPI.fetchConstraints()
-                .then(constraintEvents => {
-                    constraintEvents.forEach(constraint => { constraint.editable = false })
-                    this.addEventsToScheduleFullCalendar(constraintEvents);
-                })
+        let constraintsPromise = ConstraintsAPI.fetchConstraints()
+            .then(constraintEvents => {
+                constraintEvents.forEach(constraint => { constraint.editable = false })
+                this.addEventsToScheduleFullCalendar(constraintEvents);
+            })
 
-            EventsAPI.fetchProjectEvents()
-                .then(([projectEvents, errProject]) => {
-                    this.addEventsToScheduleFullCalendar(projectEvents);
-                })
+        let projectPromise = EventsAPI.fetchProjectEvents()
+            .then(([projectEvents, errProject]) => {
+                this.addEventsToScheduleFullCalendar(projectEvents);
+            })
 
-            this.setState({ fetchedInitialEvents: true });
+        // TODO: Promise All -> then set state
+        Promise.all([googlePromise, constraintsPromise, projectPromise])
+            .then(responses => this.setState({ isLoading: false }))
 
-            window.setInterval(this.updateUnsyncedEvents, 5000);
-        }
+        this.setState({ fetchedInitialEvents: true });
+        let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
+        this.setState({ interval: intervalInfo });
+        console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
+    }
 
-        this.setState({ isLoading: false });
-
-        // let calendarApi = this.calendarRef.current.getApi();
-        // const allEvents = calendarApi.getEvents();
-        // this.props.setEvents(allEvents);
+    async componentWillUnmount() {
+        console.log(`[componentWillUnmount: Schedules] Clearing interval ${this.state.interval}`)
+        clearInterval(this.state.interval);
     }
 
     updateUnsyncedEvents = async () => {
-        EventsAPI.fetchUnsyncedGoogleEvents()
-            .then(([unsyncedEvents, error]) => {
-                console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
-                let calendarApi = this.calendarRef.current.getApi();
-                for (const unsyncedEvent of unsyncedEvents) {
-
-                    let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
-                    if (!fullCalendarEvent) {
-                        if (unsyncedEvent.status !== "cancelled") {
-                            let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
-                            if (fcEvent) {
-                                calendarApi.addEvent(fcEvent);
+        try {
+            EventsAPI.fetchUnsyncedGoogleEvents()
+                .then(([unsyncedEvents, error]) => {
+                    try {
+                        console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
+                        let calendarApi = this.state.calendarRef.current.getApi();
+                        for (const unsyncedEvent of unsyncedEvents) {
+                            let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
+                            if (!fullCalendarEvent) {
+                                if (unsyncedEvent.status !== "cancelled") {
+                                    let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
+                                    if (fcEvent) {
+                                        calendarApi.addEvent(fcEvent);
+                                    }
+                                }
+                            } else if (unsyncedEvent.status === "cancelled") {
+                                fullCalendarEvent.remove();
+                            } else {
+                                this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
                             }
                         }
-                    } else if (unsyncedEvent.status === "cancelled") {
-                        fullCalendarEvent.remove();
-                    } else {
-                        this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
+                    } catch (err) {
+                        console.log(`[updateUnsyncedEvents] Error in THEN part:\n${err}`)
                     }
-                }
-
-            })
+                })
+        }
+        catch (err) {
+            console.log(`[updateUnsyncedEvents] Error:\n${err}`);
+        }
     }
 
     updateGoogleEvent = (googleEvent, fullCalendarEvent) => {
@@ -144,25 +157,33 @@ export class Schedules extends React.Component {
     }
 
     addEventsToScheduleFullCalendar = (events) => {
-        let calendarApi = this.calendarRef.current.getApi();
+        try {
+            let calendarApi = this.state.calendarRef.current.getApi();
 
-        events.forEach(event => {
-            event.borderColor = 'black';
-            calendarApi.addEvent(event)
-        });
+            events.forEach(event => {
+                event.borderColor = 'black';
+                calendarApi.addEvent(event)
+            });
+        } catch (err) {
+            console.log(`[addEventsToScheduleFullCalendar] Error:\n${err}`);
+        }
     }
 
     addEventsToScheduleGoogle = (events) => {
-        let calendarApi = this.calendarRef.current.getApi();
-        let eventsSource = [];
-        for (const event of events) {
-            let fcEvent = this.createFCEventFromGoogleEvent(event);
-            if (fcEvent) {
-                eventsSource.push(fcEvent)
+        try {
+            let calendarApi = this.state.calendarRef.current.getApi();
+            let eventsSource = [];
+            for (const event of events) {
+                let fcEvent = this.createFCEventFromGoogleEvent(event);
+                if (fcEvent) {
+                    eventsSource.push(fcEvent)
+                }
             }
-        }
 
-        calendarApi.addEventSource(eventsSource);
+            calendarApi.addEventSource(eventsSource);
+        } catch (err) {
+            console.log(`[addEventsToScheduleGoogle] Error:\n${err}`);
+        }
     }
 
     createFCEventFromGoogleEvent = (event) => {
@@ -293,7 +314,7 @@ export class Schedules extends React.Component {
     }
 
     updateConstraintDisplayValue = (displayType) => {
-        const calendarApi = this.calendarRef.current.getApi();
+        const calendarApi = this.state.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
 
         allEvents.forEach(event => {
@@ -313,28 +334,6 @@ export class Schedules extends React.Component {
         }
 
         this.updateConstraintDisplayValue(displayType);
-    }
-
-    // TODO:
-    exportProjectEventsToGoogleCalendar = async () => {
-        // Get all generated events
-        let calendarApi = this.calendarRef.current.getApi();
-        const allEvents = calendarApi.getEvents();
-
-        let generatedEvents = allEvents.filter(event => event.extendedProps.unexportedEvent === true);
-
-        if (generatedEvents.length === 0) {
-            return;
-        }
-
-        let newCalendarName = generatedEvents[0].title;
-
-        const googleResJson = await this.createGoogleCalendar(newCalendarName);
-
-        const googleCalendarID = googleResJson.data.id;
-
-        this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
-        alert("Events added to Google Calendar!");
     }
 
     insertGeneratedEventsToGoogleCalendar = async (events, googleCalendarID) => {
@@ -360,32 +359,6 @@ export class Schedules extends React.Component {
         }
         catch (err) {
             console.error(err);
-        }
-    }
-
-    createGoogleCalendar = async (newCalendarName) => {
-        try {
-            const body = {
-                calendarName: newCalendarName,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) throw new Error('Error while creating new calendar');
-            const googleResJson = await response.json();
-            return googleResJson;
-        }
-        catch (err) {
-            console.error(err);
-            return null;
         }
     }
 
@@ -438,7 +411,7 @@ export class Schedules extends React.Component {
     fetchRescheduledEvents = async (event) => {
         let res = null;
         try {
-            let calendarApi = this.calendarRef.current.getApi();
+            let calendarApi = this.state.calendarRef.current.getApi();
             const allEvents = calendarApi.getEvents();
 
             const body = {
@@ -503,7 +476,10 @@ export class Schedules extends React.Component {
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
-                <div hidden={this.state.isLoading} id="schedule-container">
+                <div
+                    // hidden={this.state.isLoading}
+                    id="schedule-container"
+                >
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
@@ -526,6 +502,7 @@ export class Schedules extends React.Component {
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
+                        // height="100%"
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}
@@ -533,7 +510,7 @@ export class Schedules extends React.Component {
                         eventClick={this.handleEventClick}
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}
-                        ref={this.calendarRef}
+                        ref={this.state.calendarRef}
                         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
                         slotLabelFormat={[{ hour: "2-digit", minute: "2-digit", meridiem: false, hour12: false }]}
                         locale='en-GB'
