@@ -18,6 +18,10 @@
   background-color:#282c34;
 }
 
+.fc-event {
+  border-width: 7px;
+}
+
 .center_elem{
   text-align: center;
   margin: auto;

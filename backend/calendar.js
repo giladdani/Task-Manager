@@ -2,19 +2,27 @@ const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
+const UserModel = require('./models/user')
+const GoogleEventModel = require('./models/googleevent')
+const googleSync = require('./google-sync');
 const SharedEventsModel = require('./models/sharedeventsmodel')
 const utils = require('./utils');
 
 // Routing
 const router = express.Router();
+router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
+router.get('/:projectId/events', (req, res) => { getProjectEvents(req, res) });
+router.get('/events/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
-router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
 router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
 router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
-
 router.patch('/events', (req, res) => { updateEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
+
+const getProjectEvents = async (req, res) => {
+    console.log(`[getProjectEvents] Start. Project ID: ${req.params.projectId}`)
+}
 
 const shareEvents = async (req, res) => {
 
@@ -136,15 +144,15 @@ const deleteEvent = async (req, res) => {
 const deleteDBEvent = async (event) => {
     const eventId = event.id;
 
-        let errorMsg = null;
-        let docs = null;
-        try {
-            docs = await EventModel.deleteOne({ 'id': eventId })
-        } catch (err) {
-            errorMsg = err;
-        }
-        
-        return errorMsg;
+    let errorMsg = null;
+    let docs = null;
+    try {
+        docs = await EventModel.deleteOne({ 'id': eventId })
+    } catch (err) {
+        errorMsg = err;
+    }
+
+    return errorMsg;
 }
 
 const deleteGoogleEvent = async (req) => {
@@ -189,70 +197,50 @@ const getAllSharedEvents = async (req, res) => {
 }
 
 const getAllEventsGoogle = async (req, res) => {
-    let allEvents = [];
-    const accessToken = utils.getAccessTokenFromRequest(req);
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-    const allGoogleCalendars = await getAllGoogleCalendars(googleCalendarClient);
-    const allGoogleCalendarColors = await getAllGoogleCalendarColors(googleCalendarClient);
-    for (const calendar of allGoogleCalendars) {
-        const calendarEvents = await getEventsFromCalendar(googleCalendarClient, calendar.id);
-        const [background, foreground] = getColorString(calendar, allGoogleCalendarColors);
-        const calendarEventsWithCalendarId = calendarEvents.map(event => ({ ...event, calendarId: calendar.id, backgroundColor: background, borderColor: foreground }));
-        allEvents = allEvents.concat(calendarEventsWithCalendarId);
-    }
+    const email = await utils.getEmailFromReq(req);
+
+    // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
+    const allEvents = await GoogleEventModel.find({ email: email });
+
     res.status(StatusCodes.OK).send(allEvents);
+
+    GoogleEventModel.updateMany(
+        { email: email },
+        {
+            $set:
+            {
+                fetchedByUser: true,
+            }
+        })
+        .then(res => {
+            console.log(`Finished updating user ${email} Google events to fetched.`);
+        })
 }
 
-const getAllGoogleCalendars = async (calendar) => {
-    const response = await calendar.calendarList.list({});
+const getUnsyncedGoogleEvents = async (req, res) => {
+    const email = await utils.getEmailFromReq(req);
+    const accessToken = await utils.getAccessTokenFromRequest(req);
+    console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}`);
+    let unsyncedEvents = [];
 
-    return response.data.items;
-}
+    // Method 1: receive unsynced events from Google directly and isert them into DB
+    unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
 
-const getAllGoogleCalendarColors = async (calendar) => {
-    const response = await calendar.colors.get({});
+    // Method 2: receive from DB. Good if we use intervals server-side to update.
+    // {    
+    //     unsyncedEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
+    //     GoogleEventModel.updateMany( // Avoid await?
+    //     { email: email },
+    //     {
+    //         $set:
+    //         {
+    //             fetchedByUser: true,
+    //         }
+    //     }
+    //     )
+    // }
 
-    return response.data.calendar; // An array of all colors of all calendars, see https://developers.google.com/calendar/api/v3/reference/colors/get
-}
-
-const getEventsFromCalendar = async (googleCalendarApi, calendarId) => {
-    try {
-        const currDate = new Date();
-        const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 1);
-        const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 3);
-
-        const response = await googleCalendarApi.events.list({
-            calendarId: calendarId,
-            timeMin: (new Date(timeMinDate)).toISOString(),
-            timeMax: (new Date(timeMaxDate)).toISOString(),
-            singleEvents: true,
-            orderBy: 'startTime',
-        });
-
-        return response.data.items;
-    }
-    catch (err) {
-        console.log(err);
-    }
-}
-
-const getColorString = (calendar, allGoogleCalendarColors) => {
-    /*
-    The Google Calendar API for colors was a bit weird for me.
-    I kept failing in the code when I treated it as an array.
-    To better understand enter the debugger and see how the objects are saved.
-    
-    https://developers.google.com/calendar/api/v3/reference/colors/get
-    https://developers.google.com/calendar/api/v3/reference/colors#resource
-    */
-    const colorId = Number(calendar.colorId);
-    const colors = Object.entries(allGoogleCalendarColors);
-    const colorEntry = colors[colorId - 1];
-    const background = colorEntry[1].background;
-    const foreground = colorEntry[1].foreground;
-
-    return [background, foreground];
+    res.status(StatusCodes.OK).send(unsyncedEvents);
 }
 
 const insertEventToCalendar = async (req, res) => {

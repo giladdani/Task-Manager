@@ -13,7 +13,7 @@ const router = express.Router();
 
 // Routing
 router.get('/', (req, res) => { getProjects(req, res) });
-router.get('/events', (req, res) => { getProjectEvents(req, res) });
+router.get('/events', (req, res) => { getAllProjectEvents(req, res) });
 router.patch('/events/reschedule', (req, res) => { rescheduleProjectEvent(req, res) });
 
 router.get('/pending', (req, res) => { getPendingProjects(req, res) });
@@ -57,7 +57,7 @@ const getPendingProjects = async (req, res) => {
         res.status(StatusCodes.OK).send(pendingProjects);
 }
 
-const getProjectEvents = async (req, res) => {
+const getAllProjectEvents = async (req, res) => {
         const userEmail = await utils.getEmailFromReq(req);
         const allProjectEvents = await EventModel.find({ 'email': userEmail });
         res.status(StatusCodes.OK).send(allProjectEvents);
@@ -116,7 +116,6 @@ const generateSharedSchedule = async (project) => {
         const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEventsJoined, project, emails);
 
         let errorMsg = null;
-        const originalProjectId = project.id;
         const originalProjectSharedId = project.sharedId;
 
         // Insert for all users. This allows later on expanding to creating a schedule between 3 and more users.

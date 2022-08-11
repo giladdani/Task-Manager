@@ -6,6 +6,7 @@ import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
+const EventsAPI = require('../apis/EventsAPI.js')
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -15,98 +16,106 @@ export class Schedules extends React.Component {
             currentEvents: [],  // TODO: delete? do we use this?
             isLoading: false,
             isDialogOpen: false,
-            selectedEvent: { title: "" }
+            selectedEvent: { title: "" },
         }
     }
-
-    calendarRef = React.createRef();    // we need this to be able to add events
-    // calendarApi = this.calendarRef.current.getApi();
 
     async componentDidMount() {
         this.setState({ isLoading: true });
-        const events = await this.fetchEventsGoogle();
-        this.addEventsToScheduleGoogle(events);
-        // add events to shared events object in App.js
-        let calendarApi = this.calendarRef.current.getApi();
+        let calendarRef = React.createRef();    // we need this to be able to add events
+        this.setState({ calendarRef: calendarRef });
 
-        // let constraintEvents = await this.fetchConstraints();
-        let constraintEvents = await ConstraintsAPI.fetchConstraints();
+        let googlePromise = EventsAPI.fetchGoogleEvents()
+            .then(([events, errGoogle]) => {
+                this.addEventsToScheduleGoogle(events);
+            })
 
-        constraintEvents.forEach(constraint => { constraint.editable = false })
-        this.addEventsToScheduleFullCalendar(constraintEvents);
+        let constraintsPromise = ConstraintsAPI.fetchConstraints()
+            .then(constraintEvents => {
+                constraintEvents.forEach(constraint => { constraint.editable = false })
+                this.addEventsToScheduleFullCalendar(constraintEvents);
+            })
 
-        let projectEvents = await this.fetchProjectEvents();
-        this.addEventsToScheduleFullCalendar(projectEvents);
+        let projectPromise = EventsAPI.fetchAllProjectEvents()
+            .then(([projectEvents, errProject]) => {
+                this.addEventsToScheduleFullCalendar(projectEvents);
+            })
 
-        this.setState({ isLoading: false });
+        Promise.all([googlePromise, constraintsPromise, projectPromise])
+            .then(responses => {
+                this.setState({ isLoading: false })
 
-        const allEvents = calendarApi.getEvents();
-        this.props.setEvents(allEvents);
+                /** 
+                 * TODO:
+                 * I want to remove this so that each page can independently request all events from the server,
+                 * and not rely on passing through the Schedules page.
+                 */
+                let calendarApi = this.state.calendarRef.current.getApi();
+                const allEvents = calendarApi.getEvents();
+                this.props.setEvents(allEvents);
+            })
+
+        this.setState({ fetchedInitialEvents: true });
+        let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
+        this.setState({ interval: intervalInfo });
+        console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
     }
 
-    /*
+    async componentWillUnmount() {
+        console.log(`[componentWillUnmount: Schedules] Clearing interval ${this.state.interval}`)
+        clearInterval(this.state.interval);
+    }
 
-Moved to API file!
-TODO: delete if all works well
-
-    */
-    // fetchConstraints = async () => {
-    //     try {
-    //         const response = await fetch('http://localhost:3001/api/constraints', {
-    //             headers: {
-    //                 'Accept': 'application/json',
-    //                 'Content-Type': 'application/json',
-    //                 'access_token': sessionStorage.getItem('access_token')
-    //             },
-    //             method: 'GET'
-    //         });
-    //         if (response.status !== 200) throw new Error('Error while fetching events');
-    //         const data = await response.json();
-    //         return data;
-    //     }
-    //     catch (err) {
-    //         console.error(err);
-    //     }
-    // }
-
-    fetchProjectEvents = async () => {
+    updateUnsyncedEvents = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/projects/events', {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'GET'
-            });
-
-            if (response.status !== 200) throw new Error('Error while fetching events');
-            const data = await response.json();
-            return data;
+            EventsAPI.fetchUnsyncedGoogleEvents()
+                .then(([unsyncedEvents, error]) => {
+                    try {
+                        console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
+                        let calendarApi = this.state.calendarRef.current.getApi();
+                        for (const unsyncedEvent of unsyncedEvents) {
+                            let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
+                            if (!fullCalendarEvent) {
+                                if (unsyncedEvent.status !== "cancelled") {
+                                    let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
+                                    if (fcEvent) {
+                                        calendarApi.addEvent(fcEvent);
+                                    }
+                                }
+                            } else if (unsyncedEvent.status === "cancelled") {
+                                fullCalendarEvent.remove();
+                            } else {
+                                this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
+                            }
+                        }
+                    } catch (err) {
+                        console.log(`[updateUnsyncedEvents] Error in THEN part:\n${err}`)
+                    }
+                })
         }
         catch (err) {
-            console.error(err);
+            console.log(`[updateUnsyncedEvents] Error:\n${err}`);
         }
     }
 
-    fetchEventsGoogle = async () => {
-        try {
-            const response = await fetch('http://localhost:3001/api/calendar/events/google', {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'GET'
-            });
+    updateGoogleEvent = (googleEvent, fullCalendarEvent) => {
+        let start = googleEvent.start.dateTime;
+        let end = googleEvent.end.dateTime;
 
-            if (response.status !== 200) throw new Error('Error while fetching events');
-            const data = await response.json();
-            return data;
+        /**
+         * TODO:
+         * If a Google event is all day, I think the fields aren't "dateTime" but rather "date".
+         * In which case our code so far doesn't detect it.
+         * Our app in general doesn't handle full day events.
+         */
+        if (!start || !end) {
+            return;
         }
-        catch (err) {
-            console.error(err);
-        }
+
+        fullCalendarEvent.setDates(start, end);
+        fullCalendarEvent.setProp("title", googleEvent.summary);
+        fullCalendarEvent.setProp("backgroundColor", googleEvent.backgroundColor);
+        fullCalendarEvent.setProp("borderColor", googleEvent.foregroundColor);
     }
 
     handleEventDragged = (eventInfo) => {
@@ -151,38 +160,62 @@ TODO: delete if all works well
     }
 
     addEventsToScheduleFullCalendar = (events) => {
-        let calendarApi = this.calendarRef.current.getApi();
+        try {
+            let calendarApi = this.state.calendarRef.current.getApi();
 
-        events.forEach(event => {
-            calendarApi.addEvent(event)
-        });
+            events.forEach(event => {
+                event.borderColor = 'black';
+                calendarApi.addEvent(event)
+            });
+        } catch (err) {
+            console.log(`[addEventsToScheduleFullCalendar] Error:\n${err}`);
+        }
     }
 
     addEventsToScheduleGoogle = (events) => {
-        let calendarApi = this.calendarRef.current.getApi();
-
-        events.forEach(event => {
-            const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
-            const backgroundColor = this.fetchBackgroundColorFromGoogleEvent(event);
-            const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
-            const googleEventId = event.id;
-
-            calendarApi.addEvent(
-                {
-                    id: localEventId,
-                    googleEventId: googleEventId,
-                    googleCalendarId: event.calendarId,
-                    editable: true,
-                    title: event.summary,
-                    start: event.start.dateTime,
-                    end: event.end.dateTime,
-                    allDay: false, // TODO: change based on Google?
-                    projectId: fullCalendarProjectId,
-                    backgroundColor: backgroundColor,
-                    borderColor: event.borderColor
+        try {
+            let calendarApi = this.state.calendarRef.current.getApi();
+            let eventsSource = [];
+            for (const event of events) {
+                let fcEvent = this.createFCEventFromGoogleEvent(event);
+                if (fcEvent) {
+                    eventsSource.push(fcEvent)
                 }
-            )
-        });
+            }
+
+            calendarApi.addEventSource(eventsSource);
+        } catch (err) {
+            console.log(`[addEventsToScheduleGoogle] Error:\n${err}`);
+        }
+    }
+
+    createFCEventFromGoogleEvent = (event) => {
+        let fcEvent = null;
+
+        // TODO: some google events are full days, so they don't have hours. The code doesn't yet consider full-day events
+        if (!event || !event.start || !event.end) {
+            return fcEvent;
+        }
+
+        const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
+        const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
+        const googleEventId = event.id;
+
+        fcEvent = {
+            id: localEventId,
+            googleEventId: googleEventId,
+            googleCalendarId: event.calendarId,
+            editable: true,
+            title: event.summary,
+            start: event.start.dateTime,
+            end: event.end.dateTime,
+            allDay: false, // TODO: change based on Google?
+            projectId: fullCalendarProjectId,
+            borderColor: event.foregroundColor,
+            backgroundColor: event.backgroundColor,
+        }
+
+        return fcEvent;
     }
 
     fetchProjectIdFromGoogleEvent = (googleEvent) => {
@@ -197,28 +230,28 @@ TODO: delete if all works well
         return googleEvent.extendedProperties.private.fullCalendarProjectId;
     }
 
-    fetchBackgroundColorFromGoogleEvent = (googleEvent) => {
-        // if (!googleEvent.extendedProperties) {
-        //     return googleEvent.backgroundColor;
-        // }
-
-        // if (!googleEvent.extendedProperties.private) {
-        //     return googleEvent.backgroundColor;
-        // }
-
-        // return googleEvent.extendedProperties.private.fullCalendarBackgroundColor;
-
-
-        return googleEvent.backgroundColor;
-    }
-
+    /**
+     * TODO:
+     * Perhaps we need to give up the local IDs, and stay only with Google IDs?
+     */
+    /**
+     * 
+     * @param {*} googleEvent 
+     * @returns the local ID given to the event by the application. 
+     * If no such ID exists (e.g. if it's solely a Google event), the Google ID is returned.
+     */
     fetchAppEventIdFromGoogleEvent = (googleEvent) => {
-        if (!googleEvent.extendedProperties) {
+        if (!googleEvent) {
             return null;
         }
 
+        let id = googleEvent.id;
+        if (!googleEvent.extendedProperties) {
+            return id;
+        }
+
         if (!googleEvent.extendedProperties.private) {
-            return null;
+            return id;
         }
 
         return googleEvent.extendedProperties.private.fullCalendarEventID;
@@ -284,7 +317,7 @@ TODO: delete if all works well
     }
 
     updateConstraintDisplayValue = (displayType) => {
-        const calendarApi = this.calendarRef.current.getApi();
+        const calendarApi = this.state.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
 
         allEvents.forEach(event => {
@@ -304,28 +337,6 @@ TODO: delete if all works well
         }
 
         this.updateConstraintDisplayValue(displayType);
-    }
-
-    // TODO:
-    exportProjectEventsToGoogleCalendar = async () => {
-        // Get all generated events
-        let calendarApi = this.calendarRef.current.getApi();
-        const allEvents = calendarApi.getEvents();
-
-        let generatedEvents = allEvents.filter(event => event.extendedProps.unexportedEvent === true);
-
-        if (generatedEvents.length === 0) {
-            return;
-        }
-
-        let newCalendarName = generatedEvents[0].title;
-
-        const googleResJson = await this.createGoogleCalendar(newCalendarName);
-
-        const googleCalendarID = googleResJson.data.id;
-
-        this.insertGeneratedEventsToGoogleCalendar(generatedEvents, googleCalendarID);
-        alert("Events added to Google Calendar!");
     }
 
     insertGeneratedEventsToGoogleCalendar = async (events, googleCalendarID) => {
@@ -351,32 +362,6 @@ TODO: delete if all works well
         }
         catch (err) {
             console.error(err);
-        }
-    }
-
-    createGoogleCalendar = async (newCalendarName) => {
-        try {
-            const body = {
-                calendarName: newCalendarName,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) throw new Error('Error while creating new calendar');
-            const googleResJson = await response.json();
-            return googleResJson;
-        }
-        catch (err) {
-            console.error(err);
-            return null;
         }
     }
 
@@ -429,7 +414,7 @@ TODO: delete if all works well
     fetchRescheduledEvents = async (event) => {
         let res = null;
         try {
-            let calendarApi = this.calendarRef.current.getApi();
+            let calendarApi = this.state.calendarRef.current.getApi();
             const allEvents = calendarApi.getEvents();
 
             const body = {
@@ -484,7 +469,7 @@ TODO: delete if all works well
     }
 
     shareScheduleWithUser = async () => {
-        
+
     }
 
     render() {
@@ -494,7 +479,10 @@ TODO: delete if all works well
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
-                <div hidden={this.state.isLoading} id="schedule-container">
+                <div
+                    // hidden={this.state.isLoading}
+                    id="schedule-container"
+                >
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
@@ -517,6 +505,7 @@ TODO: delete if all works well
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
+                        // height="100%"
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}
@@ -524,9 +513,9 @@ TODO: delete if all works well
                         eventClick={this.handleEventClick}
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}
-                        ref={this.calendarRef}
+                        ref={this.state.calendarRef}
                         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-                        slotLabelFormat={[{hour: "2-digit",minute: "2-digit", meridiem: false, hour12: false}]}
+                        slotLabelFormat={[{ hour: "2-digit", minute: "2-digit", meridiem: false, hour12: false }]}
                         locale='en-GB'
                     />
 
