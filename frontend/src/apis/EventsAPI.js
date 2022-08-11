@@ -1,9 +1,11 @@
+const consts = require('./consts.js')
+
 async function fetchGoogleEvents() {
     let res = null;
     let error = null;
 
     try {
-        const response = await fetch('http://localhost:3001/api/calendar/events/google', {
+        const response = await fetch(`${consts.host}/calendar/events/google`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -29,7 +31,7 @@ async function fetchUnsyncedGoogleEvents() {
     let error = null;
 
     try {
-        const response = await fetch('http://localhost:3001/api/calendar/events/google/unsynced', {
+        const response = await fetch(`${consts.host}/calendar/events/google/unsynced`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -55,7 +57,7 @@ async function fetchAllProjectEvents() {
     let error = null;
 
     try {
-        const response = await fetch('http://localhost:3001/api/projects/events', {
+        const response = await fetch(`${consts.host}/projects/events`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -76,12 +78,17 @@ async function fetchAllProjectEvents() {
     return [res, error];
 }
 
+/**
+ * Fetches the events of a specific project, identified by its ID field.
+ * @param {*} projectId 
+ * @returns 
+ */
 async function fetchProjectEvents(projectId) {
     let res = null;
     let error = null;
 
     try {
-        const response = await fetch(`http://localhost:3001/api/calendar/${projectId}/events`, {
+        const response = await fetch(`${consts.host}/calendar/${projectId}/events`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -115,7 +122,7 @@ async function fetchAllEvents(projectId) {
     let error = null;
 
     try {
-        const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+        const response = await fetch(`${consts.host}/calendar/events`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',

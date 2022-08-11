@@ -1,99 +1,44 @@
 import { useState, useEffect } from 'react'
 import { ProjectsList } from '../components/ProjectsList'
 import { ProjectsAccordion } from '../components/ProjectsAccordion'
+const ProjectsAPI = require('../apis/ProjectsAPI.js')
+
 
 export const ProjectManagement = (props) => {
     const [allProjects, setAllProjects] = useState([]);
 
-    useEffect(async () => {
-        const projects = await fetchProjects();
+    // useEffect(async () => {
+    //     await fetchAndSetProjects();
+    // });
+
+    const fetchAndSetProjects = async () => {
+        const [projects, error] = await ProjectsAPI.fetchProjects();
         setAllProjects(projects);
-    });
-
-    const fetchProjects = async () => {
-        const response = await fetch('http://localhost:3001/api/projects', {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem("access_token")
-            },
-            method: 'GET'
-        });
-
-        if (response.status !== 200) throw new Error('Error while fetching constraints')
-        const data = await response.json();
-        return data;
     }
 
     const deleteProject = async (project) => {
-        console.log(`Deleting project ${project.title}. Project ID: ${project.id}`);
-
-        try {
-            const response = await fetch(`http://localhost:3001/api/projects/${project.id}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'DELETE',
-            });
-
-            if (response.status !== 200) {
-                throw new Error(`Failed to delete project ${project.title} (ID: ${project.id})`);
-            }
-
-            console.log(`Project ${project.title} (ID: ${project.id}) deleted`);
-
-            const projects = await fetchProjects();
-            setAllProjects(projects);
-        }
-        catch (err) {
-            console.error(err);
-        }
+        ProjectsAPI.deleteProject(project)
+        .then(([response, error]) => {
+            // TODO: check if RESPONSE OK
+            fetchAndSetProjects();
+        })
     }
 
     const exportProject = async (project) => {
-        console.log(`Exporting project ${project.title}. Project ID: ${project.id}`);
-
-        try {
-            const allEvents = props.allEvents.events;
-
-            const body = {
-                events: allEvents,
-            };
-
-            
-            const response = await fetch(`http://localhost:3001/api/projects/export/${project.id}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) {
-                throw new Error(`Failed to export project ${project.title} (ID: ${project.id})`);
-            }
-
-            console.log(`Project ${project.title} (ID: ${project.id}) exported to Google.`);
-
-            const projects = await fetchProjects();
-            setAllProjects(projects);
-        }
-        catch (err) {
-            console.error(err);
-        }
+        ProjectsAPI.exportProject(project)
+            .then(([response, error]) => {
+                // TODO: check if RESPONSE OK
+                fetchAndSetProjects();
+            })
     }
 
     return (
         <>
-            {allProjects.length == 0 &&
+            {/* {allProjects.length == 0 &&
                 <div>User has no projects!</div>
-            }
-            <ProjectsAccordion 
-                projects={allProjects}
+            } */}
+            <ProjectsAccordion
+                // projects={allProjects}
                 allEvents={props.allEvents}
                 deleteProject={deleteProject}
                 exportProject={exportProject}>

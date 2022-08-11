@@ -1,10 +1,11 @@
+const consts = require('./consts.js')
 
 async function fetchPendingProjects() {
     let res = null;
     let error = null;
 
     try {
-        const response = await fetch('http://localhost:3001/api/projects/pending', {
+        const response = await fetch(`${consts.host}/projects/pending`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ async function approvePendingProject(project, allEvents) {
             allEvents: allEvents,
         };
 
-        const response = await fetch('http://localhost:3001/api/projects/shared/approved', {
+        const response = await fetch(`${consts.host}/projects/shared/approved`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ const fetchProjects = async () => {
 
     try {
 
-        const response = await fetch('http://localhost:3001/api/projects', {
+        const response = await fetch(`${consts.host}/projects`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ const deleteProject = async (project) => {
     let error = null;
 
     try {
-        const response = await fetch(`http://localhost:3001/api/projects/${project.id}`, {
+        const response = await fetch(`${consts.host}/projects/${project.id}`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ const exportProject = async (project) => {
         // //     events: allEvents,
         // // };
 
-        const response = await fetch(`http://localhost:3001/api/projects/export/${project.id}`, {
+        const response = await fetch(`${consts.host}/projects/export/${project.id}`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',

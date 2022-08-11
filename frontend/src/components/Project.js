@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -10,6 +10,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
+const ProjectsAPI = require('../apis/ProjectsAPI.js')
+const EventsAPI = require('../apis/EventsAPI.js')
 
 export const Project = (props) => {
     const allEvents = props.projectEvents;
@@ -18,6 +20,37 @@ export const Project = (props) => {
     const [endDate, setEndDate] = useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+    
+    
+    // Start of code for future update
+    const [projectEvents, setProjectEvents] = useState([]);
+    const componentMounted = useRef(true);
+
+
+    useEffect(() => {
+        const fetchData = async () => {
+            // // await fetchAndUpdateProjects();
+            // await fetchAndUpdateProjectEvents();
+        }
+
+        fetchData();
+
+        return () => {
+            componentMounted.current = false;
+        }
+    });
+
+    const fetchAndUpdateProjectEvents = async () => {
+        const [projectEvents, error] = await EventsAPI.fetchProjectEvents(props.project.id);
+
+        if (componentMounted.current) {
+            // // setAllProjects(projects);
+            setProjectEvents(projectEvents);
+        } else {
+            console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
+        }
+    }
+    // End of code for future update
 
     const oldEvents = allEvents.filter(event => {
         const currDate = new Date();
