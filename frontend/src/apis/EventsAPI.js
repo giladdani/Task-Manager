@@ -50,7 +50,7 @@ async function fetchUnsyncedGoogleEvents() {
     return [res, error];
 }
 
-async function fetchAllProjectsEvents() {
+async function fetchAllProjectEvents() {
     let res = null;
     let error = null;
 
@@ -140,9 +140,9 @@ async function fetchAllEvents(projectId) {
 }
 
 module.exports = {
-    fetchAllEvents: fetchAllEvents,
     fetchGoogleEvents: fetchGoogleEvents,
-    fetchProjectEvents: fetchProjectEvents,
-    fetchAllProjectsEvents: fetchAllProjectsEvents,
+	fetchAllEvents: fetchAllEvents,
+    fetchAllProjectEvents: fetchAllProjectEvents,
     fetchUnsyncedGoogleEvents: fetchUnsyncedGoogleEvents,
+    fetchProjectEvents: fetchProjectEvents,
 }
