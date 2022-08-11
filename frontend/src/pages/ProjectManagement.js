@@ -7,9 +7,9 @@ const ProjectsAPI = require('../apis/ProjectsAPI.js')
 export const ProjectManagement = (props) => {
     const [allProjects, setAllProjects] = useState([]);
 
-    useEffect(async () => {
-        await fetchAndSetProjects();
-    });
+    // useEffect(async () => {
+    //     await fetchAndSetProjects();
+    // });
 
     const fetchAndSetProjects = async () => {
         const [projects, error] = await ProjectsAPI.fetchProjects();
@@ -34,11 +34,11 @@ export const ProjectManagement = (props) => {
 
     return (
         <>
-            {allProjects.length == 0 &&
+            {/* {allProjects.length == 0 &&
                 <div>User has no projects!</div>
-            }
+            } */}
             <ProjectsAccordion
-                projects={allProjects}
+                // projects={allProjects}
                 allEvents={props.allEvents}
                 deleteProject={deleteProject}
                 exportProject={exportProject}>

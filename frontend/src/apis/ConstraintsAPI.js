@@ -1,8 +1,10 @@
+const consts = require('./consts.js')
+
 const fetchConstraints = async () => {
     let res = null;
 
     try {
-        const response = await fetch('http://localhost:3001/api/constraints', {
+        const response = await fetch(`${consts.host}/constraints`, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',

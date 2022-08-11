@@ -67,6 +67,8 @@ export class Schedules extends React.Component {
     }
 
     updateUnsyncedEvents = async () => {
+        // TODO: add check if unmounted like in ProjectsAccordion. Problem: this is class, accordion is function. Can't use same code.
+
         try {
             EventsAPI.fetchUnsyncedGoogleEvents()
                 .then(([unsyncedEvents, error]) => {

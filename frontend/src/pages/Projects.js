@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -45,10 +45,28 @@ export const Projects = (props) => {
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
 
+    const componentMounted = useRef(true);
 
-    useEffect(async () => {
-        let tempConstraints = await ConstraintsAPI.fetchConstraints();
-        setConstraints(tempConstraints);
+
+
+    useEffect(() => {
+        const fetchData = async () => {
+            let tempConstraints = await ConstraintsAPI.fetchConstraints();
+
+            if (componentMounted.current) {
+                setConstraints(tempConstraints);
+            } else {
+                console.log(`[Projects - update constraints] component is unmounted, not updating constraints! -----------------------------`)
+            }
+
+
+        }
+
+        fetchData();
+
+        return () => {
+            componentMounted.current = false;
+        }
     });
 
     const handleGenerateClick = async () => {

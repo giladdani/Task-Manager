@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -21,18 +21,32 @@ export const Constraints = () => {
     const [constraintEndTime, setConstraintEndTime] = useState(new Date());
     const [constraintNameValue, setConstraintNameValue] = useState("");
     const [allConstraints, setAllConstraints] = useState([]);
+    const componentMounted = useRef(true);
 
-    useEffect(async () => {
+    useEffect(() => {
         // const constraints = await fetchConstraints();
         // const constraints = await api.fetchConstraints();
         // setAllConstraints(constraints);
 
-        await fetchAndUpdateConstraints();
+        const fetchData = async () => {
+            await fetchAndUpdateConstraints();
+        }
+
+        fetchData();
+
+        return () => {
+            componentMounted.current = false;
+        }
     });
 
     const fetchAndUpdateConstraints = async () => {
         const constraints = await ConstraintsAPI.fetchConstraints();
-        setAllConstraints(constraints);
+
+        if (componentMounted.current) {
+            setAllConstraints(constraints);
+          } else {
+            console.log(`[Constraints - fetchAndUpdateConstraints] component is unmounted, not setting constraints!`)
+          }
     }
 
     /*
