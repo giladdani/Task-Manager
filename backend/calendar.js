@@ -37,23 +37,30 @@ const getProjectEvents = async (req, res) => {
     try {
         let projectId = req.params.projectId
         console.log(`[getProjectEvents] Start. Project ID: ${req.params.projectId}`)
-        let project = await ProjectModel({ id: projectId })
+        let project = await ProjectModel.findOne({ id: projectId })
         let email = await utils.getEmailFromReq(req);
 
         if (project.exportedToGoogle) {
             let accessToken = await utils.getAccessTokenFromRequest(req);
             await googleSync.syncGoogleData(accessToken, email);
 
+
             projectEvents = await GoogleEventModel.find(
                 {
-                    email: email,
-                    extendedProperties: {
-                        private: {
-                            fullCalendarProjectId: projectId,
-                        }
-                    }
+                    'email': email,
+                    'extendedProperties.private.fullCalendarProjectId': projectId,
                 }
             )
+            // projectEvents = await GoogleEventModel.find(
+            //     {
+            //         email: email,
+            //         extendedProperties: {
+            //             private: {
+            //                 fullCalendarProjectId: projectId,
+            //             }
+            //         }
+            //     }
+            // )
         } else {
             projectEvents = await EventModel.find(
                 {

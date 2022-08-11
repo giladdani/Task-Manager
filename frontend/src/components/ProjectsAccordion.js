@@ -64,6 +64,22 @@ export const ProjectsAccordion = (props) => {
     }
   }
 
+  const deleteProject = async (project) => {
+    ProjectsAPI.deleteProject(project)
+      .then(([response, error]) => {
+        // TODO: check if RESPONSE OK
+        fetchAndSetProjects();
+      })
+  }
+
+  const exportProject = async (project) => {
+    ProjectsAPI.exportProject(project)
+      .then(([response, error]) => {
+        // TODO: check if RESPONSE OK
+        fetchAndSetProjects();
+      })
+  }
+
   const handleChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
   };
@@ -78,8 +94,8 @@ export const ProjectsAccordion = (props) => {
           <div>
             <Project
               project={project}
-              deleteProject={props.deleteProject}
-              exportProject={props.exportProject}
+              deleteProject={deleteProject}
+              exportProject={exportProject}
             ></Project>
           </div>
         </AccordionDetails>

@@ -41,11 +41,12 @@ export const Project = (props) => {
     // TODO: add abort controller!
 
 
+    
     // Old events
     useEffect(() => {
         const oldEvents = projectEvents.filter(event => {
             const currDate = new Date();
-            const eventEndDate = new Date(event.end);
+            const eventEndDate = getEventEndDate(event);
 
             return eventEndDate <= currDate;
         })
@@ -60,7 +61,7 @@ export const Project = (props) => {
     useEffect(() => {
         const futureEvents = projectEvents.filter(event => {
             const currDate = new Date();
-            const eventStartDate = new Date(event.start);
+            const eventStartDate = getEventStartDate(event);
 
             return eventStartDate >= currDate;
         })
@@ -81,7 +82,7 @@ export const Project = (props) => {
 
     useEffect(() => {
         calculateHoursExpected();
-    }, [oldEvents, futureEvents]);
+    }, [totalHoursPast, totalHoursFuture]);
 
     const fetchAndUpdateProjectEvents = async () => {
         const [projectEvents, error] = await EventsAPI.fetchProjectEvents(props.project.id);
@@ -123,12 +124,12 @@ export const Project = (props) => {
         }
     }
 
-    const getAllHoursInEvents = (futureEvents) => {
+    const getAllHoursInEvents = (events) => {
         let diffMs = 0;
 
-        for (const event of futureEvents) {
-            let endDate = new Date(event.end);
-            let startDate = new Date(event.start)
+        for (const event of events) {
+            let startDate = getEventStartDate(event);
+            let endDate = getEventEndDate(event);
 
             let diffM = endDate - startDate;
             diffMs += diffM;
@@ -145,6 +146,36 @@ export const Project = (props) => {
         }
 
         return diffHrsTotal;
+    }
+
+    /**
+     * We need to perform this check because Google's event resource is different than FullCalendar's when it comes to saving the time.
+     * Google saves under "end" and "start" two fields "date" and "dateTime".
+     * FullCalendar just uses "end" and "start".
+     * @param {*} event 
+     */
+    const getEventEndDate = (event) => {
+        let date = null;
+
+        if (props.project.exportedToGoogle) {
+            date = new Date(event.end.dateTime)
+        } else {
+            date = new Date(event.end);
+        }
+
+        return date;
+    }
+
+    const getEventStartDate = (event) => {
+        let date = null;
+
+        if (props.project.exportedToGoogle) {
+            date = new Date(event.start.dateTime)
+        } else {
+            date = new Date(event.start);
+        }
+
+        return date;
     }
 
     const handleOnEditClick = () => {
