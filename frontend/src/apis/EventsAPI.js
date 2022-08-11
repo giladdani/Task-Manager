@@ -50,7 +50,7 @@ async function fetchUnsyncedGoogleEvents() {
     return [res, error];
 }
 
-async function fetchProjectEvents() {
+async function fetchAllProjectsEvents() {
     let res = null;
     let error = null;
 
@@ -76,8 +76,73 @@ async function fetchProjectEvents() {
     return [res, error];
 }
 
+async function fetchProjectEvents(projectId) {
+    let res = null;
+    let error = null;
+
+    try {
+        const response = await fetch(`http://localhost:3001/api/calendar/${projectId}/events`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token'),
+            },
+            method: 'GET'
+        });
+
+        if (response.status !== 200) {
+            throw new Error('Error while fetching specific project events');
+        }
+
+        const data = await response.json();
+        res = data;
+    }
+    catch (err) {
+        console.error(err);
+        error = err;
+    }
+
+    return [res, error];
+}
+
+/**
+ * This function retrieves all the user's events: Google events and unexported events of all projects.
+ * @param {*} projectId 
+ * @returns 
+ */
+async function fetchAllEvents(projectId) {
+    let res = null;
+    let error = null;
+
+    try {
+        const response = await fetch(`http://localhost:3001/api/calendar/events`, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token'),
+            },
+            method: 'GET'
+        });
+
+        if (response.status !== 200) {
+            throw new Error('Error while fetching specific project events');
+        }
+
+        const data = await response.json();
+        res = data;
+    }
+    catch (err) {
+        console.error(err);
+        error = err;
+    }
+
+    return [res, error];
+}
+
 module.exports = {
+    fetchAllEvents: fetchAllEvents,
     fetchGoogleEvents: fetchGoogleEvents,
     fetchProjectEvents: fetchProjectEvents,
+    fetchAllProjectsEvents: fetchAllProjectsEvents,
     fetchUnsyncedGoogleEvents: fetchUnsyncedGoogleEvents,
 }
