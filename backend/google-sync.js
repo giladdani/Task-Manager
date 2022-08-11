@@ -5,51 +5,58 @@ const UserModel = require('./models/user');
 const GoogleEventModel = require('./models/googleevent');
 
 const syncGoogleData = async (accessToken, email) => {
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+    let allEvents = [];
 
-    const unsyncedGoogleCalendarsPromise = getUnsyncedGoogleCalendars(googleCalendarClient, email);
-    let userDataFindPromise = UserModel.findOne({ email: email });
-    let missingCalendarId2Sync = [];
-    let deletedCalendarsId = [];
-    await Promise.all([unsyncedGoogleCalendarsPromise, userDataFindPromise])
-        .then(responses => {
-            let unsyncedGoogleCalendars = responses[0];
-            let userDataFind = responses[1];
+    try {
+        utils.oauth2Client.setCredentials({ access_token: accessToken });
+        const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
 
-            for (const calendar of unsyncedGoogleCalendars) {
-                const calendarId = calendar.id;
-                if (calendar.deleted === true) {
-                    deletedCalendarsId.push(calendarId);
-                } else {
-                    if (!(userDataFind.eventListCalendarId2SyncToken.some(keyVal => keyVal.key === calendarId))) {
-                        missingCalendarId2Sync.push({
-                            key: calendarId,
-                            value: null,
-                        })
+        const unsyncedGoogleCalendarsPromise = getUnsyncedGoogleCalendars(googleCalendarClient, email);
+        let userDataFindPromise = UserModel.findOne({ email: email });
+        let missingCalendarId2Sync = [];
+        let deletedCalendarsId = [];
+        await Promise.all([unsyncedGoogleCalendarsPromise, userDataFindPromise])
+            .then(responses => {
+                let unsyncedGoogleCalendars = responses[0];
+                let userDataFind = responses[1];
+
+                for (const calendar of unsyncedGoogleCalendars) {
+                    const calendarId = calendar.id;
+                    if (calendar.deleted === true) {
+                        deletedCalendarsId.push(calendarId);
+                    } else {
+                        if (!(userDataFind.eventListCalendarId2SyncToken.some(keyVal => keyVal.key === calendarId))) {
+                            missingCalendarId2Sync.push({
+                                key: calendarId,
+                                value: null,
+                            })
+                        }
                     }
                 }
-            }
-        })
+            })
 
-    syncDeletedCalendars(deletedCalendarsId, email);
+        syncDeletedCalendars(deletedCalendarsId, email);
 
-    // Add missing calendars to the user's sync token array.
-    if (missingCalendarId2Sync.length > 0) {
-        let userDataUpdate = await UserModel.updateOne(
-            { email: email },
-            {
-                $push: {
-                    eventListCalendarId2SyncToken: {
-                        $each: missingCalendarId2Sync,
+        // Add missing calendars to the user's sync token array.
+        if (missingCalendarId2Sync.length > 0) {
+            let userDataUpdate = await UserModel.updateOne(
+                { email: email },
+                {
+                    $push: {
+                        eventListCalendarId2SyncToken: {
+                            $each: missingCalendarId2Sync,
+                        }
                     }
-                }
-            });
+                });
+        }
+
+        allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email);
+        const docsEvents = GoogleEventModel.insertMany(allEvents);
+
     }
-
-    let allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email);
-
-    const docsEvents = GoogleEventModel.insertMany(allEvents);
+    catch (error) {
+        console.log(`[syncGoogleData] Error:\n\n${error}`);
+    }
 
     return allEvents;
 }
