@@ -52,7 +52,6 @@ const syncGoogleData = async (accessToken, email) => {
 
         allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email);
         const docsEvents = GoogleEventModel.insertMany(allEvents);
-
     }
     catch (error) {
         console.log(`[syncGoogleData] Error:\n\n${error}`);

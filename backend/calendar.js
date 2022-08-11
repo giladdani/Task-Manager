@@ -4,24 +4,99 @@ const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
 const UserModel = require('./models/user')
 const GoogleEventModel = require('./models/googleevent')
+const ProjectModel = require('./models/project')
 const googleSync = require('./google-sync');
 const SharedEventsModel = require('./models/sharedeventsmodel')
 const utils = require('./utils');
 
+
 // Routing
 const router = express.Router();
-router.get('/events/google', (req, res) => { getAllEventsGoogle(req, res) });
-router.get('/:projectId/events', (req, res) => { getProjectEvents(req, res) });
+router.get('/events', (req, res) => { getAllEvents(req, res) });
+router.get('/events/google', (req, res) => { getGoogleEvents(req, res) });
 router.get('/events/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
+router.get('/:projectId/events', (req, res) => { getProjectEvents(req, res) });
+
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
+router.patch('/events', (req, res) => { updateEvent(req, res) });
+
 router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
 router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
-router.patch('/events', (req, res) => { updateEvent(req, res) });
 router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 
+/**
+ * Returns the events of a specific project.
+ * @param {*} req 
+ * @param {*} res 
+ */
 const getProjectEvents = async (req, res) => {
-    console.log(`[getProjectEvents] Start. Project ID: ${req.params.projectId}`)
+    let projectEvents = null;
+    let error = null;
+
+    try {
+        let projectId = req.params.projectId
+        console.log(`[getProjectEvents] Start. Project ID: ${req.params.projectId}`)
+        let project = await ProjectModel({ id: projectId })
+        let email = await utils.getEmailFromReq(req);
+
+        if (project.exportedToGoogle) {
+            let accessToken = await utils.getAccessTokenFromRequest(req);
+            await googleSync.syncGoogleData(accessToken, email);
+
+            projectEvents = await GoogleEventModel.find(
+                {
+                    email: email,
+                    extendedProperties: {
+                        private: {
+                            fullCalendarProjectId: projectId,
+                        }
+                    }
+                }
+            )
+        } else {
+            projectEvents = await EventModel.find(
+                {
+                    email: email,
+                    projectId: projectId,
+                }
+            )
+        }
+    } catch (err) {
+        console.log(`[getProjectEvents] ERROR:\n${err}`);
+        error = err;
+    }
+
+    if (!error) {
+        res.status(StatusCodes.OK).send(projectEvents);
+    } else {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+    }
+}
+
+
+const getAllEvents = async (req, res) => {
+    const email = await utils.getEmailFromReq(req);
+
+    // Get all Google events
+    // Get all unexported events
+
+    // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
+    const allEvents = await GoogleEventModel.find({ email: email });
+
+    res.status(StatusCodes.OK).send(allEvents);
+
+    GoogleEventModel.updateMany(
+        { email: email },
+        {
+            $set:
+            {
+                fetchedByUser: true,
+            }
+        })
+        .then(res => {
+            console.log(`Finished updating user ${email} Google events to fetched.`);
+        })
 }
 
 const shareEvents = async (req, res) => {
@@ -196,7 +271,7 @@ const getAllSharedEvents = async (req, res) => {
     res.status(StatusCodes.OK).send(allEvents);
 }
 
-const getAllEventsGoogle = async (req, res) => {
+const getGoogleEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
 
     // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });

@@ -39,9 +39,6 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ProjectsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
-
-
-  /** IDEAL ---------- */
   const [allProjects, setAllProjects] = useState([]);
   const componentMounted = useRef(true);
 
@@ -59,24 +56,19 @@ export const ProjectsAccordion = (props) => {
 
   const fetchAndSetProjects = async () => {
     const [projects, error] = await ProjectsAPI.fetchProjects();
-    
+
     if (componentMounted.current) {
       setAllProjects(projects);
     } else {
       console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
     }
   }
-  /** ---------- /IDEAL */
-
 
   const handleChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
   };
 
   const projectsList = allProjects.map((project, index) => {
-    // const projectsList = props.projects.map((project, index) => {
-    const allEvents = props.allEvents.events;
-    const projectEvents = allEvents.filter(event => event.extendedProps.projectId == project.id)
     return (
       <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
         <AccordionSummary>
@@ -84,7 +76,11 @@ export const ProjectsAccordion = (props) => {
         </AccordionSummary>
         <AccordionDetails>
           <div>
-            <Project project={project} projectEvents={projectEvents} deleteProject={props.deleteProject} exportProject={props.exportProject}></Project>
+            <Project
+              project={project}
+              deleteProject={props.deleteProject}
+              exportProject={props.exportProject}
+            ></Project>
           </div>
         </AccordionDetails>
       </Accordion>
