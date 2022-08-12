@@ -3,6 +3,10 @@ import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import Button from "@material-ui/core/Button";
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox'
 
 export const Constraint = (props) => {
     const startDate = new Date();
@@ -84,23 +88,35 @@ export const Constraint = (props) => {
             <tbody>
                 <tr>
                     <td><label>Name: </label></td>
-                    <td><input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue}></input></td>
+                    <td>
+                    <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" />
+                    {/* <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue}></input> */}
+                    </td>
                 </tr>
                 <tr>
                     <td><label>Days of Week: </label></td>
                     <td id="daysDiv">
-                        <label>Sunday</label><input type="checkbox" checked={sundayValue} onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
+                    <FormGroup>
+                        <FormControlLabel control={<Checkbox checked={sundayValue} onChange={(newValue) => { setSundayValue(newValue.target.checked); }} />} label="Sunday" />
+                        <FormControlLabel control={<Checkbox checked={mondayValue} onChange={(newValue) => { setMondayValue(newValue.target.checked); }} />} label="Monday" />
+                        <FormControlLabel control={<Checkbox checked={tuesdayValue} onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }} />} label="Tuesday" />
+                        <FormControlLabel control={<Checkbox checked={wednesdayValue} onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }} />} label="Wednesday" />
+                        <FormControlLabel control={<Checkbox checked={thursdayValue} onChange={(newValue) => { setThursdayValue(newValue.target.checked); }} />} label="Thursday" />
+                        <FormControlLabel control={<Checkbox checked={fridayValue} onChange={(newValue) => { setFridayValue(newValue.target.checked); }} />} label="Friday" />
+                        <FormControlLabel control={<Checkbox checked={saturdayValue} onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }} />} label="Saturday" />
+                    </FormGroup>
+                        {/* <label>Sunday</label><input type="checkbox" checked={sundayValue} onChange={(newValue) => { setSundayValue(newValue.target.checked); }}></input>
                         <label>Monday</label><input type="checkbox" checked={mondayValue} onChange={(newValue) => { setMondayValue(newValue.target.checked); }}></input>
                         <label>Tuesday</label><input type="checkbox" checked={tuesdayValue} onChange={(newValue) => { setTuesdayValue(newValue.target.checked); }}></input>
                         <label>Wednesday</label><input type="checkbox" checked={wednesdayValue} onChange={(newValue) => { setWednesdayValue(newValue.target.checked); }}></input>
                         <label>Thursday</label><input type="checkbox" checked={thursdayValue} onChange={(newValue) => { setThursdayValue(newValue.target.checked); }}></input>
                         <label>Friday</label><input type="checkbox" checked={fridayValue} onChange={(newValue) => { setFridayValue(newValue.target.checked); }}></input>
-                        <label>Saturday</label><input type="checkbox" checked={saturdayValue} onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input>
+                        <label>Saturday</label><input type="checkbox" checked={saturdayValue} onChange={(newValue) => { setSaturdayValue(newValue.target.checked); }}></input> */}
                     </td>
                 </tr>
                 <tr>
                     <td><label>Start Time: </label></td>
-                    <td className="whiteTimeFont">
+                    <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                             <TimePicker
                                 value={constraintStartTime}
@@ -112,7 +128,7 @@ export const Constraint = (props) => {
                 </tr>
                 <tr>
                     <td><label>End Time: </label></td>
-                    <td className="whiteTimeFont">
+                    <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                             <TimePicker
                                 value={constraintEndTime}
@@ -123,8 +139,8 @@ export const Constraint = (props) => {
                     </td>
                 </tr>
                 <tr>
-                    <td><button onClick={handleSaveChangesClick}>Save Changes</button></td>
-                    <td><button onClick={handleDeleteClick}>Delete</button></td>
+                    <td><Button onClick={handleSaveChangesClick} color="primary" variant='contained'>Save Changes</Button></td>
+                    <td><Button onClick={handleDeleteClick} color="secondary" variant='contained'>Delete</Button></td>
                 </tr>
             </tbody>
         </table>

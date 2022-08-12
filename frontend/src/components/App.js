@@ -9,14 +9,14 @@ const App = () => {
   }
 
   return (
-    <Router>
-      <div className="app-header">
-        <Routes>
-          <Route path="/" element={<Login to="/login" onLogin={onLogin} />} />
-          <Route path="*" element={<MainPagesContainer />}></Route>
-        </Routes>
-      </div>
-    </Router>
+      <Router>
+        <div className="app-header">
+          <Routes>
+            <Route path="/" element={<Login to="/login" onLogin={onLogin} />} />
+            <Route path="*" element={<MainPagesContainer />}></Route>
+          </Routes>
+        </div>
+      </Router>
   )
 }
 

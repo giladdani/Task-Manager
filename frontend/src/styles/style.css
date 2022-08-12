@@ -1,44 +1,50 @@
-/* Padding between days checkboxes in Constraints page */
-#daysDiv label{
-  padding-right:5px;
-  padding-left:15px;
-}
-
-/* White coloring the text of the TimePicker in Constraints page */
-.whiteTimeFont .MuiOutlinedInput-input{ 
-  color: white !important;
-}
-
 #editEventTable .MuiFormControl-root{
   margin: 5px !important;
 }
 
-/* coloring the calendar's day headers (they were white so text was invisible) in Scheduels page */
-.fc-col-header {
+#schedule-container{
+  margin: 1.5%;
+}
+
+/** MUI **/
+.MuiOutlinedInput-root{
+  color: white!important;
+}
+.MuiOutlinedInput-root fieldset{
+  border-color: white;
+  color: black;
+}
+.MuiOutlinedInput-root:hover fieldset{
+  border-color: white!important;
+}
+.Mui-focused fieldset{
+  border-color: white!important;
+}
+.whiteTimeFont .MuiOutlinedInput-input{ 
+  color: white!important;
+}
+.MuiAccordion-root{
+  background-color: transparent!important;
+  color: white!important;
+}
+.MuiSvgIcon-root{
+  color: white;
+}
+/** coloring the calendar's day headers (they were white so text was invisible) in Scheduels page **/
+.fc-col-header{
   background-color:#282c34;
 }
 
-.fc-event {
-  border-width: 7px;
-}
-
-.center_elem{
-  text-align: center;
+#constraintAccordion > div{
+  width: 50%;
   margin: auto;
 }
 
-/* center the loader animation */
+/** center the loader animation **/
 div svg{
   margin: auto;
 }
-.full_width{
-  width:100%;
-}
-
-.full_width td{
-  vertical-align: top;
-  width: 50%;
-}
+/**/
 
 .border{
   border: 1px solid white;
@@ -50,7 +56,7 @@ div svg{
   clear: none;
 }
 
-/* NavBar*/
+/** NavBar **/
 .nav-bar{
   background-color: rgb(21, 21, 21)!important;
 }
@@ -62,11 +68,7 @@ div svg{
 .nav-bar li{
   padding: 8px;
   display: inline;
-  /* border-right: 1px solid white; */
 }
-/* .nav-bar li:last-child{
-  border-right: 0px solid white;
-} */
 .nav-bar li a:hover{
   background-color: #0b0b0b;
 }
@@ -77,8 +79,9 @@ div svg{
   color:white;
   text-decoration: none;
 }
+/**/
 
-/* General page layout */
+/** General page layout **/
 .app-header {
   background-color: #282c34;
   min-height: 100vh;
@@ -86,7 +89,7 @@ div svg{
   flex-direction: column;
   align-items: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: white!important;
 }
 body {
   margin: 0;
@@ -96,8 +99,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-/* General page layout end */
 
-#schedule-container{
-  margin: 1.5%;
+.fc-event {
+  border-width: 7px;
 }
+
+.center_elem{
+  margin: auto;
+}
+.center_text{
+  text-align: center;
+}
+.full_width{
+  width:100%;
+}
+.full_width td{
+  vertical-align: top;
+  width: 50%;
+}
+/**/

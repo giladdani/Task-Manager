@@ -116,11 +116,11 @@ export default function EventDialog(props) {
           </table>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} variant="contained">Cancel</Button>
+          <Button onClick={handleClose} variant="contained" color="secondary">Cancel</Button>
           <Button onClick={handleSave} variant="contained" color="success">Save</Button>
           <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
           {isProjectEvent(props.event) &&
-            <Button onClick={handleReschedule} variant="contained" color="error">Reschedule</Button>
+            <Button onClick={handleReschedule} variant="contained" color="primary">Reschedule</Button>
           }
         </DialogActions>
         <SuggestedEventsList
