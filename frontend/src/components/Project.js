@@ -214,12 +214,13 @@ export const Project = (props) => {
                     <tr>
                         <td><label>Name:</label></td>
                         <td>
-                            <input
+                            <TextField value={projectTitle} disabled={!isBeingEdited} onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" />
+                            {/* <input
                                 type="text"
                                 value={projectTitle}
                                 disabled={!isBeingEdited}
                                 onChange={(newValue) => { setProjectName(newValue.target.value) }}>
-                            </input>
+                            </input> */}
                         </td>
                     </tr>
                     <tr>

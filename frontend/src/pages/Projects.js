@@ -11,13 +11,10 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import { PendingProjectsList } from '../components/PendingProjectList';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
-const ProjectsAPI = require('../apis/ProjectsAPI.js');
-
 
 export const Projects = (props) => {
     let tempEndDate = new Date();
@@ -445,8 +442,6 @@ export const Projects = (props) => {
                     <Button onClick={handleDialogClose}>Close</Button>
                 </DialogActions>
             </Dialog>
-
-            <PendingProjectsList allEvents={props.events} />
         </>
     )
 }

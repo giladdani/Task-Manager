@@ -11,18 +11,15 @@ const ProjectsAPI = require('../apis/ProjectsAPI.js')
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
-  border: `1px solid ${theme.palette.divider}`, '&:not(:last-child)': { borderBottom: 0 }, '&:before': { display: 'none' },
+  border: `1px solid white`, '&:not(:last-child)': { borderBottom: 0 }, '&:before': { display: 'none' },
 }));
 
 const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon />}
-    {...props}
-  />
-))(({ theme }) => ({
+  <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />}{...props}/>))(({ theme }) => ({
   flexDirection: 'row-reverse',
   '& .MuiAccordionSummary-expandIconWrapper': {
-    marginLeft: theme.spacing(2)
+    marginLeft: theme.spacing(2),
+    color: "white"
   },
   '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
     transform: 'rotate(90deg)'
@@ -34,7 +31,7 @@ const AccordionSummary = styled((props) => (
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2),
-  borderTop: '1px solid rgba(0, 0, 0, .125)'
+  borderTop: '1px solid white'
 }));
 
 export const ProjectsAccordion = (props) => {

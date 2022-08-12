@@ -35,7 +35,7 @@
   background-color:#282c34;
 }
 
-#constraintAccordion > div{
+.accordion > div{
   width: 50%;
   margin: auto;
 }
