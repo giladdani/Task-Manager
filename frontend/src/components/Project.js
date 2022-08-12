@@ -10,7 +10,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
-const EventsAPI = require('../apis/EventsAPI.js')
+import { ButtonGroup } from '@mui/material';
+import { ThreeDots } from 'react-loader-spinner';
+const EventsAPI = require('../apis/EventsAPI.js');
+
 
 export const Project = (props) => {
     const [projectTitle, setProjectName] = useState(props.project.title);
@@ -24,6 +27,7 @@ export const Project = (props) => {
     const [totalHoursPast, setTotalHoursPast] = useState();
     const [totalHoursFuture, setTotalHoursFuture] = useState();
     const [totalHoursExpected, setTotalHoursExpected] = useState();
+    const [isProcessing, setIsProcessing] = useState(false);
     const componentMounted = useRef(true);
 
     useEffect(() => {
@@ -41,7 +45,7 @@ export const Project = (props) => {
     // TODO: add abort controller!
 
 
-    
+
     // Old events
     useEffect(() => {
         const oldEvents = projectEvents.filter(event => {
@@ -200,11 +204,15 @@ export const Project = (props) => {
 
     const handleConfirmDelete = () => {
         setOpenDeleteDialog(false);
+        setIsProcessing(true);
         props.deleteProject(props.project);
+        setIsProcessing(false);
     }
 
     const handleOnExportClick = () => {
+        setIsProcessing(true);
         props.exportProject(props.project);
+        setIsProcessing(false);
     }
 
     return (
@@ -277,17 +285,26 @@ export const Project = (props) => {
                     </tr>
                 </tbody>
             </table>
-            <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited}>Edit</Button>
-            <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited}>Cancel</Button>
-            <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited}>Save</Button>
-            <Tooltip title="Deletes the project and all its events. If the project is already exported, it deletes the calendar from Google Calendar.">
-                <Button variant='contained' onClick={handleOnDeleteClick}>Delete</Button>
-            </Tooltip>
-            {!props.project.exportedToGoogle &&
-                <Tooltip title="Export all the project's events to your Google calendar. This creates a new Calendar for the events.">
-                    <Button variant='contained' onClick={handleOnExportClick}>Export</Button>
+            <ButtonGroup
+                variant='contained'
+            >
+                <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited || isProcessing}>Edit</Button>
+                <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited || isProcessing}>Cancel</Button>
+                <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited || isProcessing}>Save</Button>
+                <Tooltip title="Deletes the project and all its events. If the project is already exported, it deletes the calendar from Google Calendar.">
+                    <Button variant='contained' onClick={handleOnDeleteClick} disabled={isProcessing}>Delete</Button>
                 </Tooltip>
-            }
+                {!props.project.exportedToGoogle &&
+                    <Tooltip title="Export all the project's events to your Google calendar. This creates a new Calendar for the events.">
+                        <Button variant='contained' onClick={handleOnExportClick} disabled={isProcessing}>Export</Button>
+                    </Tooltip>
+                }
+            </ButtonGroup>
+            <div hidden={!isProcessing} className="center_text">
+                <h5>Working on it</h5>
+                <ThreeDots color="#00BFFF" height={80} width={80} />
+            </div>
+
             <Dialog
                 open={openDeleteDialog}
                 onClose={handleCancelDelete}
