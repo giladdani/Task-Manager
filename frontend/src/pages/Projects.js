@@ -16,6 +16,8 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
+const ProjectsAPI = require('../apis/ProjectsAPI.js');
+
 
 export const Projects = (props) => {
     let tempEndDate = new Date();
@@ -31,7 +33,6 @@ export const Projects = (props) => {
     const [sessionLengthMinutes, setSessionLengthMinutes] = useState(0);
     const [spacingLengthMinutes, setSpacingLengthMinutes] = useState(0);
     const [startDate, setStartDate] = useState(new Date());
-    // const [endDate, setEndDate] = useState(new Date().setHours(23,59,0,0));
     const [endDate, setEndDate] = useState(tempEndDate);
     const [maxEventsPerDay, setMaxEventsPerDay] = useState();
     const [dayRepetitionFrequency, setDayRepetitionFrequency] = useState(1); // Determines how frequent the sessions are - every day? Every 3 days? Etc.
@@ -43,8 +44,6 @@ export const Projects = (props) => {
     const [emailList, setEmailList] = useState([]);
     const componentMounted = useRef(true);
 
-
-
     useEffect(() => {
         const fetchData = async () => {
             let tempConstraints = await ConstraintsAPI.fetchConstraints();
@@ -52,7 +51,7 @@ export const Projects = (props) => {
             if (componentMounted.current) {
                 setConstraints(tempConstraints);
             } else {
-                console.log(`[Projects - update constraints] component is unmounted, not updating constraints! -----------------------------`)
+                console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
             }
         }
 
@@ -71,7 +70,6 @@ export const Projects = (props) => {
                 return;
             }
 
-            // // const allEvents = props.events.events;
             const body = {
                 sharedEmails: emailList,
                 projectTitle: projectTitle,
@@ -80,7 +78,6 @@ export const Projects = (props) => {
                 estimatedTime: estimatedTime,
                 startDate: startDate,
                 endDate: endDate,
-                // // allEvents: allEvents,
                 maxEventsPerDay: maxEventsPerDay,
                 dayRepetitionFrequency: dayRepetitionFrequency,
                 dailyStartHour: dailyStartHour,
@@ -108,6 +105,9 @@ export const Projects = (props) => {
                 alert(`Sent a request to ${userEmailToShareWith}. Awaiting his approval.`);
             } else {
                 toggleLoading(true);
+
+                // let res = await ProjectsAPI.createProject(body);
+
                 const response = await fetch('http://localhost:3001/api/projects', {
                     headers: {
                         'Accept': 'application/json',

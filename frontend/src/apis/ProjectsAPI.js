@@ -92,7 +92,6 @@ const fetchProjects = async () => {
 
 const deleteProject = async (project) => {
     console.log(`Deleting project ${project.title}. Project ID: ${project.id}`);
-
     let res = null;
     let error = null;
 
@@ -125,16 +124,9 @@ const deleteProject = async (project) => {
 const exportProject = async (project) => {
     let res = null;
     let error = null;
-
     console.log(`Exporting project ${project.title}. Project ID: ${project.id}`);
 
     try {
-        // // const allEvents = props.allEvents.events;
-
-        // // const body = {
-        // //     events: allEvents,
-        // // };
-
         const response = await fetch(`${consts.host}/projects/export/${project.id}`, {
             headers: {
                 'Accept': 'application/json',
@@ -142,7 +134,6 @@ const exportProject = async (project) => {
                 'access_token': sessionStorage.getItem('access_token'),
             },
             method: 'POST',
-            // // body: JSON.stringify(body)
         });
 
         if (response.status !== 200) {
@@ -150,9 +141,6 @@ const exportProject = async (project) => {
         }
 
         console.log(`Project ${project.title} (ID: ${project.id}) exported to Google.`);
-
-        // // const projects = await fetchProjects();
-        // // setAllProjects(projects);
         res = response;
     }
     catch (err) {

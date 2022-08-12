@@ -403,23 +403,21 @@ const deleteProject = async (req, res) => {
                         const accessToken = utils.getAccessTokenFromRequest(req);
                         utils.oauth2Client.setCredentials({ access_token: accessToken });
                         const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-                        let res = null;
                         let googleCalendarId = project.googleCalendarId;
 
                         if (!googleCalendarId) {
                                 throw (`Project is not associated with any Google calendar ID.`);
                         }
 
-                        const googleRes = await googleCalendarApi.calendars.delete({
+                        const googleRes = googleCalendarApi.calendars.delete({
                                 auth: utils.oauth2Client,
                                 calendarId: googleCalendarId,
                         })
-
-                        res = googleRes;
+                } else {
+                        let deleteLocalDocs = EventModel.deleteMany({ 'projectId': projectId });
                 }
 
-                let docs = await EventModel.deleteMany({ 'projectId': projectId });
-                docs = await ProjectModel.deleteOne({ 'id': projectId });
+                let deleteProjectDocs = ProjectModel.deleteOne({ 'id': projectId });
         } catch (err) {
                 errorMsg = err;
                 console.error(err);

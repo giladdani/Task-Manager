@@ -2,7 +2,6 @@ const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
-const UserModel = require('./models/user')
 const GoogleEventModel = require('./models/googleevent')
 const ProjectModel = require('./models/project')
 const googleSync = require('./google-sync');
@@ -44,23 +43,12 @@ const getProjectEvents = async (req, res) => {
             let accessToken = await utils.getAccessTokenFromRequest(req);
             await googleSync.syncGoogleData(accessToken, email);
 
-
             projectEvents = await GoogleEventModel.find(
                 {
                     'email': email,
                     'extendedProperties.private.fullCalendarProjectId': projectId,
                 }
             )
-            // projectEvents = await GoogleEventModel.find(
-            //     {
-            //         email: email,
-            //         extendedProperties: {
-            //             private: {
-            //                 fullCalendarProjectId: projectId,
-            //             }
-            //         }
-            //     }
-            // )
         } else {
             projectEvents = await EventModel.find(
                 {
@@ -81,7 +69,7 @@ const getProjectEvents = async (req, res) => {
     }
 }
 
-
+// TODO: return answer! What is going on here.
 const getAllEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
 
@@ -89,7 +77,6 @@ const getAllEvents = async (req, res) => {
 }
 
 const shareEvents = async (req, res) => {
-
     const userEmail = utils.getEmailFromReq(req);
 
     let body = {
@@ -268,6 +255,7 @@ const getGoogleEvents = async (req, res) => {
 
     res.status(StatusCodes.OK).send(allEvents);
 
+    // /*
     GoogleEventModel.updateMany(
         { email: email },
         {
@@ -279,32 +267,46 @@ const getGoogleEvents = async (req, res) => {
         .then(res => {
             console.log(`Finished updating user ${email} Google events to fetched.`);
         })
+    // */
 }
 
 const getUnsyncedGoogleEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
     const accessToken = await utils.getAccessTokenFromRequest(req);
-    console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}`);
     let unsyncedEvents = [];
+    let error = null;
 
-    // Method 1: receive unsynced events from Google directly and isert them into DB
-    unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
+    // TODO: use two promises above and then promise all once emal and access token are retrieved
+    try {
+        // / Method 1: receive unsynced events from Google directly and isert them into DB
+        unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
+        console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}. Unsynced events: ${unsyncedEvents.length}`);
 
-    // Method 2: receive from DB. Good if we use intervals server-side to update.
-    // {    
-    //     unsyncedEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
-    //     GoogleEventModel.updateMany( // Avoid await?
-    //     { email: email },
-    //     {
-    //         $set:
-    //         {
-    //             fetchedByUser: true,
-    //         }
-    //     }
-    //     )
-    // }
+        // / Method 2: receive from DB. Good if we use intervals server-side to update.
+        /*
+        {    
+            unsyncedEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
+            GoogleEventModel.updateMany( // Avoid await?
+            { email: email },
+            {
+                $set:
+                {
+                    fetchedByUser: true,
+                }
+            }
+            )
+        }
+        // */
+    } catch (err) {
+        console.log(`[getUnsyncedGoogleEvents] Error:\n${err}`)
+        error = err;
+    }
 
-    res.status(StatusCodes.OK).send(unsyncedEvents);
+    if (!error) {
+        res.status(StatusCodes.OK).send(unsyncedEvents);
+    } else {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+    }
 }
 
 const insertEventToCalendar = async (req, res) => {
