@@ -50,9 +50,8 @@ const syncGoogleData = async (accessToken, email) => {
                 });
         }
 
-        allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email);
+        allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
         const docsEvents = GoogleEventModel.insertMany(allEvents);
-
     }
     catch (error) {
         console.log(`[syncGoogleData] Error:\n\n${error}`);
@@ -89,11 +88,18 @@ const syncDeletedCalendars = async (deletedCalendarsId, email) => {
     }
 }
 
-const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
+const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email, deletedCalendarsId) => {
     let allEvents = [];
+    let deletedCalendarEvents = []
     const colorsPromise = googleCalendarClient.colors.get({});
     const calendarListPromise = googleCalendarClient.calendarList.list();
     const userDataPromise = UserModel.findOne({ email: email });
+
+    
+    for (const deleteId of deletedCalendarsId) {
+        const [deletedCalendarEvents, areModifiedEvents] = await getUnsyncedEventsFromCalendar(googleCalendarClient, deleteId, null, email, "test - ignore me");
+        console.log(`Number events retrieved from deleted calendar: ${deletedCalendarEvents.length}`);
+    }
 
 
     await Promise.all([colorsPromise, calendarListPromise, userDataPromise])
@@ -118,6 +124,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
                             foregroundColor: foreground,
                             email: email,
                             fetchedByUser: false,
+                            isGoogleEvent: true,
                         })
                 }
                 );

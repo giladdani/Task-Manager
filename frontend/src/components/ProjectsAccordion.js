@@ -39,9 +39,6 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ProjectsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
-
-
-  /** IDEAL ---------- */
   const [allProjects, setAllProjects] = useState([]);
   const componentMounted = useRef(true);
 
@@ -59,41 +56,54 @@ export const ProjectsAccordion = (props) => {
 
   const fetchAndSetProjects = async () => {
     const [projects, error] = await ProjectsAPI.fetchProjects();
-    
+
     if (componentMounted.current) {
       setAllProjects(projects);
     } else {
       console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
     }
   }
-  /** ---------- /IDEAL */
 
+  const deleteProject = async (project) => {
+    ProjectsAPI.deleteProject(project)
+      .then(([response, error]) => {
+        // TODO: check if RESPONSE OK
+        fetchAndSetProjects();
+      })
+  }
+
+  const exportProject = async (project) => {
+    ProjectsAPI.exportProject(project)
+      .then(([response, error]) => {
+        // TODO: check if RESPONSE OK
+        fetchAndSetProjects();
+      })
+  }
 
   const handleChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
   };
 
-  const projectsList = allProjects.map((project, index) => {
-    // const projectsList = props.projects.map((project, index) => {
-    const allEvents = props.allEvents.events;
-    const projectEvents = allEvents.filter(event => event.extendedProps.projectId == project.id)
-    return (
-      <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
-        <AccordionSummary>
-          <div><b>{project.title}</b></div>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div>
-            <Project project={project} projectEvents={projectEvents} deleteProject={props.deleteProject} exportProject={props.exportProject}></Project>
-          </div>
-        </AccordionDetails>
-      </Accordion>
-    )
-  })
-
   return (
     <>
-      {projectsList}
+      {allProjects.map((project, index) => {
+        return (
+          <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
+            <AccordionSummary>
+              <div><b>{project.title}</b></div>
+            </AccordionSummary>
+            <AccordionDetails>
+              <div>
+                <Project
+                  project={project}
+                  deleteProject={deleteProject}
+                  exportProject={exportProject}
+                ></Project>
+              </div>
+            </AccordionDetails>
+          </Accordion>
+        )
+      })}
     </>
   );
 }

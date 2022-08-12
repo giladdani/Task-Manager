@@ -242,12 +242,12 @@ const createProject = async (req, res) => {
                 }
 
                 const project = await createProjectObject(req, false);
-                const allEvents = req.body.allEvents;
+                // // const allEvents = req.body.allEvents;
                 const email = await utils.getEmailFromReq(req);
                 let emails = [];
                 emails.push(email);
 
-                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEvents, project, emails);
+                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(project, emails);
                 let errorMsg = null;
 
                 const docsEvents = await EventModel.insertMany(events);
@@ -274,7 +274,6 @@ const exportProject = async (req, res) => {
 
         try {
                 project = await ProjectModel.findOne({ 'id': projectId });
-
                 if (!project) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Could not find project matching ID ${projectId}`);
                         return;
@@ -285,12 +284,15 @@ const exportProject = async (req, res) => {
                         return;
                 }
 
-                const allEvents = req.body.events;
-                const allProjectEvents = allEvents.filter(event => {
-                        return event.extendedProps.unexportedEvent === true &&
-                                event.extendedProps.projectId === project.id
-                });
+                // TODO: remove old code with allEvents if all works well
+                // const allEvents = req.body.events;
+                // const allProjectEvents = allEvents.filter(event => {
+                        // return event.extendedProps.unexportedEvent === true &&
+                                // event.extendedProps.projectId === project.id
+                // });
 
+                let email = await utils.getEmailFromReq(req);
+                let allProjectEvents = await EventModel.find({email: email, projectId: projectId})
                 if (allProjectEvents.length == 0) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it..`);
                         return;
@@ -300,7 +302,7 @@ const exportProject = async (req, res) => {
                 const googleCalendarId = googleResJson.data.id;
                 const errMsg = await insertEventsToGoogleCalendar(req, allProjectEvents, project, googleCalendarId);
 
-                let docs = await EventModel.deleteMany({ 'projectId': projectId });
+                let docs = await EventModel.deleteMany({ email: email, 'projectId': projectId });
                 docs = await ProjectModel.updateOne({ 'id': projectId },
                         {
                                 $set: {
@@ -345,7 +347,7 @@ const createGoogleCalendar = async (req, project) => {
         return res;
 }
 
-const insertEventsToGoogleCalendar = async (req, events, projet, calendarId) => {
+const insertEventsToGoogleCalendar = async (req, events, project, calendarId) => {
         const accessToken = utils.getAccessTokenFromRequest(req);
         utils.oauth2Client.setCredentials({ access_token: accessToken });
         const calendar = google.calendar('v3');
@@ -355,8 +357,7 @@ const insertEventsToGoogleCalendar = async (req, events, projet, calendarId) => 
                 // TODO: change this to batch
                 for (const event of events) {
                         const eventId = event.id;
-                        const projectId = event.extendedProps.projectId;
-                        const backgroundColor = event.backgroundColor;
+                        const projectId = project.id
 
                         const response = await calendar.events.insert({
                                 auth: utils.oauth2Client,
@@ -373,7 +374,6 @@ const insertEventsToGoogleCalendar = async (req, events, projet, calendarId) => 
                                                 private: {
                                                         fullCalendarEventId: eventId,
                                                         fullCalendarProjectId: projectId,
-                                                        fullCalendarBackgroundColor: backgroundColor,
                                                 },
                                         }
                                 }
@@ -403,23 +403,21 @@ const deleteProject = async (req, res) => {
                         const accessToken = utils.getAccessTokenFromRequest(req);
                         utils.oauth2Client.setCredentials({ access_token: accessToken });
                         const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-                        let res = null;
                         let googleCalendarId = project.googleCalendarId;
 
                         if (!googleCalendarId) {
                                 throw (`Project is not associated with any Google calendar ID.`);
                         }
 
-                        const googleRes = await googleCalendarApi.calendars.delete({
+                        const googleRes = googleCalendarApi.calendars.delete({
                                 auth: utils.oauth2Client,
                                 calendarId: googleCalendarId,
                         })
-
-                        res = googleRes;
+                } else {
+                        let deleteLocalDocs = EventModel.deleteMany({ 'projectId': projectId });
                 }
 
-                let docs = await EventModel.deleteMany({ 'projectId': projectId });
-                docs = await ProjectModel.deleteOne({ 'id': projectId });
+                let deleteProjectDocs = ProjectModel.deleteOne({ 'id': projectId });
         } catch (err) {
                 errorMsg = err;
                 console.error(err);

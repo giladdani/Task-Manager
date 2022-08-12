@@ -21,8 +21,14 @@ const googleEventSchema = new Schema({
     id: String,
     calendarId: String,
     email: String,
-    extendedProperties: [Schema.Types.Mixed],
     fetchedByUser: Boolean,
+    isGoogleEvent: Boolean,
+    extendedProperties: {
+        private: {
+            fullCalendarEventId: String,
+            fullCalendarProjectId: String,
+        }
+    },
 })
 
 const GoogleEvent = mongoose.model('GoogleEvent', googleEventSchema);

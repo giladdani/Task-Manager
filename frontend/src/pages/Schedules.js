@@ -482,7 +482,6 @@ export class Schedules extends React.Component {
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
                 <div
-                    // hidden={this.state.isLoading}
                     id="schedule-container"
                 >
                     <div>

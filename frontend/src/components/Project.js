@@ -10,27 +10,25 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
-const ProjectsAPI = require('../apis/ProjectsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
 
 export const Project = (props) => {
-    const allEvents = props.projectEvents;
     const [projectTitle, setProjectName] = useState(props.project.title);
     const [startDate, setStartDate] = useState(new Date(props.project.start));
     const [endDate, setEndDate] = useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-    
-    
-    // Start of code for future update
     const [projectEvents, setProjectEvents] = useState([]);
+    const [oldEvents, setOldEvents] = useState([]);
+    const [futureEvents, setFutureEvents] = useState([]);
+    const [totalHoursPast, setTotalHoursPast] = useState();
+    const [totalHoursFuture, setTotalHoursFuture] = useState();
+    const [totalHoursExpected, setTotalHoursExpected] = useState();
     const componentMounted = useRef(true);
-
 
     useEffect(() => {
         const fetchData = async () => {
-            // // await fetchAndUpdateProjects();
-            // await fetchAndUpdateProjectEvents();
+            await fetchAndUpdateProjectEvents();
         }
 
         fetchData();
@@ -38,40 +36,100 @@ export const Project = (props) => {
         return () => {
             componentMounted.current = false;
         }
-    });
+    }, []);
+
+    // TODO: add abort controller!
+
+
+    
+    // Old events
+    useEffect(() => {
+        const oldEvents = projectEvents.filter(event => {
+            const currDate = new Date();
+            const eventEndDate = getEventEndDate(event);
+
+            return eventEndDate <= currDate;
+        })
+
+        if (componentMounted.current) {
+            setOldEvents(oldEvents);
+        }
+
+    }, [projectEvents])
+
+    // Future events
+    useEffect(() => {
+        const futureEvents = projectEvents.filter(event => {
+            const currDate = new Date();
+            const eventStartDate = getEventStartDate(event);
+
+            return eventStartDate >= currDate;
+        })
+
+        if (componentMounted.current) {
+            setFutureEvents(futureEvents);
+        }
+    }, [projectEvents])
+
+
+    useEffect(() => {
+        calculateHoursPast();
+    }, [oldEvents]);
+
+    useEffect(() => {
+        calculateHoursLeft();
+    }, [futureEvents]);
+
+    useEffect(() => {
+        calculateHoursExpected();
+    }, [totalHoursPast, totalHoursFuture]);
 
     const fetchAndUpdateProjectEvents = async () => {
         const [projectEvents, error] = await EventsAPI.fetchProjectEvents(props.project.id);
 
-        if (componentMounted.current) {
-            // // setAllProjects(projects);
+        if (componentMounted.current && !error) {
             setProjectEvents(projectEvents);
         } else {
             console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
         }
     }
-    // End of code for future update
 
-    const oldEvents = allEvents.filter(event => {
-        const currDate = new Date();
-        const eventEndDate = new Date(event.end);
+    const calculateHoursPast = () => {
+        let totalHoursPast = getAllHoursInEvents(oldEvents);
+        totalHoursPast = totalHoursPast.toFixed(2);
+        totalHoursPast = parseFloat(totalHoursPast);
 
-        return eventEndDate <= currDate;
-    })
+        if (componentMounted.current) {
+            setTotalHoursPast(totalHoursPast);
+        }
+    }
 
-    const futureEvents = allEvents.filter(event => {
-        const currDate = new Date();
-        const eventStartDate = new Date(event.start);
+    const calculateHoursLeft = () => {
+        let totalHoursFuture = getAllHoursInEvents(futureEvents);
+        totalHoursFuture = totalHoursFuture.toFixed(2);
+        totalHoursFuture = parseFloat(totalHoursFuture);
 
-        return eventStartDate >= currDate;
-    })
+        if (componentMounted.current) {
+            setTotalHoursFuture(totalHoursFuture);
+        }
+    }
 
-    const getAllHoursInEvents = (futureEvents) => {
+    const calculateHoursExpected = () => {
+        let totalHoursExpected = totalHoursPast + totalHoursFuture;
+        totalHoursExpected = totalHoursExpected.toFixed(2);
+        totalHoursExpected = parseFloat(totalHoursExpected);
+
+        if (componentMounted.current) {
+            setTotalHoursExpected(totalHoursExpected);
+        }
+    }
+
+    const getAllHoursInEvents = (events) => {
         let diffMs = 0;
 
-        for (const event of futureEvents) {
-            let endDate = new Date(event.end);
-            let startDate = new Date(event.start)
+        for (const event of events) {
+            let startDate = getEventStartDate(event);
+            let endDate = getEventEndDate(event);
 
             let diffM = endDate - startDate;
             diffMs += diffM;
@@ -90,18 +148,35 @@ export const Project = (props) => {
         return diffHrsTotal;
     }
 
-    let totalHoursPast = getAllHoursInEvents(oldEvents);
-    totalHoursPast = totalHoursPast.toFixed(2);
-    totalHoursPast = parseFloat(totalHoursPast);
+    /**
+     * We need to perform this check because Google's event resource is different than FullCalendar's when it comes to saving the time.
+     * Google saves under "end" and "start" two fields "date" and "dateTime".
+     * FullCalendar just uses "end" and "start".
+     * @param {*} event 
+     */
+    const getEventEndDate = (event) => {
+        let date = null;
 
-    let totalHoursFuture = getAllHoursInEvents(futureEvents);
-    totalHoursFuture = totalHoursFuture.toFixed(2);
-    totalHoursFuture = parseFloat(totalHoursFuture);
+        if (props.project.exportedToGoogle) {
+            date = new Date(event.end.dateTime)
+        } else {
+            date = new Date(event.end);
+        }
 
-    let totalHoursExpected = totalHoursPast + totalHoursFuture;
-    totalHoursExpected = totalHoursExpected.toFixed(2);
-    totalHoursExpected = parseFloat(totalHoursExpected);
+        return date;
+    }
 
+    const getEventStartDate = (event) => {
+        let date = null;
+
+        if (props.project.exportedToGoogle) {
+            date = new Date(event.start.dateTime)
+        } else {
+            date = new Date(event.start);
+        }
+
+        return date;
+    }
 
     const handleOnEditClick = () => {
         setIsBeingEdited(true);
