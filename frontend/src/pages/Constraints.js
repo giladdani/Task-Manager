@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { ConstraintsList } from '../components/ConstraintsList';
+// // import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { ConstraintsAccordion } from '../components/ConstraintsAccordion'
+import Button from "@material-ui/core/Button";
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox'
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
 export const Constraints = () => {
@@ -73,15 +78,26 @@ Moved this to API file!
         setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
     }
 
-    const daysCheckboxes = <div id="daysDiv">
-        <label>Sunday</label><input type="checkbox" name="sundayValue" onChange={handleDaysChange}></input>
-        <label>Monday</label><input type="checkbox" name="mondayValue" onChange={handleDaysChange}></input>
-        <label>Tuesday</label><input type="checkbox" name="tuesdayValue" onChange={handleDaysChange}></input>
-        <label>Wednesday</label><input type="checkbox" name="wednesdayValue" onChange={handleDaysChange}></input>
-        <label>Thursday</label><input type="checkbox" name="thursdayValue" onChange={handleDaysChange}></input>
-        <label>Friday</label><input type="checkbox" name="fridayValue" onChange={handleDaysChange}></input>
-        <label>Saturday</label><input type="checkbox" name="saturdayValue" onChange={handleDaysChange}></input>
-    </div>
+    // const daysCheckboxes = <div id="daysDiv">
+    //     <label>Sunday</label><input type="checkbox" name="sundayValue" onChange={handleDaysChange}></input>
+    //     <label>Monday</label><input type="checkbox" name="mondayValue" onChange={handleDaysChange}></input>
+    //     <label>Tuesday</label><input type="checkbox" name="tuesdayValue" onChange={handleDaysChange}></input>
+    //     <label>Wednesday</label><input type="checkbox" name="wednesdayValue" onChange={handleDaysChange}></input>
+    //     <label>Thursday</label><input type="checkbox" name="thursdayValue" onChange={handleDaysChange}></input>
+    //     <label>Friday</label><input type="checkbox" name="fridayValue" onChange={handleDaysChange}></input>
+    //     <label>Saturday</label><input type="checkbox" name="saturdayValue" onChange={handleDaysChange}></input>
+    // </div>
+
+    
+    const daysCheckboxes = <FormGroup>
+                        <FormControlLabel control={<Checkbox name="sundayValue" onChange={handleDaysChange} />} label="Sunday" />
+                        <FormControlLabel control={<Checkbox name="mondayValue" onChange={handleDaysChange} />} label="Monday" />
+                        <FormControlLabel control={<Checkbox name="tuesdayValue" onChange={handleDaysChange} />} label="Tuesday" />
+                        <FormControlLabel control={<Checkbox name="wednesdayValue" onChange={handleDaysChange} />} label="Wednesday" />
+                        <FormControlLabel control={<Checkbox name="thursdayValue" onChange={handleDaysChange} />} label="Thursday" />
+                        <FormControlLabel control={<Checkbox name="fridayValue" onChange={handleDaysChange} />} label="Friday" />
+                        <FormControlLabel control={<Checkbox name="saturdayValue" onChange={handleDaysChange} />} label="Saturday" />
+                    </FormGroup>
 
 
     const handleCreateClick = async () => {
@@ -216,56 +232,77 @@ Moved this to API file!
 
     return (
         <>
-            <h1>Create constraint</h1>
-            <table>
+            <table className="full_width">
                 <tbody>
                     <tr>
-                        <td><label>Name:</label></td>
-                        <td>
-                            <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} />
+                        <td id="constraintAccordion">
+                            <h2 className="center_text">Your constraints</h2>
+                                <ConstraintsAccordion
+                                    constraints={allConstraints}
+                                    onConstraintUpdate={handleConstraintUpdate}
+                                    onConstraintDelete={handleConstraintDelete}>
+                                </ConstraintsAccordion>
                         </td>
-                    </tr>
-                    <tr>
-                        <td><label>Day:</label></td>
-                        <td>
-                            {daysCheckboxes}
+                        <td className="center_elem">
+                            <h2>Create constraint</h2>
+                            <table>
+                                <tbody>
+                                    <tr>
+                                        <td><label>Name:</label></td>
+                                        <td>
+                                            <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" />
+                                            {/* <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} /> */}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>Days:</label></td>
+                                        <td>
+                                            {daysCheckboxes}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>Start time:</label></td>
+                                        <td className="whiteTimeFont">
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <TimePicker
+                                                    value={constraintStartTime}
+                                                    onChange={(newValue) => { setConstraintStartTime(newValue) }}
+                                                    renderInput={(params) => <TextField {...params} />}
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>End time:</label></td>
+                                        <td className="whiteTimeFont">
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <TimePicker
+                                                    value={constraintEndTime}
+                                                    onChange={(newValue) => { setConstraintEndTime(newValue) }}
+                                                    renderInput={(params) => <TextField {...params} />}
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><Button variant='contained' onClick={handleCreateClick}>Create</Button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </td>
-                    </tr>
-                    <tr>
-                        <td><label>Start time:</label></td>
-                        <td className="whiteTimeFont">
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={constraintStartTime}
-                                    onChange={(newValue) => { setConstraintStartTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>End time:</label></td>
-                        <td className="whiteTimeFont">
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={constraintEndTime}
-                                    onChange={(newValue) => { setConstraintEndTime(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><button onClick={handleCreateClick}>Create</button></td>
                     </tr>
                 </tbody>
             </table>
-            <ConstraintsList
-                constraints={allConstraints}
-                handleConstraintUpdate={handleConstraintUpdate}
-                handleConstraintDelete={handleConstraintDelete}
-            >
-            </ConstraintsList>
+            
+
+            
+            {/* ////{<ConstraintsList
+                ////constraints={allConstraints}
+                ////handleConstraintUpdate={handleConstraintUpdate}
+                ////handleConstraintDelete={handleConstraintDelete}
+            ////>
+            ////</ConstraintsList>
+            */}
         </>
     )
 }

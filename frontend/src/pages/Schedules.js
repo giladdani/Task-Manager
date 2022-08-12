@@ -477,7 +477,7 @@ export class Schedules extends React.Component {
     render() {
         return (
             <div>
-                <div hidden={!this.state.isLoading}>
+                <div hidden={!this.state.isLoading} className="center_text">
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
