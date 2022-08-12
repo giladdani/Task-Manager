@@ -235,7 +235,7 @@ Moved this to API file!
             <table className="full_width">
                 <tbody>
                     <tr>
-                        <td id="constraintAccordion">
+                        <td className="accordion">
                             <h2 className="center_text">Your constraints</h2>
                                 <ConstraintsAccordion
                                     constraints={allConstraints}
