@@ -8,7 +8,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 export const AvatarPhoto = () => {
     const [avatarUrl, setAvatarUrl] = useState('');
     const [anchorMenu, setAnchorMenu] = useState(null);
-    const isMenuOpen = Boolean(anchorMenu);
 
     const fetchUserAvatarUrl = async() =>{
         try {
@@ -29,19 +28,6 @@ export const AvatarPhoto = () => {
         }
     }
 
-    // const openMenu = (event) => {
-    //     setAnchorMenu(event.currentTarget);
-    //   };
-
-    // const closeMenu = () => {
-    //     setAnchorMenu(null);
-    // };
-
-    // const handleLogout = () => {
-    //     sessionStorage.clear();  
-    //     window.location = "/";
-    // }
-
     useEffect(async () => {
         const avatarUrlRes = await fetchUserAvatarUrl();
         setAvatarUrl(avatarUrlRes);
@@ -49,18 +35,7 @@ export const AvatarPhoto = () => {
 
     return (
         <>
-            <Avatar src={avatarUrl} /*onClick={openMenu}*/ />
-            {/* <Menu
-                anchorEl={anchorMenu}
-                open={isMenuOpen}
-                onClose={closeMenu}
-            >
-                <MenuItem onClick={handleLogout}>
-                    <ListItemIcon>
-                        <Logout /> Logout
-                    </ListItemIcon>
-                </MenuItem>
-            </Menu> */}
-      </>
+            <Avatar src={avatarUrl} />
+        </>
     )
 }
