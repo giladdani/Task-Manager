@@ -12,7 +12,7 @@ const pendingProjectSchema = new Schema({
     spacingLengthMinutes: Number,
     backgroundColor: String,
     email: String,
-    sharedEmails: [String],
+    participatingEmails: [String],
     exportedToGoogle: Boolean,
     googleCalendarId: String,
     maxEventsPerDay: Number,
@@ -22,7 +22,6 @@ const pendingProjectSchema = new Schema({
     ignoredConstraintsIds: [String],
     
     requestingUser: String,
-    awaitingUserApproval: String,
     awaitingApproval: [String],
     approvingUsers: [String],
 })

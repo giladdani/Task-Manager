@@ -2,24 +2,20 @@ const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const EventModel = require('./models/projectevent')
 const ProjectModel = require('./models/project')
-const PendingProjectEvents = require('./models/pendingprojectevents')
 const PendingProject = require('./models/pendingprojects')
-
 const { google } = require('googleapis');
-
 const algorithm = require('./algorithm');
 const utils = require('./utils');
+const googleSync = require('./google-sync');
 const router = express.Router();
 
 // Routing
 router.get('/', (req, res) => { getProjects(req, res) });
+router.post('/', (req, res) => { createProject(req, res) });
 router.get('/events', (req, res) => { getAllProjectEvents(req, res) });
 router.patch('/events/reschedule', (req, res) => { rescheduleProjectEvent(req, res) });
-
 router.get('/pending', (req, res) => { getPendingProjects(req, res) });
-
-router.post('/', (req, res) => { createProject(req, res) });
-router.post('/shared', (req, res) => { requestSharedProject(req, res) });
+router.post('/shared', (req, res) => { createSharedProject(req, res) });
 router.post('/shared/approved', (req, res) => { approveSharedProject(req, res) });
 router.post('/export/:id', (req, res) => { exportProject(req, res) });
 router.delete('/:id', (req, res) => { deleteProject(req, res) });
@@ -27,43 +23,63 @@ router.delete('/:id', (req, res) => { deleteProject(req, res) });
 
 // Functions
 const rescheduleProjectEvent = async (req, res) => {
-        const event = req.body.event;
-        const allEvents = req.body.allEvents;
-        const projectId = utils.getEventProjectId(event);
-        const project = await ProjectModel.findOne({ 'id': projectId });
+        try {
+                const event = req.body.event;
+                const allEvents = req.body.allEvents;
+                const projectId = utils.getEventProjectId(event);
+                const project = await ProjectModel.findOne({ 'id': projectId });
 
-        let [events, estimatedTimeLeft] = await algorithm.rescheduleEvent(event, allEvents, project);
+                let [events, estimatedTimeLeft] = await algorithm.rescheduleEvent(event, allEvents, project);
 
-        let resBody = {
-                events: events,
-                estimatedTimeLeft: estimatedTimeLeft,
+                let resBody = {
+                        events: events,
+                        estimatedTimeLeft: estimatedTimeLeft,
+                }
+
+                res.status(StatusCodes.OK).send(resBody);
+        } catch (err) {
+                console.log(`[rescheduleProjectEvent] Error!\n${err}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
         }
-
-        res.status(StatusCodes.OK).send(resBody);
 }
 
 const getProjects = async (req, res) => {
-        const userEmail = await utils.getEmailFromReq(req);
-        const allProjects = await ProjectModel.find({ 'email': userEmail });
-        res.status(StatusCodes.OK).send(allProjects);
+        try {
+                const userEmail = await utils.getEmailFromReq(req);
+                const allProjects = await ProjectModel.find({ 'email': userEmail });
+                res.status(StatusCodes.OK).send(allProjects);
+        } catch (err) {
+                console.log(`[getProjects] Error!\n${err}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+        }
 }
 
 const getPendingProjects = async (req, res) => {
-        const userEmail = await utils.getEmailFromReq(req);
-        // const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
+        try {
+                const userEmail = await utils.getEmailFromReq(req);
+                // const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
 
-        const pendingProjects = await PendingProject.find({ 'sharedEmails': userEmail });
+                const pendingProjects = await PendingProject.find({ 'participatingEmails': userEmail });
 
-        res.status(StatusCodes.OK).send(pendingProjects);
+                res.status(StatusCodes.OK).send(pendingProjects);
+        } catch (err) {
+                console.log(`[getPendingProjects] Error!\n${err}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+        }
 }
 
 const getAllProjectEvents = async (req, res) => {
-        const userEmail = await utils.getEmailFromReq(req);
-        const allProjectEvents = await EventModel.find({ 'email': userEmail });
-        res.status(StatusCodes.OK).send(allProjectEvents);
+        try {
+                const userEmail = await utils.getEmailFromReq(req);
+                const allProjectEvents = await EventModel.find({ 'email': userEmail });
+                res.status(StatusCodes.OK).send(allProjectEvents);
+        } catch (err) {
+                console.log(`[getAllProjectEvents] Error!\n${err}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+        }
 }
 
-const addApprovingUserToSharedProject = async (approverEmail, project, allEvents) => {
+const addApprovingUserToSharedProject = async (approverEmail, project) => {
         // add user to approving users
         await PendingProject.updateOne({ 'sharedId': project.sharedId },
                 {
@@ -79,77 +95,74 @@ const addApprovingUserToSharedProject = async (approverEmail, project, allEvents
                                 awaitingApproval: approverEmail,
                         }
                 });
-
-
-        allEvents.forEach(event => {
-                event.email = approverEmail;
-                event.projectSharedId = project.sharedId;
-        }
-        );
-
-        // add user events to DB
-        const docsEvents = await PendingProjectEvents.insertMany(allEvents);
 }
 
 const approveSharedProject = async (req, res) => {
-        const approverEmail = await utils.getEmailFromReq(req);
-        const project = req.body.project;
-        const allEvents = req.body.allEvents;
-        await addApprovingUserToSharedProject(approverEmail, project, allEvents);
+        try {
+                const approverEmail = await utils.getEmailFromReq(req);
+                const project = req.body.project;
+                await addApprovingUserToSharedProject(approverEmail, project);
 
-        const pendingProject = await PendingProject.findOne({ 'sharedId': project.sharedId });
-        console.log(`[approveSharedProject] User ${approverEmail} approved project '${project.title}'`)
-        if (pendingProject.awaitingApproval.length === 0) {
-                await generateSharedSchedule(pendingProject);
-        } else {
-                res.status(StatusCodes.OK).send();
-                return;
+                /**
+                 * TODO: should we sync the user's data here?
+                 * If we rely on the client requesting all of the Google events upon entering the schedules page,
+                 * then we could sync here, because no events are lost.
+                 * However if we rely on the client not always requesting all the events, and we sync here, the client could miss some events.
+                 */
+                const accessToken = await utils.getAccessTokenFromRequest(req);
+                googleSync.syncGoogleData(accessToken, approverEmail);
+
+                const pendingProject = await PendingProject.findOne({ 'sharedId': project.sharedId });
+                console.log(`[approveSharedProject] User ${approverEmail} approved project '${project.title}'`)
+                if (pendingProject.awaitingApproval.length === 0) {
+                        let [events, estimatedTimeLeft] = await algorithm.generateSchedule(project);
+                        await saveProjectAndEvents(project, events);
+                        let deletePendingDoc = await PendingProject.deleteOne({ 'sharedId': project.sharedId });
+                        console.log(`[approveSharedProject] Deleted pending project ${project.title} from PendingProjects.`)
+                        res.status(StatusCodes.OK).send('Project created!');
+                } else {
+                        res.status(StatusCodes.OK).send('Approved project. Awaiting further approval.');
+                }
+        } catch (err) {
+                console.log(`[approveSharedProject] Error!\n${err}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
         }
 }
 
-const generateSharedSchedule = async (project) => {
-        const allEventsJoined = await PendingProjectEvents.find({ 'projectSharedId': project.sharedId });
-        console.log(`All joined events number: ${allEventsJoined.length}`);
-        project._id = null;
-        let emails = project.sharedEmails;
-        
-        const [events, estimatedTimeLeft] = await algorithm.generateSchedule(allEventsJoined, project, emails);
+async function saveProjectAndEvents(project, events) {
+        for (const email of project.participatingEmails) {
+                let dupProj = duplicateProject(project);
+                dupProj._id = null; // To avoid conflict if it's a shared project and one version already exists
+                dupProj.email = email;
+                dupProj.id = utils.generateId();
 
-        let errorMsg = null;
-        const originalProjectSharedId = project.sharedId;
+                await ProjectModel.create(dupProj);
 
-        // Insert for all users. This allows later on expanding to creating a schedule between 3 and more users.
-        for (const email of emails) {
-                await insertProjectAndEvents(email, project, events);
-        }
+                events.forEach(event => {
+                        event.email = email
+                        event.id = utils.generateId();
+                        event.projectId = dupProj.id;
+                });
 
-        let docsEvents1 = await PendingProjectEvents.deleteMany({ 'projectSharedId': originalProjectSharedId });
-        console.log(`[generateSharedSchedule] Deleted ${docsEvents1.deletedCount} events from PendingProjectEvents.`)
-        let docsEvents2 = await PendingProject.deleteOne({ 'sharedId': originalProjectSharedId });
-        console.log(`[generateSharedSchedule] Deleted pending project ${project.title} from PendingProjects.`)
-
-        resBody = {
-                estimatedTimeLeft: estimatedTimeLeft,
-        };
-
-        if (errorMsg === null) {
-                console.log(`[generateSharedSchedule] Created a shared project ${project.title} between ${emails}`);
-                res.status(StatusCodes.OK).send(resBody);
-        } else {
-                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);
+                await EventModel.insertMany(events);
         }
 }
 
 /**
- * Does not create a new ID.
+ * Does NOT create a new ID.
  * @param {*} project 
  * @returns 
  */
 const duplicateProject = (project) => {
         let ignoredConstraints = []
+        let participatingEmails = []
 
-        for(const id of project.ignoredConstraintsIds) {
+        for (const id of project.ignoredConstraintsIds) {
                 ignoredConstraints.push(id);
+        }
+
+        for (const email of project.participatingEmails) {
+                participatingEmails.push(email);
         }
 
         const newProject = {
@@ -163,6 +176,7 @@ const duplicateProject = (project) => {
                 spacingLengthMinutes: project.spacingLengthMinutes,
                 backgroundColor: project.backgroundColor,
                 email: project.email,
+                participatingEmails: participatingEmails,
                 exportedToGoogle: project.exportedToGoogle,
                 maxEventsPerDay: project.maxEventsPerDay,
                 dayRepetitionFrequency: project.dayRepetitionFrequency,
@@ -174,62 +188,31 @@ const duplicateProject = (project) => {
         return newProject;
 }
 
-const insertProjectAndEvents = async (email, originalProject, events) => {
-        let project = duplicateProject(originalProject);
-        project.email = email;
-        project.id = utils.generateId();
+const createSharedProject = async (req, res) => {
+        try {
+                let inputErrorMsg = checkInputValidity(req);
+                if (inputErrorMsg != null) {
+                        res.status(StatusCodes.BAD_REQUEST).send(inputErrorMsg);
+                        return;
+                }
 
-        await ProjectModel.create(project);
+                if (req.body.participatingEmails.length === 0) {
+                        res.status(StatusCodes.BAD_REQUEST).send("Cannot create a shared project without any emails to share.");
+                        return;
+                }
 
-        events.forEach(event => {
-                event.email = email
-                event.id = utils.generateId();
-                event.projectId = project.id;
-        });
-
-        await EventModel.insertMany(events);
-}
-
-const requestSharedProject = async (req, res) => {
-        let inputErrorMsg = checkInputValidity(req);
-        if (inputErrorMsg != null) {
-                res.status(StatusCodes.BAD_REQUEST).send(inputErrorMsg);
-                return;
-        }
-
-        if (req.body.sharedEmails.length === 0) {
-                res.status(StatusCodes.BAD_REQUEST).send("Cannot create a shared project without any emails to share.");
-                return;
-        }
-
-        let project = await createProjectObject(req, true);
-        const userEmail = await utils.getEmailFromReq(req);
-        project.requestingUser = userEmail;
-
-        let sharedEmails = [];
-        for (const email of req.body.sharedEmails) {
-                sharedEmails.push(email);
-        }
-
-        // We add this check in case the client didn't add the requesting user's email to the list of emails to share with.
-        if (!sharedEmails.includes(userEmail)) {
-                sharedEmails.push(userEmail);
-        }
-
-        project.sharedEmails = sharedEmails;
-        project.awaitingApproval = sharedEmails;
-
-        const docsProject = await PendingProject.create(project);
-
-        const allEvents = req.body.allEvents;
-        await addApprovingUserToSharedProject(userEmail, project, allEvents)
-
-        let errorMsg = null;
-        if (errorMsg === null) {
-                console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${project.sharedEmails}`);
+                let project = await createProjectObject(req, true);
+                const userEmail = await utils.getEmailFromReq(req);
+                project.requestingUser = userEmail;
+                let participatingEmails = await getParticipatingEmails(req);
+                project.awaitingApproval = participatingEmails;
+                const docsProject = await PendingProject.create(project);
+                await addApprovingUserToSharedProject(userEmail, project)
+                console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${project.participatingEmails}`);
                 res.status(StatusCodes.OK).send();
-        } else {
-                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Something fucked up`);
+        } catch (error) {
+                console.log(`[createSharedProject] Unknown error:\n${error}`);
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(error);
         }
 }
 
@@ -242,25 +225,26 @@ const createProject = async (req, res) => {
                 }
 
                 const project = await createProjectObject(req, false);
-                // // const allEvents = req.body.allEvents;
-                const email = await utils.getEmailFromReq(req);
-                let emails = [];
-                emails.push(email);
-
-                const [events, estimatedTimeLeft] = await algorithm.generateSchedule(project, emails);
+                let events = [];
+                let estimatedTimeLeft = null;
                 let errorMsg = null;
 
-                const docsEvents = await EventModel.insertMany(events);
-                const docsProjects = await ProjectModel.create(project);
+                try {
+                        [events, estimatedTimeLeft] = await algorithm.generateSchedule(project);
+                        await saveProjectAndEvents(project, events);
+                } catch (error) {
+                        console.log(`[createProject] Error!\n${error}`);
+                        errorMsg = error;
+                }
 
                 resBody = {
                         estimatedTimeLeft: estimatedTimeLeft,
                 };
 
-                if (errorMsg === null) {
+                if (!errorMsg) {
                         res.status(StatusCodes.OK).send(resBody);
                 } else {
-                        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Database error: " + errorMsg);
+                        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Error with generating a schedule:\n" + errorMsg);
                 }
         } catch (err) {
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error');
@@ -287,12 +271,12 @@ const exportProject = async (req, res) => {
                 // TODO: remove old code with allEvents if all works well
                 // const allEvents = req.body.events;
                 // const allProjectEvents = allEvents.filter(event => {
-                        // return event.extendedProps.unexportedEvent === true &&
-                                // event.extendedProps.projectId === project.id
+                // return event.extendedProps.unexportedEvent === true &&
+                // event.extendedProps.projectId === project.id
                 // });
 
                 let email = await utils.getEmailFromReq(req);
-                let allProjectEvents = await EventModel.find({email: email, projectId: projectId})
+                let allProjectEvents = await EventModel.find({ email: email, projectId: projectId })
                 if (allProjectEvents.length == 0) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it..`);
                         return;
@@ -440,7 +424,7 @@ const deleteProject = async (req, res) => {
 function checkInputValidity(req) {
         let errorMsg = "";
 
-        for (const email of req.body.sharedEmails) {
+        for (const email of req.body.participatingEmails) {
                 if (email.length > 0) {
                         if (!isValidEmail(email)) {
                                 errorMsg += `   - email '${email}' is not valid.\n`;
@@ -510,8 +494,9 @@ const createProjectObject = async (req, isSharedProject) => {
         const userEmail = await utils.getEmailFromReq(req);
         const backgroundColor = getRandomColor();
         let sharedProjectId = null;
+        let participatingEmails = await getParticipatingEmails(req);
 
-        if (isSharedProject === true) {
+        if (participatingEmails.length > 1) {
                 sharedProjectId = utils.generateId();
         }
 
@@ -526,6 +511,7 @@ const createProjectObject = async (req, isSharedProject) => {
                 spacingLengthMinutes: req.body.spacingLengthMinutes,
                 backgroundColor: backgroundColor,
                 email: userEmail,
+                participatingEmails: participatingEmails,
                 exportedToGoogle: false,
                 maxEventsPerDay: req.body.maxEventsPerDay,
                 dayRepetitionFrequency: req.body.dayRepetitionFrequency,
@@ -535,6 +521,21 @@ const createProjectObject = async (req, isSharedProject) => {
         }
 
         return newProject;
+}
+
+async function getParticipatingEmails(req) {
+        let userEmail = await utils.getEmailFromReq(req);
+        let participatingEmails = [];
+        for (const email of req.body.participatingEmails) {
+                participatingEmails.push(email);
+        }
+
+        // We add this check in case the client didn't add the requesting user's email to the list of emails to share with.
+        if (!participatingEmails.includes(userEmail)) {
+                participatingEmails.push(userEmail);
+        }
+
+        return participatingEmails;
 }
 
 function isValidEmail(email) {

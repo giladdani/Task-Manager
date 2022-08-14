@@ -42,6 +42,7 @@ export const Projects = (props) => {
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
+    const [projectCreationMsg, setProjectCreationMsg] = useState("");
     const componentMounted = useRef(true);
 
     useEffect(() => {
@@ -60,7 +61,7 @@ export const Projects = (props) => {
         return () => {
             componentMounted.current = false;
         }
-    });
+    }, []);
 
     const handleGenerateClick = async () => {
         try {
@@ -71,7 +72,7 @@ export const Projects = (props) => {
             }
 
             const body = {
-                sharedEmails: emailList,
+                participatingEmails: emailList,
                 projectTitle: projectTitle,
                 sessionLengthMinutes: sessionLengthMinutes,
                 spacingLengthMinutes: spacingLengthMinutes,
@@ -85,56 +86,33 @@ export const Projects = (props) => {
                 ignoredConstraintsIds: ignoredConstraintIds,
             };
 
+            let response;
+            let error;
             if (shareChecked) {
-                const response = await fetch('http://localhost:3001/api/projects/shared', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'access_token': sessionStorage.getItem('access_token'),
-                    },
-                    method: 'POST',
-                    body: JSON.stringify(body),
-                });
+                [response, error] = await ProjectsAPI.createSharedProject(body);
 
-                if (response.status !== 200) {
-                    let errorMsg = await response.text();
-                    throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
-                }
-
-                console.log(`Sent request for a shared project with ${userEmailToShareWith}`);
                 alert(`Sent a request to ${userEmailToShareWith}. Awaiting his approval.`);
             } else {
                 toggleLoading(true);
-
-                // let res = await ProjectsAPI.createProject(body);
-
-                const response = await fetch('http://localhost:3001/api/projects', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'access_token': sessionStorage.getItem('access_token'),
-                    },
-                    method: 'POST',
-                    body: JSON.stringify(body),
-                });
-
-                if (response.status !== 200) {
-                    let errorMsg = await response.text();
-                    throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
-                }
-
-                let jsonRes = await response.json();
-                let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
+                [response, error] = await ProjectsAPI.createIndividualProject(body);
+                
                 let msg = "";
-                if (estimatedTimeLeft > 0) {
-                    msg = `Project added.
-                    \nNote! There was not enough time to match the estimated hours.
-                    Estimated time left: ${estimatedTimeLeft}`
+                if (!error) {
+                    let jsonRes = await response.json();
+                    let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
+                    if (estimatedTimeLeft > 0) {
+                        msg = `Project added.
+                        \nNote! There was not enough time to match the estimated hours.
+                        Estimated time left: ${estimatedTimeLeft}`
+                    } else {
+                        msg = `Project added.`;
+                    }
                 } else {
-                    msg = `Project added.`;
+                    msg = "Whoops, something went wrong!"; // TODO: fetch message from the server's response?
                 }
 
                 toggleLoading(false);
+                setProjectCreationMsg(msg);
                 console.log(msg);
                 toggleSuccessDialog(true);
             }
@@ -440,7 +418,7 @@ export const Projects = (props) => {
 
             <Dialog open={successDialogOpen}>
                 <DialogTitle>Success!</DialogTitle>
-                <DialogContent>Project created successfully</DialogContent>
+                <DialogContent>Project created successfully.</DialogContent>
                 <DialogActions>
                     <Button onClick={handleDialogClose}>Close</Button>
                 </DialogActions>
