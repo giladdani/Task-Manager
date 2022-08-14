@@ -21,14 +21,8 @@ const getAccessTokenFromRequest = (req) => {
 }
 
 const getEmailFromReq = async (req) => {
-    let email;
-    try{
-        const accessToken = await getAccessTokenFromRequest(req);
-        email = getEmailFromAccessToken(accessToken);
-    }
-    catch{
-        console.log("failed to get user email");
-    }
+    const accessToken = getAccessTokenFromRequest(req);
+    const email = await getEmailFromAccessToken(accessToken);
     return email;
 }
 

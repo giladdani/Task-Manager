@@ -10,7 +10,7 @@
 .MuiOutlinedInput-root:hover fieldset, .Mui-focused fieldset, .MuiOutlinedInput-root fieldset{
   border-color: white!important;
 }
-.whiteTimeFont .MuiOutlinedInput-input, .MuiSvgIcon-root, .MuiOutlinedInput-root, .MuiChip-root, .MuiAccordion-root{ 
+.whiteTimeFont .MuiOutlinedInput-input, .MuiOutlinedInput-root, .MuiChip-root, .MuiAccordion-root{ 
   color: white!important;
 }
 .MuiOutlinedInput-root fieldset{
