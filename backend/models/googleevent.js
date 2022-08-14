@@ -23,6 +23,7 @@ const googleEventSchema = new Schema({
     email: String,
     fetchedByUser: Boolean,
     isGoogleEvent: Boolean,
+    status: String,
     extendedProperties: {
         private: {
             fullCalendarEventId: String,

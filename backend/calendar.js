@@ -5,9 +5,7 @@ const EventModel = require('./models/projectevent')
 const GoogleEventModel = require('./models/googleevent')
 const ProjectModel = require('./models/project')
 const googleSync = require('./google-sync');
-const SharedEventsModel = require('./models/sharedeventsmodel')
 const utils = require('./utils');
-
 
 // Routing
 const router = express.Router();
@@ -15,14 +13,9 @@ router.get('/events', (req, res) => { getAllEvents(req, res) });
 router.get('/events/google', (req, res) => { getGoogleEvents(req, res) });
 router.get('/events/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
 router.get('/:projectId/events', (req, res) => { getProjectEvents(req, res) });
-
 router.post('/events', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/events', (req, res) => { deleteEvent(req, res) });
 router.patch('/events', (req, res) => { updateEvent(req, res) });
-
-router.get('/sharedevents', (req, res) => { getAllSharedEvents(req, res) });
-router.post('/sharedevents', (req, res) => { shareEvents(req, res) });
-router.post('/events/generated', (req, res) => { insertGeneratedEventsToCalendar(req, res) });
 
 /**
  * Returns the events of a specific project.
@@ -74,24 +67,6 @@ const getAllEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
 
     let events = await utils.getAllUserEvents(email);
-}
-
-const shareEvents = async (req, res) => {
-    const userEmail = utils.getEmailFromReq(req);
-
-    let body = {
-        allEvents: allEvents,
-        shareWithUserEmail: userEmail,
-    }
-
-    body.allEvents.forEach(event => {
-        event.email = userEmail;
-        event.shareWithUser = shareWithUserEmail;
-    })
-
-    const docsEvents = await SharedEventsModel.insertMany(allEvents);
-
-    res.status(StatusCodes.OK).send();
 }
 
 const updateEvent = async (req, res) => {
@@ -241,12 +216,6 @@ const deleteGoogleEvent = async (req) => {
     return errorMsg;
 }
 
-const getAllSharedEvents = async (req, res) => {
-    const userEmail = await utils.getEmailFromReq(req);
-    const allEvents = await SharedEventsModel.find({ 'shareWithUser': userEmail });
-    res.status(StatusCodes.OK).send(allEvents);
-}
-
 const getGoogleEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
 
@@ -255,7 +224,8 @@ const getGoogleEvents = async (req, res) => {
 
     res.status(StatusCodes.OK).send(allEvents);
 
-    // /*
+
+    /* 
     GoogleEventModel.updateMany(
         { email: email },
         {
@@ -274,13 +244,24 @@ const getUnsyncedGoogleEvents = async (req, res) => {
     const email = await utils.getEmailFromReq(req);
     const accessToken = await utils.getAccessTokenFromRequest(req);
     let unsyncedEvents = [];
+    let deletedCalendarEvents = [];
     let error = null;
 
     // TODO: use two promises above and then promise all once emal and access token are retrieved
     try {
         // / Method 1: receive unsynced events from Google directly and isert them into DB
+        // // [unsyncedEvents, deletedCalendarEvents] = await googleSync.syncGoogleData(accessToken, email);
         unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
-        console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}. Unsynced events: ${unsyncedEvents.length}`);
+
+        console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}.`);
+        if (unsyncedEvents.length > 0) {
+            console.log(`Unsynced events: ${unsyncedEvents.length}.`);
+        }
+
+        // // if (deletedCalendarEvents.length > 0) {
+        // //     console.log(`Deleted calendars events: ${deletedCalendarEvents.length}.`);
+        // // }
+
 
         // / Method 2: receive from DB. Good if we use intervals server-side to update.
         /*

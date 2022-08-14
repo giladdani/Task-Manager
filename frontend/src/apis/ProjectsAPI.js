@@ -30,14 +30,13 @@ async function fetchPendingProjects() {
     return [res, error];
 }
 
-async function approvePendingProject(project, allEvents) {
+async function approvePendingProject(project) {
     let res = null;
     let error = null;
 
     try {
         const body = {
             project: project,
-            allEvents: allEvents,
         };
 
         const response = await fetch(`${consts.host}/projects/shared/approved`, {
@@ -151,10 +150,75 @@ const exportProject = async (project) => {
     return [res, error];
 }
 
+
+const createSharedProject = async (body) => {
+    let res = null;
+    let error = null;
+    console.log(`[ProjectsAPI - createSharedProject] Creating shared project ${body.projectTitle}.`);
+
+    try {
+        const response = await fetch('http://localhost:3001/api/projects/shared', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token'),
+            },
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
+
+        if (response.status !== 200) {
+            let errorMsg = await response.text();
+            throw new Error('[ProjectsAPI - createSharedProject] Invalid parameters for the project:\n\n' + errorMsg)
+        }
+
+        res = response;
+    }
+    catch (err) {
+        console.error(err);
+        error = err;
+    }
+
+    return [res, error];
+}
+
+const createIndividualProject = async (body) => {
+    let res = null;
+    let error = null;
+    console.log(`[ProjectsAPI - createSharedProject] Creating shared project ${body.projectTitle}.`);
+
+    try {
+        const response = await fetch('http://localhost:3001/api/projects', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'access_token': sessionStorage.getItem('access_token'),
+            },
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
+
+        if (response.status !== 200) {
+            let errorMsg = await response.text();
+            throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
+        }
+
+        res = response;
+    }
+    catch (err) {
+        console.error(err);
+        error = err;
+    }
+
+    return [res, error];
+}
+
 module.exports = {
     fetchPendingProjects: fetchPendingProjects,
     approvePendingProject: approvePendingProject,
     fetchProjects: fetchProjects,
     deleteProject: deleteProject,
     exportProject: exportProject,
+    createSharedProject: createSharedProject,
+    createIndividualProject: createIndividualProject,
 }

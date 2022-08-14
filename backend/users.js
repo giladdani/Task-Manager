@@ -16,7 +16,7 @@ const createUserDataFromCode = async (req, res) => {
     const update = { $set: { email: email } };
     const options = { upsert: true };
     await UserModel.updateOne(query, update, options);
-    await googleSync.resetEventsFetchStatus(email);
+    // await googleSync.resetEventsFetchStatus(email);
     await googleSync.syncGoogleData(accessToken, email);
     // let syncInterval = setInterval(syncGoogleEvents, 8000, accessToken, email);
     // TODO: save sync interval ID so we can later stop it when user logs out?
