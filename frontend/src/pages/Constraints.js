@@ -268,6 +268,7 @@ Moved this to API file!
                                                     value={constraintStartTime}
                                                     onChange={(newValue) => { setConstraintStartTime(newValue) }}
                                                     renderInput={(params) => <TextField {...params} />}
+                                                    ampm={false}
                                                 />
                                             </LocalizationProvider>
                                         </td>
@@ -280,6 +281,7 @@ Moved this to API file!
                                                     value={constraintEndTime}
                                                     onChange={(newValue) => { setConstraintEndTime(newValue) }}
                                                     renderInput={(params) => <TextField {...params} />}
+                                                    ampm={false}
                                                 />
                                             </LocalizationProvider>
                                         </td>

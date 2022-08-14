@@ -14,6 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
+import MultipleSelectChip from '../components/MultipleSelectChip';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
 export const Projects = (props) => {
@@ -41,7 +42,13 @@ export const Projects = (props) => {
     const [emailList, setEmailList] = useState([]);
     const [projectCreationMsg, setProjectCreationMsg] = useState("");
     const componentMounted = useRef(true);
+    
+    useEffect(async() => {
+        const tempConstraints = await ConstraintsAPI.fetchConstraints();
+        setConstraints(tempConstraints);
+    }, [])
 
+/*
     useEffect(() => {
         const fetchData = async () => {
             let tempConstraints = await ConstraintsAPI.fetchConstraints();
@@ -59,6 +66,7 @@ export const Projects = (props) => {
             componentMounted.current = false;
         }
     }, []);
+    */
 
     const handleGenerateClick = async () => {
         try {
@@ -208,20 +216,12 @@ export const Projects = (props) => {
         toggleSuccessDialog(false);
     }
 
-    const onSelectConstraintChange = (e) => {
-        console.log(`On selected change!`);
-
-        let chosenConstraintIds = [];
-
-        for (const selected of e.target.selectedOptions) {
-            chosenConstraintIds.push(selected.value);
-        }
-
+    const onSelectConstraintChange = (selectedConstraints) => {
+        const chosenConstraintIds = selectedConstraints.map(constraint => constraint.id);
         setIgnoredConstraintsIds(chosenConstraintIds);
     }
 
     const handleShareCheckboxChange = (event) => {
-        // setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
         setShareChecked(event.target.checked);
     }
 
@@ -344,6 +344,7 @@ export const Projects = (props) => {
                                     value={dailyStartHour}
                                     onChange={(newValue) => { setDailyStartHour(newValue) }}
                                     renderInput={(params) => <TextField {...params} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -356,6 +357,7 @@ export const Projects = (props) => {
                                     value={dailyEndHour}
                                     onChange={(newValue) => { setDailyEndHour(newValue) }}
                                     renderInput={(params) => <TextField {...params} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -393,13 +395,14 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             <form >
-                                <select
+                                {/* <select
                                     onChange={onSelectConstraintChange}
                                     name="constraints" id="constraints" multiple>
                                     {constraints.map((constraint, index) => {
                                         return <option key={index} id={constraint.id} value={constraint.id}>{constraint.title}</option>
                                     })}
-                                </select>
+                                </select> */}
+                                <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange}></MultipleSelectChip>
                             </form>
                         </td>
                     </tr>

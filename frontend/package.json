@@ -16,7 +16,7 @@
     "@material-ui/styles": "^4.11.5",
     "@mobiscroll/react": "https://npm.mobiscroll.com/@mobiscroll/react-trial/-/react-trial-5.16.0.tgz",
     "@mui/icons-material": "^5.8.4",
-    "@mui/material": "^5.9.2",
+    "@mui/material": "^5.10.0",
     "@mui/x-date-pickers": "^5.0.0-alpha.1",
     "@testing-library/jest-dom": "^5.16.2",
     "@testing-library/react": "^12.1.3",

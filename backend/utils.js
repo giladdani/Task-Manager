@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'taskmanagerworkshop@gmail.com',    //TODO: encrypt and move to .env file
-        pass: 'wffmpceddpyyzteg'
+        pass: 'wffmpceddpyyzteg,'
     }
 });
 
@@ -21,8 +21,9 @@ const getAccessTokenFromRequest = (req) => {
 }
 
 const getEmailFromReq = async (req) => {
-    const accessToken = await getAccessTokenFromRequest(req);
-    return getEmailFromAccessToken(accessToken);
+    const accessToken = getAccessTokenFromRequest(req);
+    const email = await getEmailFromAccessToken(accessToken);
+    return email;
 }
 
 const getAccessTokenFromCode = async (code) => {

@@ -122,6 +122,7 @@ export const Constraint = (props) => {
                                 value={constraintStartTime}
                                 onChange={(newValue) => { setConstraintStartTime(newValue) }}
                                 renderInput={(params) => <TextField {...params} />}
+                                ampm={false}
                             />
                         </LocalizationProvider>
                     </td>
@@ -134,6 +135,7 @@ export const Constraint = (props) => {
                                 value={constraintEndTime}
                                 onChange={(newValue) => { setConstraintEndTime(newValue) }}
                                 renderInput={(params) => <TextField {...params} />}
+                                ampm={false}
                             />
                         </LocalizationProvider>
                     </td>
