@@ -7,37 +7,35 @@
 }
 
 /** MUI **/
-.MuiOutlinedInput-root{
+.MuiOutlinedInput-root:hover fieldset, .Mui-focused fieldset, .MuiOutlinedInput-root fieldset{
+  border-color: white!important;
+}
+.whiteTimeFont .MuiOutlinedInput-input, .MuiSvgIcon-root, .MuiOutlinedInput-root, .MuiChip-root, .MuiAccordion-root{ 
   color: white!important;
 }
 .MuiOutlinedInput-root fieldset{
-  border-color: white;
   color: black;
-}
-.MuiOutlinedInput-root:hover fieldset{
-  border-color: white!important;
-}
-.Mui-focused fieldset{
-  border-color: white!important;
-}
-.whiteTimeFont .MuiOutlinedInput-input{ 
-  color: white!important;
 }
 .MuiAccordion-root{
   background-color: transparent!important;
-  color: white!important;
 }
-.MuiSvgIcon-root{
-  color: white;
+.MuiChip-root{
+  background-color: rgb(75, 75, 75)!important;
 }
-/** coloring the calendar's day headers (they were white so text was invisible) in Scheduels page **/
-.fc-col-header{
-  background-color:#282c34;
+.MuiMenuItem-root{
+  display: flex!important;
 }
-
+.MuiPaper-root{
+  min-width: 0px!important;
+}
 .accordion > div{
   width: 50%;
   margin: auto;
+}
+
+/** coloring the calendar's day headers (they were white so text was invisible) in Scheduels page **/
+.fc-col-header{
+  background-color:#282c34;
 }
 
 /** center the loader animation **/

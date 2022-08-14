@@ -51,14 +51,14 @@ export const PendingProjectsList = (props) => {
             fetchAndUpdateProjects();
         }
     }
-    // // approveProject = async (project) => {
-    // //     const allEvents = this.props.allEvents.events;
-    // //     const [res, err] = await ProjectsAPI.approvePendingProject(project, allEvents);
+    // approveProject = async (project) => {
+    //     const allEvents = this.props.allEvents.events;
+    //     const [res, err] = await ProjectsAPI.approvePendingProject(project, allEvents);
 
-    // //     if (err == null) {
-    // //         this.fetchAndUpdateProjects();
-    // //     }
-    // // }
+    //     if (err == null) {
+    //         this.fetchAndUpdateProjects();
+    //     }
+    // }
 
     return (
         <ul>
@@ -70,7 +70,7 @@ export const PendingProjectsList = (props) => {
                     return <li key={index}>
                         <PendingProject
                             project={project}
-                            approveProject={this.approveProject}
+                            approveProject={approveProject}
                         ></PendingProject>
                     </li>
                 })

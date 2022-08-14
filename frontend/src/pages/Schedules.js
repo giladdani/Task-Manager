@@ -506,7 +506,6 @@ export class Schedules extends React.Component {
                         initialView='timeGridWeek'
                         allDaySlot={false}
                         height="auto"
-                        // height="100%"
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}

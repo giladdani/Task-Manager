@@ -14,6 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
+import MultipleSelectChip from '../components/MultipleSelectChip';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
 export const Projects = (props) => {
@@ -39,25 +40,30 @@ export const Projects = (props) => {
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
-    const componentMounted = useRef(true);
+    // const componentMounted = useRef(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            let tempConstraints = await ConstraintsAPI.fetchConstraints();
+    useEffect(async() => {
+        const tempConstraints = await ConstraintsAPI.fetchConstraints();
+        setConstraints(tempConstraints);
+    }, [])
 
-            if (componentMounted.current) {
-                setConstraints(tempConstraints);
-            } else {
-                console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
-            }
-        }
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         let tempConstraints = await ConstraintsAPI.fetchConstraints();
 
-        fetchData();
+    //         if (componentMounted.current) {
+    //             setConstraints(tempConstraints);
+    //         } else {
+    //             console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
+    //         }
+    //     }
 
-        return () => {
-            componentMounted.current = false;
-        }
-    });
+    //     fetchData();
+
+    //     return () => {
+    //         componentMounted.current = false;
+    //     }
+    // });
 
     const handleGenerateClick = async () => {
         try {
@@ -230,15 +236,9 @@ export const Projects = (props) => {
         toggleSuccessDialog(false);
     }
 
-    const onSelectConstraintChange = (e) => {
-        console.log(`On selected change!`);
-
-        let chosenConstraintIds = [];
-
-        for (const selected of e.target.selectedOptions) {
-            chosenConstraintIds.push(selected.value);
-        }
-
+    const onSelectConstraintChange = (selectedConstraints) => {
+        // // console.log(`On selected change!`);
+        const chosenConstraintIds = selectedConstraints.map(constraint => constraint.id);
         setIgnoredConstraintsIds(chosenConstraintIds);
     }
 
@@ -366,6 +366,7 @@ export const Projects = (props) => {
                                     value={dailyStartHour}
                                     onChange={(newValue) => { setDailyStartHour(newValue) }}
                                     renderInput={(params) => <TextField {...params} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -378,6 +379,7 @@ export const Projects = (props) => {
                                     value={dailyEndHour}
                                     onChange={(newValue) => { setDailyEndHour(newValue) }}
                                     renderInput={(params) => <TextField {...params} />}
+                                    ampm={false}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -415,13 +417,14 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             <form >
-                                <select
+                                {/* <select
                                     onChange={onSelectConstraintChange}
                                     name="constraints" id="constraints" multiple>
                                     {constraints.map((constraint, index) => {
                                         return <option key={index} id={constraint.id} value={constraint.id}>{constraint.title}</option>
                                     })}
-                                </select>
+                                </select> */}
+                                <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange}></MultipleSelectChip>
                             </form>
                         </td>
                     </tr>
