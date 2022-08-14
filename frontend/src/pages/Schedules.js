@@ -255,6 +255,10 @@ export class Schedules extends React.Component {
         if (!googleEvent.extendedProperties.private) {
             return id;
         }
+        
+        if (!googleEvent.extendedProperties.private.fullCalendarEventID) {
+            return id;
+        }
 
         return googleEvent.extendedProperties.private.fullCalendarEventID;
     }

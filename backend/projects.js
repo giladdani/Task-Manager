@@ -414,10 +414,10 @@ const deleteProject = async (req, res) => {
                                 calendarId: googleCalendarId,
                         })
                 } else {
-                        let deleteLocalDocs = EventModel.deleteMany({ 'projectId': projectId });
+                        let deleteLocalDocs = await EventModel.deleteMany({ 'projectId': projectId }); // Didn't work without await for some reason
                 }
 
-                let deleteProjectDocs = ProjectModel.deleteOne({ 'id': projectId });
+                let deleteProjectDocs = await ProjectModel.deleteOne({ 'id': projectId });
         } catch (err) {
                 errorMsg = err;
                 console.error(err);

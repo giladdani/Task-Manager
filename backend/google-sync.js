@@ -3,67 +3,55 @@ const { google } = require('googleapis');
 const utils = require('./utils');
 const UserModel = require('./models/user');
 const GoogleEventModel = require('./models/googleevent');
+const ProjectModel = require('./models/project')
+
 
 const syncGoogleData = async (accessToken, email) => {
-    let allEvents = [];
+    let unsyncedEvents = [];
 
     try {
         utils.oauth2Client.setCredentials({ access_token: accessToken });
         const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
 
-        const unsyncedGoogleCalendarsPromise = getUnsyncedGoogleCalendars(googleCalendarClient, email);
-        let userDataFindPromise = UserModel.findOne({ email: email });
-        let missingCalendarId2Sync = [];
-        let deletedCalendarsId = [];
-        await Promise.all([unsyncedGoogleCalendarsPromise, userDataFindPromise])
-            .then(responses => {
-                let unsyncedGoogleCalendars = responses[0];
-                let userDataFind = responses[1];
+        const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
+        updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
+        let newCalendarId2Sync = await getNewCalendarsIds(unsyncedGoogleCalendars, email);
+        let deletedCalendarsId = getDeletedCalendarsIds(unsyncedGoogleCalendars);
 
-                for (const calendar of unsyncedGoogleCalendars) {
-                    const calendarId = calendar.id;
-                    if (calendar.deleted === true) {
-                        deletedCalendarsId.push(calendarId);
-                    } else {
-                        if (!(userDataFind.eventListCalendarId2SyncToken.some(keyVal => keyVal.key === calendarId))) {
-                            missingCalendarId2Sync.push({
-                                key: calendarId,
-                                value: null,
-                            })
-                        }
-                    }
-                }
-            })
-
-        syncDeletedCalendars(deletedCalendarsId, email);
-
-        // Add missing calendars to the user's sync token array.
-        if (missingCalendarId2Sync.length > 0) {
-            let userDataUpdate = await UserModel.updateOne(
-                { email: email },
-                {
-                    $push: {
-                        eventListCalendarId2SyncToken: {
-                            $each: missingCalendarId2Sync,
-                        }
-                    }
-                });
-        }
-
-        allEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
-        const docsEvents = GoogleEventModel.insertMany(allEvents);
+        addMissingCalendars(newCalendarId2Sync, email);
+        updateUserDeletedCalendars(deletedCalendarsId, email);
+        updateDeletedProjects(deletedCalendarsId, email);
+        let deletedCalendarEvents = await getDeletedCalendarsEventsDB(deletedCalendarsId, email);
+        removeDeletedCalendarsEvents(deletedCalendarsId, email);
+        // unsyncedEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
+        let [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap] = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
+        updateEventCollectionSyncTokens(calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email);
+        updateDBWithUnsyncedEvents(allUnsyncedEvents, email)
+        deletedCalendarEvents.forEach(event => event.status = 'cancelled');
+        unsyncedEvents = allUnsyncedEvents.concat(deletedCalendarEvents);
     }
     catch (error) {
         console.log(`[syncGoogleData] Error:\n\n${error}`);
     }
 
-    return allEvents;
+    return unsyncedEvents;
 }
 
-const syncDeletedCalendars = async (deletedCalendarsId, email) => {
+/**
+ * If the user deleted a calendar that is an exported project, we also delete the project on our end.
+ * @param {*} deletedCalendarsId 
+ * @param {*} email 
+ */
+const updateDeletedProjects = async (deletedCalendarsId, email) => {
+    for(const calendarId of deletedCalendarsId) {
+        let deleteProjectDocs = await ProjectModel.deleteOne({ 'googleCalendarId': calendarId }); // TODO: try without the await
+    }
+}
+
+const updateUserDeletedCalendars = async (deletedCalendarsId, email) => {
     if (deletedCalendarsId.length > 0) {
         // Remove deleted calendars from the user's sync token array.
-        UserModel.updateOne(
+        await UserModel.updateOne(
             { email: email },
             {
                 $pull: {
@@ -75,9 +63,13 @@ const syncDeletedCalendars = async (deletedCalendarsId, email) => {
                 }
             }
         )
+    }
+}
 
+const removeDeletedCalendarsEvents = async (deletedCalendarsId, email) => {
+    if (deletedCalendarsId.length > 0) {
         // Delete all calendar events from our DB
-        GoogleEventModel.deleteMany( // No need to await
+        await GoogleEventModel.deleteMany( // No need to await
             {
                 email: email,
                 calendarId: {
@@ -88,30 +80,122 @@ const syncDeletedCalendars = async (deletedCalendarsId, email) => {
     }
 }
 
-const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email, deletedCalendarsId) => {
-    let allEvents = [];
-    let deletedCalendarEvents = []
+const updateEventCollectionSyncTokens = async (calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email) => {
+    let map = new Map();
+
+    for (const [calendarId, prevSyncToken] of calendarId2PrevSyncTokenMap) {
+        let nextSyncToken = calendarId2NextSyncTokenMap.get(calendarId);
+
+        if (prevSyncToken !== nextSyncToken) {
+            let updateRes = await UserModel.updateOne(
+                { email: email, "eventListCalendarId2SyncToken.key": calendarId },
+                { "$set": { "eventListCalendarId2SyncToken.$.value": nextSyncToken } }
+            )
+        }
+    }
+}
+
+/**
+ * Inserts all the new events into the DB, and removes all the deleted ones.
+ * @param {*} unsyncedEvents 
+ */
+const updateDBWithUnsyncedEvents = async (unsyncedEvents, email) => {
+    /**
+     * Ideally, we want to remove all the deleted events, add all the new events, and just update the existing but modified events.
+     * We can easily recognize if an event is deleted, but we can't easily find out if an event is unsynced because it's new,
+     * or if it's unsynced because it has been modified somehow.
+     * Furthermore if a sync token has expired on Google's end, it returns all the calendar's events.
+     * 
+     * The suboptimal but easy solution I chose for now is just to delete all the events in the DB that match the IDs of unsynced events,
+     * and then re-insert them (not including the deleted ones).
+     * While it's not great, for the most part I also don't think it will affect things too drastically.
+     */
+
+    let eventsIds = [];
+    for (const event of unsyncedEvents) {
+        eventsIds.push(event.id);
+    }
+
+    await GoogleEventModel.deleteMany( // I tried without await but I never saw the DB updated for some reason
+        {
+            email: email,
+            id: {
+                $in: eventsIds,
+            }
+        }
+    );
+
+    let undeletedEvents = unsyncedEvents.filter(event => event.status !== 'cancelled');
+    const docsEvents = GoogleEventModel.insertMany(undeletedEvents);
+}
+
+const addMissingCalendars = async (missingCalendarId2Sync, email) => {
+    if (missingCalendarId2Sync.length > 0) {
+        let userDataUpdate = await UserModel.updateOne(
+            { email: email },
+            {
+                $push: {
+                    eventListCalendarId2SyncToken: {
+                        $each: missingCalendarId2Sync,
+                    }
+                }
+            });
+    }
+}
+
+/**
+ * When a calendar is deleted by the user at Google, when asking for all calendars to then ask for all their events, the deleted ones won't appear.
+ * @param {[String]} deletedCalendarsId An array of IDs of all the deleted calendars.
+ * @param {*} email 
+ */
+const getDeletedCalendarsEventsDB = async (deletedCalendarsId, email) => {
+    let deletedCalendarsEvents = [];
+
+    if (deletedCalendarsId.length > 0) {
+        // Delete all calendar events from our DB
+        let calendarEvents = await GoogleEventModel.find( // No need to await
+            {
+                email: email,
+                calendarId: {
+                    $in: deletedCalendarsId
+                },
+            }
+        );
+
+        deletedCalendarsEvents = deletedCalendarsEvents.concat(calendarEvents);
+    }
+
+    return deletedCalendarsEvents;
+}
+
+/**
+ * Finds all the unsynced events of all the user's calendars. The function first acquires all the user's calendars, then asks for their events with the sync tokens.
+ * Ntoe that deleted calendars won't be spotted here, so finding the user's events from deleted calendars requires a different function.
+ * @param {*} googleCalendarClient 
+ * @param {*} email 
+ * @param {*} deletedCalendarsId 
+ * @returns An array of [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap]. The two maps allow updating the sync tokens.
+ */
+const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
+    let allUnsyncedEvents = [];
+    let calendarId2PrevSyncTokenMap = new Map();
+    let calendarId2NextSyncTokenMap = new Map();
     const colorsPromise = googleCalendarClient.colors.get({});
     const calendarListPromise = googleCalendarClient.calendarList.list();
     const userDataPromise = UserModel.findOne({ email: email });
-
-    
-    for (const deleteId of deletedCalendarsId) {
-        const [deletedCalendarEvents, areModifiedEvents] = await getUnsyncedEventsFromCalendar(googleCalendarClient, deleteId, null, email, "test - ignore me");
-        console.log(`Number events retrieved from deleted calendar: ${deletedCalendarEvents.length}`);
-    }
-
 
     await Promise.all([colorsPromise, calendarListPromise, userDataPromise])
         .then(async (responses) => {
             let calendarColors = responses[0].data.calendar; // An array of all colors of all calendars, see https://developers.google.com/calendar/api/v3/reference/colors/get
             let eventColors = responses[0].data.event; // Some events have been specifically modified for different colors
-            let response = responses[1];
+            let calendarList = responses[1];
             let userData = responses[2];
 
-            for (const calendar of response.data.items) {
+            for (const calendar of calendarList.data.items) {
                 const calendarSyncToken = getCalendarSyncToken(userData, calendar.id);
-                const [unsyncedCalendarEvents, areModifiedEvents] = await getUnsyncedEventsFromCalendar(googleCalendarClient, calendar.id, calendarSyncToken, email, calendar.summary);
+                const [unsyncedCalendarEvents, nextSyncToken] = await getUnsyncedEventsFromCalendar(googleCalendarClient, calendar.id, calendarSyncToken, email, calendar.summary);
+                calendarId2PrevSyncTokenMap.set(calendar.id, calendarSyncToken);
+                calendarId2NextSyncTokenMap.set(calendar.id, nextSyncToken);
                 // // const [background, foreground] = getColorString(calendar, calendarColors, eventColors);
                 let calendarEventsWithCalendarId = unsyncedCalendarEvents.map(event => {
                     const [background, foreground] = getColorString(calendar, event, calendarColors, eventColors);
@@ -129,61 +213,65 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email, delete
                 }
                 );
 
-                for (const event of calendarEventsWithCalendarId) {
+                // // if (areModifiedEvents && unsyncedCalendarEvents.length > 0) {
+                // //     // /**
+                // //     //  * Modified events need to be updated in the DB.
+                // //     //  * One way to do it is remove events whose status is cancelled, and just update events whose status is confirmed with the new fields.
+                // //     //  * What we do right now is simply remove all the DB events that have been modified, so we re-insert them at the end of the function.
+                // //     //  */
+                // //     let removeIds = [];
+                // //     let deletedEvents = [];
+                // //     for (const modifiedEvent of unsyncedCalendarEvents) {
+                // //         removeIds.push(modifiedEvent.id);
+                // //         if (modifiedEvent.status === 'cancelled') {
+                // //             deletedEvents.push(modifiedEvent);
+                // //         }
+                // //     }
 
-                }
+                // //     await GoogleEventModel.deleteMany( // I tried without await but I never saw the DB updated for some reason
+                // //         {
+                // //             email: email,
+                // //             id: {
+                // //                 $in: removeIds,
+                // //             }
+                // //         }
+                // //     );
 
-                if (areModifiedEvents && unsyncedCalendarEvents.length > 0) {
-                    /**
-                     * Modified events need to be updated in the DB.
-                     * One way to do it is remove events whose status is cancelled, and just update events whose status is confirmed with the new fields.
-                     * What we do right now is simply remove all the DB events that have been modified, so we re-insert them at the end of the function.
-                     */
-                    let removeIds = [];
-                    let deletedEvents = [];
-                    for (const modifiedEvent of unsyncedCalendarEvents) {
-                        removeIds.push(modifiedEvent.id);
-                        if (modifiedEvent.status === 'cancelled') {
-                            deletedEvents.push(modifiedEvent);
-                        }
-                    }
+                // //     calendarEventsWithCalendarId = calendarEventsWithCalendarId.filter(event => !deletedEvents.includes(event));
+                // // }
 
-                    await GoogleEventModel.deleteMany( // I tried without await but I never saw the DB updated for some reason
-                        {
-                            email: email,
-                            id: {
-                                $in: removeIds,
-                            }
-                        }
-                    );
-
-                    calendarEventsWithCalendarId = calendarEventsWithCalendarId.filter(event => !deletedEvents.includes(event));
-                }
-
-                allEvents = allEvents.concat(calendarEventsWithCalendarId);
+                allUnsyncedEvents = allUnsyncedEvents.concat(calendarEventsWithCalendarId);
             }
         })
 
-    return allEvents;
+    return [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap];
 }
 
+
 /**
- * Returns unsynced calendars only. Makes use of the sync token. Updates the sync token at the DB.
+ * Returns unsynced calendars only. Does not update the sync token!
  * @param {*} calendar 
  * @param {*} email 
- * @returns 
+ * @returns An array of [calendars, prevSyncToken, nextSyncToken]. Note that nextSyncToken may be the same as current sync token.
  */
 const getUnsyncedGoogleCalendars = async (calendar, email) => {
     const userData = await UserModel.findOne({ email: email });
     let syncToken = userData.calendarsSyncToken;
+    let prevSyncToken = syncToken;
     let calendars = [];
     let nextSyncToken = null;
     let response = await calendar.calendarList.list({ syncToken: syncToken, });
     calendars = response.data.items;
     nextSyncToken = response.data.nextSyncToken;
-    let updateRes = null;
-    if (syncToken !== nextSyncToken) {
-        updateRes = await UserModel.updateOne(
+
+    return [calendars, prevSyncToken, nextSyncToken]
+}
+
+const updateUserCalendarsSyncToken = async (prevSyncToken, nextSyncToken, email) => {
+    let updatePromise = null;
+
+    if (prevSyncToken !== nextSyncToken) {
+        updatePromise = await UserModel.updateOne(
             { email: email },
             {
                 $set:
@@ -193,7 +281,41 @@ const getUnsyncedGoogleCalendars = async (calendar, email) => {
             })
     }
 
-    return calendars;
+    return updatePromise;
+}
+
+const getDeletedCalendarsIds = (unsyncedGoogleCalendars) => {
+    let deletedCalendarsId = [];
+
+    for (const calendar of unsyncedGoogleCalendars) {
+        const calendarId = calendar.id;
+        if (calendar.deleted === true) {
+            deletedCalendarsId.push(calendarId);
+        }
+    }
+
+    return deletedCalendarsId;
+}
+
+const getNewCalendarsIds = async (unsyncedGoogleCalendars, email) => {
+    let newCalendarId2Sync = [];
+
+    let userData = await UserModel.findOne({ email: email });
+
+    for (const calendar of unsyncedGoogleCalendars) {
+        const calendarId = calendar.id;
+
+        if (!calendar.deleted) {
+            if (!(userData.eventListCalendarId2SyncToken.some(keyVal => keyVal.key === calendarId))) {
+                newCalendarId2Sync.push({
+                    key: calendarId,
+                    value: null,
+                })
+            }
+        }
+    }
+
+    return newCalendarId2Sync;
 }
 
 const getCalendarSyncToken = (userData, calendarId) => {
@@ -220,14 +342,15 @@ const getCalendarSyncToken = (userData, calendarId) => {
  */
 const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, syncToken, email, summary) => {
     let events = [];
+    let prevSyncToken = syncToken;
+    let nextSyncToken = null;
     let areModifiedEvents = false;
 
     if (syncToken === null) {
-        events = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
+        [events, nextSyncToken] = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
     } else {
         try {
             let pageToken = null;
-            let nextSyncToken = null;
             do {
                 response = await googleCalendarApi.events.list({
                     calendarId: calendarId,
@@ -241,14 +364,14 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
                 pageToken = response.data.nextPageToken;
             } while (pageToken);
 
-            if (syncToken !== nextSyncToken) {
-                let updateRes = await UserModel.updateOne(
-                    { email: email, "eventListCalendarId2SyncToken.key": calendarId },
-                    { "$set": { "eventListCalendarId2SyncToken.$.value": nextSyncToken } }
-                )
-            }
+            // // if (syncToken !== nextSyncToken) {
+            // //     let updateRes = await UserModel.updateOne(
+            // //         { email: email, "eventListCalendarId2SyncToken.key": calendarId },
+            // //         { "$set": { "eventListCalendarId2SyncToken.$.value": nextSyncToken } }
+            // //     )
+            // // }
 
-            areModifiedEvents = events.length > 0;
+            // // areModifiedEvents = events.length > 0;
         }
         catch (err) {
             console.log(err);
@@ -259,19 +382,14 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
                  * If our old sync token is expired, we need to refetch all the events.
                  * If we insert them all as is, we'll have duplicates. So we also delete all the events of this calendar we already have saved.
                  */
-                let deletePromise = GoogleEventModel.deleteMany({ email: email, calendarId: calendarId });
-                let eventsPromise = getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
-                Promise.all([deletePromise, eventsPromise])
-                    .then(responses => {
-                        for (const response of responses) {
-                            console.log(`Hey this is some response, ${response.stats}`);
-                        }
-                    })
+
+                // let deletePromise = await GoogleEventModel.deleteMany({ email: email, calendarId: calendarId });
+                [events, nextSyncToken] = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
             }
         }
     }
 
-    return [events, areModifiedEvents];
+    return [events, nextSyncToken];
 }
 
 
@@ -282,16 +400,14 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
  * @param {*} calendarId 
  * @param {*} email 
  * @param {*} calendarSummary 
- * @returns 
+ * @returns An array of [events, nextSyncToken], where events is all the calendar's events.
  */
 const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calendarSummary) => {
     const currDate = new Date();
-    const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 12);
-    const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 12);
-
+    const timeMinDate = new Date(currDate).setMonth(currDate.getMonth() - 4);
+    const timeMaxDate = new Date(currDate).setMonth(currDate.getMonth() + 6);
     let pageToken = null;
     let nextSyncToken = null;
-
     let events = [];
 
     do {
@@ -310,19 +426,11 @@ const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calend
 
     let query = {
         email: email,
-        eventListCalendarId2SyncToken: {
-            key: calendarId,
-        }
-    }
-
-    // Different option
-    let query2 = {
-        email: email,
         "eventListCalendarId2SyncToken.key": calendarId,
     }
 
     let updateRes = await UserModel.updateOne(
-        query2,
+        query,
         {
             $set: {
                 "eventListCalendarId2SyncToken.$.value": nextSyncToken,
@@ -330,7 +438,7 @@ const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calend
         }
     );
 
-    return events;
+    return [events, nextSyncToken];
 }
 
 const getColorString = (calendar, event, calendarColors, eventColors) => {
@@ -369,20 +477,6 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
         // foreground = colorEntry[1].foreground;
 
     }
-    // else {
-    //     colorId = Number(calendar.colorId);
-    //     colors = Object.entries(calendarColors);
-    // }
-
-    // const colorEntry = colors[colorId - 1];
-    // const background = colorEntry[1].background;
-    // const foreground = colorEntry[1].foreground;
-
-    // const colorId = Number(calendar.colorId);
-    // const colors = Object.entries(allGoogleCalendarColors);
-    // const colorEntry = colors[colorId - 1];
-    // const background = colorEntry[1].background;
-    // const foreground = colorEntry[1].foreground;
 
     return [background, foreground];
 }
