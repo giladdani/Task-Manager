@@ -12,7 +12,7 @@ const projectSchema = new Schema({
     spacingLengthMinutes: Number,
     backgroundColor: String,
     email: String,
-    sharedEmails: [String],
+    participatingEmails: [String],
     exportedToGoogle: Boolean,
     googleCalendarId: String,
     maxEventsPerDay: Number,

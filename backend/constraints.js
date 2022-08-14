@@ -1,10 +1,6 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-
 const ConstraintEventModel = require('./models/constraintevent')
-const dataObjects = require('./dataobjects');
-const { DayConstraint } = require('./dataobjects');
-
 const utils = require('./utils');
 const router = express.Router();
 
@@ -12,15 +8,20 @@ const router = express.Router();
 router.post('/', (req, res) => { addConstraint(req, res) });
 router.put('/:id', (req, res) => { updateConstraint(req, res) });
 router.delete('/:id', (req, res) => { deleteConstraint(req, res) });
-
 router.get('/', (req, res) => { getConstraints(req, res) });
 
 
 // Functions
 const getConstraints = async (req, res) => {
-    const userEmail = await utils.getEmailFromReq(req);
-    const allConstraints = await ConstraintEventModel.find({ 'email': userEmail });
-    res.status(StatusCodes.OK).send(allConstraints);
+    try {
+        const userEmail = await utils.getEmailFromReq(req);
+        const allConstraints = await ConstraintEventModel.find({ 'email': userEmail });
+        res.status(StatusCodes.OK).send(allConstraints);
+
+    } catch (err) {
+        console.log(`[getConstraints] Error!\n${err}`);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+    }
 }
 
 const addConstraint = async (req, res) => {
@@ -51,7 +52,7 @@ const updateConstraint = async (req, res) => {
         const constraint = await receiveConstraintFromReq(req);
         constraint.id = constraintId;
 
-        const docs = await ConstraintEventModel.updateOne({'id': constraintId}, constraint);
+        const docs = await ConstraintEventModel.updateOne({ 'id': constraintId }, constraint);
     } catch (err) {
         errorMsg = err;
     }
