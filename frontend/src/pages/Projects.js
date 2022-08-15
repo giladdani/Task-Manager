@@ -242,20 +242,6 @@ export const Projects = (props) => {
         return false;
     }
 
-    function areAnyDaysChecked(days) {
-        let foundCheckedDay = false;
-
-        foundCheckedDay = foundCheckedDay || days.sundayValue;
-        foundCheckedDay = foundCheckedDay || days.mondayValue;
-        foundCheckedDay = foundCheckedDay || days.tuesdayValue;
-        foundCheckedDay = foundCheckedDay || days.wednesdayValue;
-        foundCheckedDay = foundCheckedDay || days.thursdayValue;
-        foundCheckedDay = foundCheckedDay || days.fridayValue;
-        foundCheckedDay = foundCheckedDay || days.saturdayValue;
-
-        return foundCheckedDay;
-    }
-
     function handleDialogClose() {
         toggleSuccessDialog(false);
     }

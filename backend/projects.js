@@ -1,8 +1,8 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const EventModel = require('./models/projectevent')
-const ProjectModel = require('./models/project')
-const PendingProject = require('./models/pendingprojects')
+const dbUnexportedEvents = require('./dal/dbUnexportedEvents');
+const dbProjects = require('./dal/dbProjects');
+const dbPendingProjects = require('./dal/dbPendingProjects');
 const { google } = require('googleapis');
 const algorithm = require('./algorithm');
 const utils = require('./utils');
@@ -27,8 +27,7 @@ const rescheduleProjectEvent = async (req, res) => {
                 const event = req.body.event;
                 const allEvents = req.body.allEvents;
                 const projectId = utils.getEventProjectId(event);
-                const project = await ProjectModel.findOne({ 'id': projectId });
-
+                const project = await dbProjects.findOne({ 'id': projectId });
                 let [events, estimatedTimeLeft] = await algorithm.rescheduleEvent(event, allEvents, project);
 
                 let resBody = {
@@ -45,8 +44,9 @@ const rescheduleProjectEvent = async (req, res) => {
 
 const getProjects = async (req, res) => {
         try {
-                const userEmail = await utils.getEmailFromReq(req);
-                const allProjects = await ProjectModel.find({ 'email': userEmail });
+                const userEmail = utils.getEmailFromReq(req);
+                const allProjects = await dbProjects.find({ 'email': userEmail });
+
                 res.status(StatusCodes.OK).send(allProjects);
         } catch (err) {
                 console.log(`[getProjects] Error!\n${err}`);
@@ -56,10 +56,8 @@ const getProjects = async (req, res) => {
 
 const getPendingProjects = async (req, res) => {
         try {
-                const userEmail = await utils.getEmailFromReq(req);
-                // const pendingProjects = await PendingProject.find({ 'awaitingUserApproval': userEmail });
-
-                const pendingProjects = await PendingProject.find({ 'participatingEmails': userEmail });
+                const userEmail = utils.getEmailFromReq(req);
+                const pendingProjects = await dbPendingProjects.find({ 'participatingEmails': userEmail });
 
                 res.status(StatusCodes.OK).send(pendingProjects);
         } catch (err) {
@@ -70,9 +68,16 @@ const getPendingProjects = async (req, res) => {
 
 const getAllProjectEvents = async (req, res) => {
         try {
-                const userEmail = await utils.getEmailFromReq(req);
-                const allProjectEvents = await EventModel.find({ 'email': userEmail });
-                res.status(StatusCodes.OK).send(allProjectEvents);
+                const userEmail = utils.getEmailFromReq(req);
+
+                dbUnexportedEvents.find({ email: userEmail })
+                        .then(events => {
+                                res.status(StatusCodes.OK).send(events);
+                        })
+                        .catch(err => {
+                                console.log(`[getAllProjectEvents] Error!\n${err}`);
+                                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+                        })
         } catch (err) {
                 console.log(`[getAllProjectEvents] Error!\n${err}`);
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
@@ -80,26 +85,12 @@ const getAllProjectEvents = async (req, res) => {
 }
 
 const addApprovingUserToSharedProject = async (approverEmail, project) => {
-        // add user to approving users
-        await PendingProject.updateOne({ 'sharedId': project.sharedId },
-                {
-                        $push: {
-                                approvingUsers: approverEmail,
-                        }
-                });
-
-        // remove user from awaiting approval
-        await PendingProject.updateOne({ 'sharedId': project.sharedId },
-                {
-                        $pull: {
-                                awaitingApproval: approverEmail,
-                        }
-                });
+        return dbPendingProjects.addApprovingUser(project.sharedId, approverEmail);
 }
 
 const approveSharedProject = async (req, res) => {
         try {
-                const approverEmail = await utils.getEmailFromReq(req);
+                const approverEmail = utils.getEmailFromReq(req);
                 const project = req.body.project;
                 await addApprovingUserToSharedProject(approverEmail, project);
 
@@ -111,13 +102,12 @@ const approveSharedProject = async (req, res) => {
                  */
                 const accessToken = await utils.getAccessTokenFromRequest(req);
                 googleSync.syncGoogleData(accessToken, approverEmail);
-
-                const pendingProject = await PendingProject.findOne({ 'sharedId': project.sharedId });
+                const pendingProject = await dbPendingProjects.findOne({ 'sharedId': project.sharedId });
                 console.log(`[approveSharedProject] User ${approverEmail} approved project '${project.title}'`)
                 if (pendingProject.awaitingApproval.length === 0) {
                         let [events, estimatedTimeLeft] = await algorithm.generateSchedule(project);
                         await saveProjectAndEvents(project, events);
-                        let deletePendingDoc = await PendingProject.deleteOne({ 'sharedId': project.sharedId });
+                        await dbPendingProjects.deleteOne({ 'sharedId': project.sharedId });
                         console.log(`[approveSharedProject] Deleted pending project ${project.title} from PendingProjects.`)
                         res.status(StatusCodes.OK).send('Project created!');
                 } else {
@@ -135,16 +125,14 @@ async function saveProjectAndEvents(project, events) {
                 dupProj._id = null; // To avoid conflict if it's a shared project and one version already exists
                 dupProj.email = email;
                 dupProj.id = utils.generateId();
-
-                await ProjectModel.create(dupProj);
-
+                await dbProjects.create(dupProj);
                 events.forEach(event => {
                         event.email = email
                         event.id = utils.generateId();
                         event.projectId = dupProj.id;
                 });
 
-                await EventModel.insertMany(events);
+                await dbUnexportedEvents.insertMany(events);
         }
 }
 
@@ -197,11 +185,11 @@ const createSharedProject = async (req, res) => {
                 }
 
                 let project = await createProjectObject(req, true);
-                const userEmail = await utils.getEmailFromReq(req);
+                const userEmail = utils.getEmailFromReq(req);
                 project.requestingUser = userEmail;
                 let participatingEmails = await getParticipatingEmails(req);
                 project.awaitingApproval = participatingEmails;
-                const docsProject = await PendingProject.create(project);
+                await dbPendingProjects.create(project);
                 await addApprovingUserToSharedProject(userEmail, project)
                 console.log(`[requestCreateSharedProject] Created a request to share a project by ${userEmail} with ${project.participatingEmails}`);
                 res.status(StatusCodes.OK).send();
@@ -250,9 +238,11 @@ const exportProject = async (req, res) => {
         let errorMsg = null;
         const projectId = req.params.id;
         let project = null;
+        let email = utils.getEmailFromReq(req);
 
+        console.log(`[exportProject] Exporting project for ${email}.`);
         try {
-                project = await ProjectModel.findOne({ 'id': projectId });
+                project = await dbProjects.findOne({ 'id': projectId });
                 if (!project) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Could not find project matching ID ${projectId}`);
                         return;
@@ -263,15 +253,7 @@ const exportProject = async (req, res) => {
                         return;
                 }
 
-                // TODO: remove old code with allEvents if all works well
-                // const allEvents = req.body.events;
-                // const allProjectEvents = allEvents.filter(event => {
-                // return event.extendedProps.unexportedEvent === true &&
-                // event.extendedProps.projectId === project.id
-                // });
-
-                let email = await utils.getEmailFromReq(req);
-                let allProjectEvents = await EventModel.find({ email: email, projectId: projectId })
+                let allProjectEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
                 if (allProjectEvents.length == 0) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it..`);
                         return;
@@ -281,14 +263,8 @@ const exportProject = async (req, res) => {
                 const googleCalendarId = googleResJson.data.id;
                 const errMsg = await insertEventsToGoogleCalendar(req, allProjectEvents, project, googleCalendarId);
 
-                let docs = await EventModel.deleteMany({ email: email, 'projectId': projectId });
-                docs = await ProjectModel.updateOne({ 'id': projectId },
-                        {
-                                $set: {
-                                        exportedToGoogle: true,
-                                        googleCalendarId: googleCalendarId,
-                                }
-                        });
+                await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
+                await dbProjects.updateExportProject(projectId, googleCalendarId);
         } catch (err) {
                 errorMsg = err;
         }
@@ -372,7 +348,7 @@ const deleteProject = async (req, res) => {
         let project = null;
 
         try {
-                project = await ProjectModel.findOne({ 'id': projectId });
+                project = await dbProjects.findOne({ 'id': projectId });
 
                 if (!project) {
                         return;
@@ -393,10 +369,10 @@ const deleteProject = async (req, res) => {
                                 calendarId: googleCalendarId,
                         })
                 } else {
-                        let deleteLocalDocs = await EventModel.deleteMany({ 'projectId': projectId }); // Didn't work without await for some reason
+                        await dbUnexportedEvents.deleteMany({ 'projectId': projectId });
                 }
 
-                let deleteProjectDocs = await ProjectModel.deleteOne({ 'id': projectId });
+                await dbProjects.deleteOne({ 'id': projectId });
         } catch (err) {
                 errorMsg = err;
                 console.error(err);
@@ -497,21 +473,10 @@ function isPositiveInteger(input) {
         return false;
 }
 
-function isAnyDayChecked(days) {
-        if (!days) {
-                return false;
-        }
 
-        if (days.length === 0) {
-                return false;
-        }
-
-        return true;
-}
-
-const createProjectObject = async (req, isSharedProject) => {
+const createProjectObject = async (req) => {
         const projectId = utils.generateId();
-        const userEmail = await utils.getEmailFromReq(req);
+        const userEmail = utils.getEmailFromReq(req);
         const backgroundColor = getRandomColor();
         let sharedProjectId = null;
         let participatingEmails = await getParticipatingEmails(req);
@@ -545,7 +510,7 @@ const createProjectObject = async (req, isSharedProject) => {
 }
 
 async function getParticipatingEmails(req) {
-        let userEmail = await utils.getEmailFromReq(req);
+        let userEmail = utils.getEmailFromReq(req);
         let participatingEmails = [];
         for (const email of req.body.participatingEmails) {
                 participatingEmails.push(email);

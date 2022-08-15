@@ -4,8 +4,9 @@ const axios = require('axios').default;
 const uuidv4 = require('uuid').v4;
 const nodemailer = require('nodemailer');
 
-const EventModel = require('./models/projectevent')
-const GoogleEventModel = require('./models/googleevent')
+const EventModel = require('./models/unexported-event')
+const GoogleEventModel = require('./models/google-event')
+const consts = require('./consts');
 
 
 const transporter = nodemailer.createTransport({
@@ -20,9 +21,9 @@ const getAccessTokenFromRequest = (req) => {
     return req.headers['access_token'].slice(req.headers['access_token'].lastIndexOf(' ') + 1);
 }
 
-const getEmailFromReq = async (req) => {
-    const accessToken = getAccessTokenFromRequest(req);
-    const email = await getEmailFromAccessToken(accessToken);
+const getEmailFromReq = (req) => {
+    const email = req.headers[consts.emailHeader];
+
     return email;
 }
 
@@ -130,7 +131,7 @@ const getAllUserEvents = async (email) => {
 
     // TODO: use Promise All here
     const googleEvents = await GoogleEventModel.find({ email: email });
-    const unexportedEvents = await EventModel.find({email: email});
+    const unexportedEvents = await EventModel.find({ email: email });
 
     events = events.concat(googleEvents);
     events = events.concat(unexportedEvents);
@@ -144,7 +145,7 @@ const getAllUserEvents = async (email) => {
  * @param {*} event 
  */
 // TODO: maybe just add a field to Google events and check that? Like 'isGoogleEvent'
- const getEventStart = (event) => {
+const getEventStart = (event) => {
     let date = null;
 
     if (!event) {
@@ -198,7 +199,7 @@ const getEventDates = (event) => {
 
 function isValidDate(date) {
     return date instanceof Date && !isNaN(date);
-  }
+}
 
 module.exports = {
     oauth2Client: oauth2Client,

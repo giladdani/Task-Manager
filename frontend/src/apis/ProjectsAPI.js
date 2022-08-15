@@ -6,11 +6,7 @@ async function fetchPendingProjects() {
 
     try {
         const response = await fetch(`${consts.host}/projects/pending`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'GET',
         });
 
@@ -40,11 +36,7 @@ async function approvePendingProject(project) {
         };
 
         const response = await fetch(`${consts.host}/projects/shared/approved`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'POST',
             body: JSON.stringify(body),
         });
@@ -69,11 +61,7 @@ const fetchProjects = async () => {
     try {
 
         const response = await fetch(`${consts.host}/projects`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem("access_token")
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 
@@ -96,11 +84,7 @@ const deleteProject = async (project) => {
 
     try {
         const response = await fetch(`${consts.host}/projects/${project.id}`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'DELETE',
         });
 
@@ -121,33 +105,28 @@ const deleteProject = async (project) => {
 }
 
 const exportProject = async (project) => {
-    let res = null;
+    let response = null;
     let error = null;
     console.log(`Exporting project ${project.title}. Project ID: ${project.id}`);
 
     try {
-        const response = await fetch(`${consts.host}/projects/export/${project.id}`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+        response = await fetch(`${consts.host}/projects/export/${project.id}`, {
+            headers: consts.standardHeaders,
             method: 'POST',
         });
 
         if (response.status !== 200) {
-            throw new Error(`Failed to export project ${project.title} (ID: ${project.id})`);
+            console.error(`[ProjectsAPI - exportProject] Failed to export project ${project.title} (ID: ${project.id})`);
+        } else {
+            console.log(`[ProjectsAPI - exportProject] Project ${project.title} (ID: ${project.id}) exported to Google.`);
         }
-
-        console.log(`Project ${project.title} (ID: ${project.id}) exported to Google.`);
-        res = response;
     }
     catch (err) {
         console.error(err);
         error = err;
     }
 
-    return [res, error];
+    return [response, error];
 }
 
 
@@ -158,11 +137,7 @@ const createSharedProject = async (body) => {
 
     try {
         const response = await fetch('http://localhost:3001/api/projects/shared', {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'POST',
             body: JSON.stringify(body),
         });
@@ -189,11 +164,7 @@ const createIndividualProject = async (body) => {
 
     try {
         const response = await fetch('http://localhost:3001/api/projects', {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'POST',
             body: JSON.stringify(body),
         });

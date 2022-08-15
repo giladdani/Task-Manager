@@ -1,6 +1,6 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const ConstraintEventModel = require('./models/constraintevent')
+const ConstraintEventModel = require('./models/constraint')
 const utils = require('./utils');
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.get('/', (req, res) => { getConstraints(req, res) });
 // Functions
 const getConstraints = async (req, res) => {
     try {
-        const userEmail = await utils.getEmailFromReq(req);
+        const userEmail = utils.getEmailFromReq(req);
         const allConstraints = await ConstraintEventModel.find({ 'email': userEmail });
         res.status(StatusCodes.OK).send(allConstraints);
 
@@ -85,7 +85,7 @@ const deleteConstraint = async (req, res) => {
 }
 
 const receiveConstraintFromReq = async (req) => {
-    const userEmail = await utils.getEmailFromReq(req);
+    const userEmail = utils.getEmailFromReq(req);
 
     if (userEmail == null) {
         throw "No user logged in. User must be logged in with their Google account to add constraints.";
