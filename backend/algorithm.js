@@ -41,11 +41,10 @@ const generateSchedule = async (project) => {
     const spacingBetweenEventsMinutes = project.spacingLengthMinutes;
     const allConstraintsArr = await getAllConstraints(project);
     const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
-    let currentDate = new Date(project.start);
+    let currentDate = getStartDate(project);
     currentDate = resetDateFields(currentDate, false, false, true, true); // Reset the seconds and milliseconds to avoid failing comparisons on inconsequential details
     let endDate = new Date(project.end);
     const maxEventsPerDay = Number(project.maxEventsPerDay);
-    let dayRepetitionFrequency = Number(project.dayRepetitionFrequency);
     const sessionLengthMinutes = project.sessionLengthMinutes;
 
     console.log(`[generateSchedule] Number of events before filter: ${allEvents.length}`)
@@ -189,16 +188,7 @@ const generateSchedule = async (project) => {
             }
         }
 
-        /*
-        If no time was found in current day to place a single event, 
-        there's no point skipping ahead with how the day spacing the user wanted.
-        It could create unwanted situations where events could occur much farther apart than intended.
-        To avoid that we advance by just one day when no time was found. 
-        */
-        let daysToAdvanceBy = (eventsSoFarInDay > 0 ? dayRepetitionFrequency : 1);
-
-        currentDate = advanceDateByDays(currentDate, daysToAdvanceBy, true);
-
+        currentDate = getNextDate(project, currentDate, eventsSoFarInDay);
         timeLeft = estimatedTimeLeft;
         firstIteration = false;
     }
@@ -550,7 +540,58 @@ const isLaterOrEqualTime = (time1, time2) => {
     return isLaterOrEqual;
 }
 
-const advanceDateByDays = (originalDate, days, resetToMidnightFlag) => {
+function getNextDate(project, currentDate, eventsSoFarInDay) {
+    let nextDate = null;
+    /*
+        If no time was found in current day to place a single event, 
+        there's no point skipping ahead with how the day spacing the user wanted.
+        It could create unwanted situations where events could occur much farther apart than intended.
+        To avoid that we advance by just one day when no time was found. 
+    */
+    // TODO: add a way to determine if user wants to skip every X days or perform specific days
+    // let dayRepetitionFrequency = Number(project.dayRepetitionFrequency);
+    // let daysToAdvanceBy = (eventsSoFarInDay > 0 ? dayRepetitionFrequency : 1);
+    // nextDate = addDays(currentDate, daysToAdvanceBy, true);
+
+    let currDay = currentDate.getDay();
+    let daysOfWeek = project.daysOfWeek;
+    daysOfWeek.sort((day1, day2) => { return (Number(day1) - Number(day2)) }); // Sort ascending
+    currDayIndex = daysOfWeek.findIndex(day => Number(day) === currDay);
+    let nextDayIndex = null;
+    if (currDayIndex >= 0) {
+        nextDayIndex = currDayIndex + 1;
+        if (nextDayIndex === daysOfWeek.length) {
+            nextDayIndex = 0;
+        }
+    } else {
+        //  This could happen at the start of the algorithm, if the project's start date (e.g. a Monday) is not on the specified days for the project.
+        if (currDay === 6) {
+            nextDayIndex = daysOfWeek[0];
+        } else {
+            for (let [index, day] of daysOfWeek.entries()) {
+                if (day < currDay) {
+                    continue;
+                } else {
+                    nextDayIndex = index;
+                    break;
+                }
+            }
+        }
+    }
+
+    let nextDay = Number(daysOfWeek[nextDayIndex]);
+    let daysToAdd = null;
+    if (currDay < nextDay) {
+        daysToAdd = nextDay - currDay;
+    } else {
+        daysToAdd = (6 - currDay) + nextDay + 1;
+    }
+    nextDate = addDays(currentDate, daysToAdd, true);
+
+    return nextDate;
+}
+
+const addDays = (originalDate, days, resetToMidnightFlag) => {
     const cloneDate = new Date(originalDate.valueOf());
     cloneDate.setDate(cloneDate.getDate() + days);
 
@@ -805,6 +846,13 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
     })
 
     return allConstraintsObj;
+}
+
+function getStartDate(project) {
+    let startDate = new Date(project.start);
+    startDate = getNextDate(project, startDate, 0);
+
+    return startDate;
 }
 
 const isCurrDatePastEndDate = (currentDate, endDate) => {

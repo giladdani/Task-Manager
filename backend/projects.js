@@ -196,11 +196,6 @@ const createSharedProject = async (req, res) => {
                         return;
                 }
 
-                if (req.body.participatingEmails.length === 0) {
-                        res.status(StatusCodes.BAD_REQUEST).send("Cannot create a shared project without any emails to share.");
-                        return;
-                }
-
                 let project = await createProjectObject(req, true);
                 const userEmail = await utils.getEmailFromReq(req);
                 project.requestingUser = userEmail;
@@ -424,6 +419,11 @@ const deleteProject = async (req, res) => {
 function checkInputValidity(req) {
         let errorMsg = "";
 
+        if (req.body.participatingEmails.length === 0) {
+                res.status(StatusCodes.BAD_REQUEST).send("Cannot create a project no emails attached.");
+                return;
+        }
+
         for (const email of req.body.participatingEmails) {
                 if (email.length > 0) {
                         if (!isValidEmail(email)) {
@@ -454,8 +454,16 @@ function checkInputValidity(req) {
                 }
         }
 
-        if (!isPositiveInteger(req.body.dayRepetitionFrequency)) {
-                errorMsg += "   - Day repetition frequency must be a positive integer.\n";
+        {
+                // TODO: add check between method of day advancement - every X days or specific days?
+                if (!isPositiveInteger(req.body.dayRepetitionFrequency)) {
+                        errorMsg += "   - Day repetition frequency must be a positive integer.\n";
+                }
+
+                if (req.body.daysOfWeek.length === 0) {
+                        errorMsg += "   - No days selected. Must choose at least one day.\n";
+
+                }
         }
 
         const currDate = new Date();
@@ -489,6 +497,18 @@ function isPositiveInteger(input) {
         return false;
 }
 
+function isAnyDayChecked(days) {
+        if (!days) {
+                return false;
+        }
+
+        if (days.length === 0) {
+                return false;
+        }
+
+        return true;
+}
+
 const createProjectObject = async (req, isSharedProject) => {
         const projectId = utils.generateId();
         const userEmail = await utils.getEmailFromReq(req);
@@ -515,6 +535,7 @@ const createProjectObject = async (req, isSharedProject) => {
                 exportedToGoogle: false,
                 maxEventsPerDay: req.body.maxEventsPerDay,
                 dayRepetitionFrequency: req.body.dayRepetitionFrequency,
+                daysOfWeek: req.body.daysOfWeek,
                 dailyStartHour: req.body.dailyStartHour,
                 dailyEndHour: req.body.dailyEndHour,
                 ignoredConstraintsIds: req.body.ignoredConstraintsIds,

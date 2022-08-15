@@ -6,7 +6,7 @@ import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Project } from './Project';
-const ProjectsAPI = require('../apis/ProjectsAPI.js')
+const ProjectsAPI = require('../../apis/ProjectsAPI.js')
 
 
 const Accordion = styled((props) => (

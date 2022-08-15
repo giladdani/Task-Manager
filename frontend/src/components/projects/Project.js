@@ -12,7 +12,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
 import { ButtonGroup } from '@mui/material';
 import { ThreeDots } from 'react-loader-spinner';
-const EventsAPI = require('../apis/EventsAPI.js');
+const EventsAPI = require('../../apis/EventsAPI.js');
 
 
 export const Project = (props) => {

@@ -15,7 +15,11 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
 import MultipleSelectChip from '../components/MultipleSelectChip';
+import { DaysCheckbox } from '../components/general/DaysCheckbox';
+import { getCheckedDays } from '../components/general/DaysCheckbox';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
+const ProjectsAPI = require('../apis/ProjectsAPI.js');
+
 
 export const Projects = (props) => {
     let tempEndDate = new Date();
@@ -26,7 +30,6 @@ export const Projects = (props) => {
     const [successDialogOpen, toggleSuccessDialog] = useState(false);
     const [isLoading, toggleLoading] = useState(false);
     const [projectTitle, setProjectName] = useState('');
-    const [userEmailToShareWith, setUserEmailToShareWith] = useState('');
     const [estimatedTime, setEstimatedTime] = useState(0);
     const [sessionLengthMinutes, setSessionLengthMinutes] = useState(0);
     const [spacingLengthMinutes, setSpacingLengthMinutes] = useState(0);
@@ -41,32 +44,33 @@ export const Projects = (props) => {
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
     const [projectCreationMsg, setProjectCreationMsg] = useState("");
+    const [daysOfWeek, setDaysOfWeek] = useState();
     const componentMounted = useRef(true);
-    
-    useEffect(async() => {
+
+    useEffect(async () => {
         const tempConstraints = await ConstraintsAPI.fetchConstraints();
         setConstraints(tempConstraints);
     }, [])
 
-/*
-    useEffect(() => {
-        const fetchData = async () => {
-            let tempConstraints = await ConstraintsAPI.fetchConstraints();
-
-            if (componentMounted.current) {
-                setConstraints(tempConstraints);
-            } else {
-                console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
+    /*
+        useEffect(() => {
+            const fetchData = async () => {
+                let tempConstraints = await ConstraintsAPI.fetchConstraints();
+    
+                if (componentMounted.current) {
+                    setConstraints(tempConstraints);
+                } else {
+                    console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
+                }
             }
-        }
-
-        fetchData();
-
-        return () => {
-            componentMounted.current = false;
-        }
-    }, []);
-    */
+    
+            fetchData();
+    
+            return () => {
+                componentMounted.current = false;
+            }
+        }, []);
+        */
 
     const handleGenerateClick = async () => {
         try {
@@ -76,8 +80,10 @@ export const Projects = (props) => {
                 return;
             }
 
+            let participatingEmails = getParticipatingEmails();
+
             const body = {
-                participatingEmails: emailList,
+                participatingEmails: participatingEmails,
                 projectTitle: projectTitle,
                 sessionLengthMinutes: sessionLengthMinutes,
                 spacingLengthMinutes: spacingLengthMinutes,
@@ -86,6 +92,7 @@ export const Projects = (props) => {
                 endDate: endDate,
                 maxEventsPerDay: maxEventsPerDay,
                 dayRepetitionFrequency: dayRepetitionFrequency,
+                daysOfWeek: daysOfWeek,
                 dailyStartHour: dailyStartHour,
                 dailyEndHour: dailyEndHour,
                 ignoredConstraintsIds: ignoredConstraintIds,
@@ -95,12 +102,11 @@ export const Projects = (props) => {
             let error;
             if (shareChecked) {
                 [response, error] = await ProjectsAPI.createSharedProject(body);
-
-                alert(`Sent a request to ${userEmailToShareWith}. Awaiting his approval.`);
+                alert(`Sent a request to share. Awaiting users approval.`);
             } else {
                 toggleLoading(true);
                 [response, error] = await ProjectsAPI.createIndividualProject(body);
-                
+
                 let msg = "";
                 if (!error) {
                     let jsonRes = await response.json();
@@ -127,6 +133,23 @@ export const Projects = (props) => {
             console.error(err);
             alert(err);
         }
+    }
+
+    function getParticipatingEmails() {
+        let participatingEmails = [];
+        let userEmail = sessionStorage.getItem('user_email');
+        let foundUserEmail = false;
+
+        for(const email of emailList) {
+            participatingEmails.push(email);
+            foundUserEmail = foundUserEmail || (email === userEmail);
+        }
+        
+        if (!foundUserEmail) {
+            participatingEmails.push(userEmail);
+        }
+
+        return participatingEmails;
     }
 
     /**
@@ -170,8 +193,15 @@ export const Projects = (props) => {
             }
         }
 
-        if (!isPositiveInteger(dayRepetitionFrequency)) {
-            errorMsg += "   - Day repetition frequency must be a positive integer.\n";
+        {
+            // TODO: add a check if user wants repetition frequency or specific days
+            if (!isPositiveInteger(dayRepetitionFrequency)) {
+                errorMsg += "   - Day repetition frequency must be a positive integer.\n";
+            }
+
+            if (daysOfWeek.length === 0) {
+                errorMsg += "   - Must have at least one day checked.\n";
+            }
         }
 
         const currDate = new Date();
@@ -212,6 +242,20 @@ export const Projects = (props) => {
         return false;
     }
 
+    function areAnyDaysChecked(days) {
+        let foundCheckedDay = false;
+
+        foundCheckedDay = foundCheckedDay || days.sundayValue;
+        foundCheckedDay = foundCheckedDay || days.mondayValue;
+        foundCheckedDay = foundCheckedDay || days.tuesdayValue;
+        foundCheckedDay = foundCheckedDay || days.wednesdayValue;
+        foundCheckedDay = foundCheckedDay || days.thursdayValue;
+        foundCheckedDay = foundCheckedDay || days.fridayValue;
+        foundCheckedDay = foundCheckedDay || days.saturdayValue;
+
+        return foundCheckedDay;
+    }
+
     function handleDialogClose() {
         toggleSuccessDialog(false);
     }
@@ -235,6 +279,10 @@ export const Projects = (props) => {
         }
 
         setEmailList(newList);
+    }
+
+    const handleSetDays = (daysArr) => {
+        setDaysOfWeek(daysArr);
     }
 
     return (
@@ -374,20 +422,23 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td>
-                            <Tooltip title="Day repetition determines how frequently the sessions will occur, e.g. 3 for every 3 days, 1 for every day, etc.">
+                            <Tooltip title="Determine which days you would like to work on the project.">
                                 <label>
                                     Day repetition:
                                 </label>
                             </Tooltip>
                         </td>
                         <td>
+                            <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
+                        </td>
+                        {/* <td>
                             <input
                                 type="number"
                                 value={dayRepetitionFrequency}
                                 min="1" step="1"
                                 onChange={(newValue) => { setDayRepetitionFrequency(newValue.target.value) }}>
                             </input>
-                        </td>
+                        </td> */}
                     </tr>
                     <tr>
                         <td>
