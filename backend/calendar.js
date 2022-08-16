@@ -1,11 +1,12 @@
 const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const EventModel = require('./models/projectevent')
-const GoogleEventModel = require('./models/googleevent')
-const ProjectModel = require('./models/project')
+const EventModel = require('./models/unexported-event')
+const dbUnexportedEvents = require('./dal/dbUnexportedEvents');
+const dbProjects = require('./dal/dbProjects');
 const googleSync = require('./google-sync');
 const utils = require('./utils');
+const dbGoogleEvents = require('./dal/dbGoogleEvents');
 
 // Routing
 const router = express.Router();
@@ -29,26 +30,15 @@ const getProjectEvents = async (req, res) => {
     try {
         let projectId = req.params.projectId
         console.log(`[getProjectEvents] Start. Project ID: ${req.params.projectId}`)
-        let project = await ProjectModel.findOne({ id: projectId })
-        let email = await utils.getEmailFromReq(req);
+        let project = await dbProjects.findOne({ id: projectId })
+        let email = utils.getEmailFromReq(req);
 
         if (project.exportedToGoogle) {
             let accessToken = await utils.getAccessTokenFromRequest(req);
             await googleSync.syncGoogleData(accessToken, email);
-
-            projectEvents = await GoogleEventModel.find(
-                {
-                    'email': email,
-                    'extendedProperties.private.fullCalendarProjectId': projectId,
-                }
-            )
+            projectEvents = await dbGoogleEvents.findByProject(email, projectId);
         } else {
-            projectEvents = await EventModel.find(
-                {
-                    email: email,
-                    projectId: projectId,
-                }
-            )
+            projectEvents = await dbUnexportedEvents.findByProject(email, projectId);
         }
     } catch (err) {
         console.log(`[getProjectEvents] ERROR:\n${err}`);
@@ -64,7 +54,7 @@ const getProjectEvents = async (req, res) => {
 
 // TODO: return answer! What is going on here.
 const getAllEvents = async (req, res) => {
-    const email = await utils.getEmailFromReq(req);
+    const email = utils.getEmailFromReq(req);
 
     let events = await utils.getAllUserEvents(email);
 }
@@ -173,7 +163,7 @@ const deleteDBEvent = async (event) => {
     let errorMsg = null;
     let docs = null;
     try {
-        docs = await EventModel.deleteOne({ 'id': eventId })
+        docs = await dbUnexportedEvents.deleteOne({ 'id': eventId })
     } catch (err) {
         errorMsg = err;
     }
@@ -217,13 +207,12 @@ const deleteGoogleEvent = async (req) => {
 }
 
 const getGoogleEvents = async (req, res) => {
-    const email = await utils.getEmailFromReq(req);
+    const email = utils.getEmailFromReq(req);
 
-    // const allEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
-    const allEvents = await GoogleEventModel.find({ email: email });
+    // const allEvents = await dbGoogleEvents.find({ email: email, fetchedByUser: false });
+    const allEvents = await dbGoogleEvents.find({ email: email });
 
     res.status(StatusCodes.OK).send(allEvents);
-
 
     /* 
     GoogleEventModel.updateMany(
@@ -241,7 +230,7 @@ const getGoogleEvents = async (req, res) => {
 }
 
 const getUnsyncedGoogleEvents = async (req, res) => {
-    const email = await utils.getEmailFromReq(req);
+    const email = utils.getEmailFromReq(req);
     const accessToken = await utils.getAccessTokenFromRequest(req);
     let unsyncedEvents = [];
     let deletedCalendarEvents = [];

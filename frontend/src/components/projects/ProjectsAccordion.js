@@ -16,19 +16,19 @@ const Accordion = styled((props) => (
 }));
 
 const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />}{...props}/>))(({ theme }) => ({
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIconWrapper': {
-    marginLeft: theme.spacing(2),
-    color: "white"
-  },
-  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)'
-  },
-  '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(2)
-  }
-}));
+  <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />}{...props} />))(({ theme }) => ({
+    flexDirection: 'row-reverse',
+    '& .MuiAccordionSummary-expandIconWrapper': {
+      marginLeft: theme.spacing(2),
+      color: "white"
+    },
+    '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+      transform: 'rotate(90deg)'
+    },
+    '& .MuiAccordionSummary-content': {
+      marginLeft: theme.spacing(2)
+    }
+  }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -73,8 +73,21 @@ export const ProjectsAccordion = (props) => {
   const exportProject = async (project) => {
     ProjectsAPI.exportProject(project)
       .then(([response, error]) => {
-        // TODO: check if RESPONSE OK
-        fetchAndSetProjects();
+        // TODO: Change the manner of notification. Alert sucks.
+        if (error) {
+          alert(error);
+        } else if (response.status !== 200) {
+          // TODO: read body of response. Code here is incorrect.
+          // const jsonPromise = response.json();
+          // jsonPromise.then((data) => {
+            // alert(data);
+          // })
+
+          alert("Something went wrong :(")
+        } else {
+          alert("Project exported!");
+          fetchAndSetProjects();
+        }
       })
   }
 

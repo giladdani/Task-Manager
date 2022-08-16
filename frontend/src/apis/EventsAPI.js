@@ -6,11 +6,7 @@ async function fetchGoogleEvents() {
 
     try {
         const response = await fetch(`${consts.host}/calendar/events/google`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 
@@ -32,12 +28,8 @@ async function fetchUnsyncedGoogleEvents() {
 
     try {
         const response = await fetch(`${consts.host}/calendar/events/google/unsynced`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
-            method: 'GET'
+            headers: consts.standardHeaders,
+            method: 'GET',
         });
 
         if (response.status !== 200) throw new Error('Error while fetching unsynced events');
@@ -58,11 +50,7 @@ async function fetchAllProjectEvents() {
 
     try {
         const response = await fetch(`${consts.host}/projects/events`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 
@@ -89,11 +77,7 @@ async function fetchProjectEvents(projectId) {
 
     try {
         const response = await fetch(`${consts.host}/calendar/${projectId}/events`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 
@@ -117,17 +101,13 @@ async function fetchProjectEvents(projectId) {
  * @param {*} projectId 
  * @returns 
  */
-async function fetchAllEvents(projectId) {
+async function fetchAllEvents() {
     let res = null;
     let error = null;
 
     try {
         const response = await fetch(`${consts.host}/calendar/events`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token'),
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 

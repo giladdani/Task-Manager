@@ -1,7 +1,5 @@
-const DayConstraintModel = require('./models/constraintevent')
-const EventModel = require('./models/projectevent')
+const dbConstraints = require('./dal/dbConstraints');
 const dataObjects = require('./dataobjects');
-const dataobjects = require('./dataobjects');
 const utils = require('./utils');
 
 /**
@@ -270,14 +268,14 @@ function getTimeWindowFromEvent(event) {
     const eventStartDate = utils.getEventStart(event);
     const startHour = eventStartDate.getHours();
     const startMin = eventStartDate.getMinutes();
-    const startTime = new dataobjects.Time(startHour, startMin);
+    const startTime = new dataObjects.Time(startHour, startMin);
 
     const eventEndDate = utils.getEventEnd(event);
     const endHour = eventEndDate.getHours();
     const endMin = eventEndDate.getMinutes();
-    const endTime = new dataobjects.Time(endHour, endMin);
+    const endTime = new dataObjects.Time(endHour, endMin);
 
-    const timeWindow = new dataobjects.TimeWindow(startTime, endTime);
+    const timeWindow = new dataObjects.TimeWindow(startTime, endTime);
 
     return timeWindow;
 }
@@ -890,7 +888,8 @@ const getAllConstraints = async (project) => {
     let allConstraints = [];
 
     for (const email of project.participatingEmails) {
-        const userConstraints = await DayConstraintModel.find({ 'email': email });
+        const userConstraints = await dbConstraints.find({ 'email': email });
+        
         allConstraints = allConstraints.concat(userConstraints);
     }
 

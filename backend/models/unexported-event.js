@@ -1,7 +1,7 @@
 const mongoose  = require("mongoose");
 const Schema = mongoose.Schema;
 
-const projectEventSchema = new Schema({
+const unexportedEventSchema = new Schema({
     title: String,
     id: String,
     sharedId: String,
@@ -15,5 +15,5 @@ const projectEventSchema = new Schema({
     email: String,
 })
 
-const ProjectEvent = mongoose.model('ProjectEvent', projectEventSchema);
-module.exports = ProjectEvent;
+const UnexportedEvent = mongoose.model('UnexportedEvent', unexportedEventSchema);
+module.exports = UnexportedEvent;

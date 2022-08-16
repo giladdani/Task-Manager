@@ -1,9 +1,9 @@
 
 const { google } = require('googleapis');
 const utils = require('./utils');
-const UserModel = require('./models/user');
-const GoogleEventModel = require('./models/googleevent');
-const ProjectModel = require('./models/project')
+const dbUsers = require('./dal/dbUsers');
+const dbGoogleEvents = require('./dal/dbGoogleEvents');
+const dbProjects = require('./dal/dbProjects');
 
 
 const syncGoogleData = async (accessToken, email) => {
@@ -44,40 +44,33 @@ const syncGoogleData = async (accessToken, email) => {
  */
 const updateDeletedProjects = async (deletedCalendarsId, email) => {
     for(const calendarId of deletedCalendarsId) {
-        let deleteProjectDocs = await ProjectModel.deleteOne({ 'googleCalendarId': calendarId }); // TODO: try without the await
+        await dbProjects.deleteOne({ 'googleCalendarId': calendarId });
+
     }
 }
 
 const updateUserDeletedCalendars = async (deletedCalendarsId, email) => {
-    if (deletedCalendarsId.length > 0) {
-        // Remove deleted calendars from the user's sync token array.
-        await UserModel.updateOne(
-            { email: email },
-            {
-                $pull: {
-                    eventListCalendarId2SyncToken: {
-                        key: {
-                            $in: deletedCalendarsId,
-                        }
-                    }
-                }
-            }
-        )
-    }
+    return dbUsers.removeDeletedCalendars(email, deletedCalendarsId);
 }
 
 const removeDeletedCalendarsEvents = async (deletedCalendarsId, email) => {
-    if (deletedCalendarsId.length > 0) {
-        // Delete all calendar events from our DB
-        await GoogleEventModel.deleteMany( // No need to await
-            {
-                email: email,
-                calendarId: {
-                    $in: deletedCalendarsId
-                },
-            }
-        );
+    for(const calendarId of deletedCalendarsId) {
+        await dbGoogleEvents.deleteEventsByCalendar(email, calendarId);
     }
+
+    // ! Delete if calendar deletion works well since moving it to DAL
+    // // if (deletedCalendarsId.length > 0) {
+    // //     // Delete all calendar events from our DB
+
+    // //     await GoogleEventModel.deleteMany( // No need to await
+    // //         {
+    // //             email: email,
+    // //             calendarId: {
+    // //                 $in: deletedCalendarsId
+    // //             },
+    // //         }
+    // //     );
+    // // }
 }
 
 const updateEventCollectionSyncTokens = async (calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email) => {
@@ -87,10 +80,7 @@ const updateEventCollectionSyncTokens = async (calendarId2PrevSyncTokenMap, cale
         let nextSyncToken = calendarId2NextSyncTokenMap.get(calendarId);
 
         if (prevSyncToken !== nextSyncToken) {
-            let updateRes = await UserModel.updateOne(
-                { email: email, "eventListCalendarId2SyncToken.key": calendarId },
-                { "$set": { "eventListCalendarId2SyncToken.$.value": nextSyncToken } }
-            )
+            await dbUsers.updateEventsCollectionSyncToken(email, calendarId, nextSyncToken);
         }
     }
 }
@@ -116,31 +106,28 @@ const updateDBWithUnsyncedEvents = async (unsyncedEvents, email) => {
         eventsIds.push(event.id);
     }
 
-    await GoogleEventModel.deleteMany( // I tried without await but I never saw the DB updated for some reason
-        {
-            email: email,
-            id: {
-                $in: eventsIds,
-            }
-        }
-    );
-
+    await dbGoogleEvents.deleteByIds(email, eventsIds);  // I tried without await but I never saw the DB updated for some reason
     let undeletedEvents = unsyncedEvents.filter(event => event.status !== 'cancelled');
-    const docsEvents = GoogleEventModel.insertMany(undeletedEvents);
+    dbGoogleEvents.insertMany(undeletedEvents);
 }
 
 const addMissingCalendars = async (missingCalendarId2Sync, email) => {
-    if (missingCalendarId2Sync.length > 0) {
-        let userDataUpdate = await UserModel.updateOne(
-            { email: email },
-            {
-                $push: {
-                    eventListCalendarId2SyncToken: {
-                        $each: missingCalendarId2Sync,
-                    }
-                }
-            });
+    for(const element of missingCalendarId2Sync) {
+        await dbUsers.addCalendar(email, element.key);
     }
+
+    // ! DELETE if all works well after moving to the DB
+    // // if (missingCalendarId2Sync.length > 0) {
+    // //     let userDataUpdate = await UserModel.updateOne(
+    // //         { email: email },
+    // //         {
+    // //             $push: {
+    // //                 eventListCalendarId2SyncToken: {
+    // //                     $each: missingCalendarId2Sync,
+    // //                 }
+    // //             }
+    // //         });
+    // // }
 }
 
 /**
@@ -151,19 +138,25 @@ const addMissingCalendars = async (missingCalendarId2Sync, email) => {
 const getDeletedCalendarsEventsDB = async (deletedCalendarsId, email) => {
     let deletedCalendarsEvents = [];
 
-    if (deletedCalendarsId.length > 0) {
-        // Delete all calendar events from our DB
-        let calendarEvents = await GoogleEventModel.find( // No need to await
-            {
-                email: email,
-                calendarId: {
-                    $in: deletedCalendarsId
-                },
-            }
-        );
-
+    for (const calendarId of deletedCalendarsId) {
+        let calendarEvents = await dbGoogleEvents.findByCalendar(email, calendarId);
         deletedCalendarsEvents = deletedCalendarsEvents.concat(calendarEvents);
     }
+
+    // ! Delete if all works well after moving to DAL
+    // // if (deletedCalendarsId.length > 0) {
+    // //     // Delete all calendar events from our DB
+    // //     let calendarEvents = await GoogleEventModel.find( // No need to await
+    // //         {
+    // //             email: email,
+    // //             calendarId: {
+    // //                 $in: deletedCalendarsId
+    // //             },
+    // //         }
+    // //     );
+
+    // //     deletedCalendarsEvents = deletedCalendarsEvents.concat(calendarEvents);
+    // // }
 
     return deletedCalendarsEvents;
 }
@@ -182,7 +175,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
     let calendarId2NextSyncTokenMap = new Map();
     const colorsPromise = googleCalendarClient.colors.get({});
     const calendarListPromise = googleCalendarClient.calendarList.list();
-    const userDataPromise = UserModel.findOne({ email: email });
+    const userDataPromise = dbUsers.findOne({ email: email });
 
     await Promise.all([colorsPromise, calendarListPromise, userDataPromise])
         .then(async (responses) => {
@@ -227,7 +220,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
  * @returns An array of [calendars, prevSyncToken, nextSyncToken]. Note that nextSyncToken may be the same as current sync token.
  */
 const getUnsyncedGoogleCalendars = async (calendar, email) => {
-    const userData = await UserModel.findOne({ email: email });
+    const userData = await dbUsers.findOne({ email: email });
     let syncToken = userData.calendarsSyncToken;
     let prevSyncToken = syncToken;
     let calendars = [];
@@ -243,14 +236,7 @@ const updateUserCalendarsSyncToken = async (prevSyncToken, nextSyncToken, email)
     let updatePromise = null;
 
     if (prevSyncToken !== nextSyncToken) {
-        updatePromise = await UserModel.updateOne(
-            { email: email },
-            {
-                $set:
-                {
-                    calendarsSyncToken: nextSyncToken,
-                }
-            })
+        dbUsers.updateCalendarsSyncToken(email,)
     }
 
     return updatePromise;
@@ -271,9 +257,7 @@ const getDeletedCalendarsIds = (unsyncedGoogleCalendars) => {
 
 const getNewCalendarsIds = async (unsyncedGoogleCalendars, email) => {
     let newCalendarId2Sync = [];
-
-    let userData = await UserModel.findOne({ email: email });
-
+    let userData = await dbUsers.findOne({ email: email });
     for (const calendar of unsyncedGoogleCalendars) {
         const calendarId = calendar.id;
 
@@ -346,7 +330,7 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
                  * If we insert them all as is, we'll have duplicates. So we also delete all the events of this calendar we already have saved.
                  */
 
-                let deletePromise = await GoogleEventModel.deleteMany({ email: email, calendarId: calendarId });
+                await dbGoogleEvents.deleteMany({ email: email, calendarId: calendarId });
                 [events, nextSyncToken] = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
             }
         }
@@ -358,11 +342,11 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
 
 
 /**
- * The function also updates the next sync token in the DB.
+ * The function DOES NOT update the sync token!
  * @param {*} googleCalendarApi 
  * @param {*} calendarId 
  * @param {*} email 
- * @param {*} calendarSummary 
+ * @param {*} calendarSummary Only for debugging purposes.
  * @returns An array of [events, nextSyncToken], where events is all the calendar's events.
  */
 const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calendarSummary) => {
@@ -387,19 +371,22 @@ const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calend
         pageToken = response.data.nextPageToken;
     } while (pageToken);
 
-    let query = {
-        email: email,
-        "eventListCalendarId2SyncToken.key": calendarId,
-    }
+    // ! DELETE if all works well after moving to DB
+    // // let query = {
+    // //     email: email,
+    // //     "eventListCalendarId2SyncToken.key": calendarId,
+    // // }
 
-    let updateRes = await UserModel.updateOne(
-        query,
-        {
-            $set: {
-                "eventListCalendarId2SyncToken.$.value": nextSyncToken,
-            }
-        }
-    );
+    // // let updateRes = await UserModel.updateOne(
+    // //     query,
+    // //     {
+    // //         $set: {
+    // //             "eventListCalendarId2SyncToken.$.value": nextSyncToken,
+    // //         }
+    // //     }
+    // // );
+
+    // // await db.updateEventsCollectionSyncToken(email, calendarId, nextSyncToken);
 
     return [events, nextSyncToken];
 }
@@ -450,14 +437,7 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
  * @param {string} email The email of the user whose events must be reset to unsynced and unfetched.
  */
 const resetEventsFetchStatus = async (email) => {
-    return GoogleEventModel.updateMany(
-        { email: email },
-        {
-            $set:
-            {
-                fetchedByUser: false,
-            }
-        });
+    dbGoogleEvents.updateFetchStatus(email, false);
 }
 
 module.exports = {

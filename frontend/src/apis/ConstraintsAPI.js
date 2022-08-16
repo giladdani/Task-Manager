@@ -5,11 +5,7 @@ const fetchConstraints = async () => {
 
     try {
         const response = await fetch(`${consts.host}/constraints`, {
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'access_token': sessionStorage.getItem('access_token')
-            },
+            headers: consts.standardHeaders,
             method: 'GET'
         });
 
