@@ -20,7 +20,6 @@ import { getCheckedDays } from '../components/general/DaysCheckbox';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 const ProjectsAPI = require('../apis/ProjectsAPI.js');
 
-
 export const Projects = (props) => {
     let tempEndDate = new Date();
     tempEndDate.setHours(23, 59, 0, 0);
