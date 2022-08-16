@@ -18,8 +18,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Ignore CORS policy
-app.use(cors());
+// Allow CORS only for frontend domain
+app.use(
+  cors({
+    origin: `${process.env.FRONTEND_HOST}:${process.env.FRONTEND_PORT}`
+  }));
 
 // Routing
 const router = express.Router();
