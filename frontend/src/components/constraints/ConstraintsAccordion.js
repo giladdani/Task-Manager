@@ -5,7 +5,7 @@ import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Constraint } from './Constraint';
-const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
+const ConstraintsAPI = require('../../apis/ConstraintsAPI.js')
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />

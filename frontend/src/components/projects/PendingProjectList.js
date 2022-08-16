@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PendingProject as PendingProject } from './PendingProject';
-const ProjectsAPI = require('../apis/ProjectsAPI.js')
+const ProjectsAPI = require('../../apis/ProjectsAPI.js')
 
 export const PendingProjectsList = (props) => {
     const [pendingProjects, setPendingProjects] = useState([]);

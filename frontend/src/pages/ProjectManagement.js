@@ -1,5 +1,5 @@
-import { ProjectsAccordion } from '../components/ProjectsAccordion'
-import { PendingProjectsList } from '../components/PendingProjectList';
+import { ProjectsAccordion } from '../components/projects/ProjectsAccordion'
+import { PendingProjectsList } from '../components/projects/PendingProjectList';
 
 export const ProjectManagement = (props) => {
     return (

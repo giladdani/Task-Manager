@@ -4,7 +4,7 @@ import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import { ConstraintsAccordion } from '../components/ConstraintsAccordion'
+import { ConstraintsAccordion } from '../components/constraints/ConstraintsAccordion'
 import Button from "@material-ui/core/Button";
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -54,52 +54,6 @@ export const Constraints = () => {
           }
     }
 
-    /*
- * TODO: delete if all works well
-Moved this to API file!
- */
-    // const fetchConstraints = async () => {
-    //     const response = await fetch('http://localhost:3001/api/constraints', {
-    //         headers: {
-    //             'Accept': 'application/json',
-    //             'Content-Type': 'application/json',
-    //             'access_token': sessionStorage.getItem('access_token')
-    //         },
-    //         method: 'GET'
-    //     });
-
-    //     if (response.status !== 200) throw new Error('Error while fetching constraints')
-    //     const data = await response.json();
-
-    //     return data;
-    // }
-
-    const handleDaysChange = (e) => {
-        setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
-    }
-
-    // const daysCheckboxes = <div id="daysDiv">
-    //     <label>Sunday</label><input type="checkbox" name="sundayValue" onChange={handleDaysChange}></input>
-    //     <label>Monday</label><input type="checkbox" name="mondayValue" onChange={handleDaysChange}></input>
-    //     <label>Tuesday</label><input type="checkbox" name="tuesdayValue" onChange={handleDaysChange}></input>
-    //     <label>Wednesday</label><input type="checkbox" name="wednesdayValue" onChange={handleDaysChange}></input>
-    //     <label>Thursday</label><input type="checkbox" name="thursdayValue" onChange={handleDaysChange}></input>
-    //     <label>Friday</label><input type="checkbox" name="fridayValue" onChange={handleDaysChange}></input>
-    //     <label>Saturday</label><input type="checkbox" name="saturdayValue" onChange={handleDaysChange}></input>
-    // </div>
-
-    
-    const daysCheckboxes = <FormGroup>
-                        <FormControlLabel control={<Checkbox name="sundayValue" onChange={handleDaysChange} />} label="Sunday" />
-                        <FormControlLabel control={<Checkbox name="mondayValue" onChange={handleDaysChange} />} label="Monday" />
-                        <FormControlLabel control={<Checkbox name="tuesdayValue" onChange={handleDaysChange} />} label="Tuesday" />
-                        <FormControlLabel control={<Checkbox name="wednesdayValue" onChange={handleDaysChange} />} label="Wednesday" />
-                        <FormControlLabel control={<Checkbox name="thursdayValue" onChange={handleDaysChange} />} label="Thursday" />
-                        <FormControlLabel control={<Checkbox name="fridayValue" onChange={handleDaysChange} />} label="Friday" />
-                        <FormControlLabel control={<Checkbox name="saturdayValue" onChange={handleDaysChange} />} label="Saturday" />
-                    </FormGroup>
-
-
     const handleCreateClick = async () => {
         try {
             const checkedDays = getCheckedDays(); // TODO: change to numbers to match FullCalendar
@@ -126,12 +80,7 @@ Moved this to API file!
             } else {
                 console.log('Constraint added');
                 alert("Constraints added!");
-
-                // const constraints = await utils.fetchConstraints();
-                // setAllConstraints(constraints);
-
                 await fetchAndUpdateConstraints();
-
             }
         }
         catch (err) {
@@ -197,9 +146,6 @@ Moved this to API file!
             if (response.status !== 200) throw new Error(`Error while updating constraint: '${partialConstraintEvent.title}'`)
             console.log(`Constraint updated: '${partialConstraintEvent.title}'`);
             alert(`Constraint ${body.title} updated successfully`);
-
-            // const constraints = await fetchConstraints();
-            // setAllConstraints(constraints);
             await fetchAndUpdateConstraints();
         }
         catch (err) {
@@ -220,15 +166,26 @@ Moved this to API file!
 
             if (response.status !== 200) throw new Error('Error while deleting constraint')
             console.log(`Constraint ${constraintID} deleted`);
-
-            // const constraints = await fetchConstraints();
-            // setAllConstraints(constraints);
             await fetchAndUpdateConstraints();
         }
         catch (err) {
             console.error(err);
         }
     }
+
+    const handleDaysChange = (e) => {
+        setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
+    }
+
+    const daysCheckboxes = <FormGroup>
+                        <FormControlLabel control={<Checkbox name="sundayValue" onChange={handleDaysChange} />} label="Sunday" />
+                        <FormControlLabel control={<Checkbox name="mondayValue" onChange={handleDaysChange} />} label="Monday" />
+                        <FormControlLabel control={<Checkbox name="tuesdayValue" onChange={handleDaysChange} />} label="Tuesday" />
+                        <FormControlLabel control={<Checkbox name="wednesdayValue" onChange={handleDaysChange} />} label="Wednesday" />
+                        <FormControlLabel control={<Checkbox name="thursdayValue" onChange={handleDaysChange} />} label="Thursday" />
+                        <FormControlLabel control={<Checkbox name="fridayValue" onChange={handleDaysChange} />} label="Friday" />
+                        <FormControlLabel control={<Checkbox name="saturdayValue" onChange={handleDaysChange} />} label="Saturday" />
+                    </FormGroup>
 
     return (
         <>
@@ -295,16 +252,6 @@ Moved this to API file!
                     </tr>
                 </tbody>
             </table>
-            
-
-            
-            {/* ////{<ConstraintsList
-                ////constraints={allConstraints}
-                ////handleConstraintUpdate={handleConstraintUpdate}
-                ////handleConstraintDelete={handleConstraintDelete}
-            ////>
-            ////</ConstraintsList>
-            */}
         </>
     )
 }
