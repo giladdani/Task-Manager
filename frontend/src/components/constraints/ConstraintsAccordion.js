@@ -14,19 +14,19 @@ const Accordion = styled((props) => (
 }));
 
 const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />}{...props}/>))(({ theme }) => ({
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIconWrapper': {
-    marginLeft: theme.spacing(2),
-    color: "white"
-  },
-  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)'
-  },
-  '& .MuiAccordionSummary-content': {
-    marginLeft: theme.spacing(2)
-  }
-}));
+  <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon />}{...props} />))(({ theme }) => ({
+    flexDirection: 'row-reverse',
+    '& .MuiAccordionSummary-expandIconWrapper': {
+      marginLeft: theme.spacing(2),
+      color: "white"
+    },
+    '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+      transform: 'rotate(90deg)'
+    },
+    '& .MuiAccordionSummary-content': {
+      marginLeft: theme.spacing(2)
+    }
+  }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -35,9 +35,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ConstraintsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
-
-  /** IDEAL ---------- */
-  const [allConstraints, setAllConstraints] = useState([]);
+  const [allConstraints, setAllConstraints] = useState(props.constraints);
   const componentMounted = useRef(true);
 
   useEffect(() => {
@@ -54,38 +52,106 @@ export const ConstraintsAccordion = (props) => {
 
   const fetchAndSetConstraints = async () => {
     const constraints = await ConstraintsAPI.fetchConstraints();
-    
+
     if (componentMounted.current) {
-        setAllConstraints(constraints);
+      setAllConstraints(constraints);
     } else {
       console.log(`[ConstraintsAccordion - fetchAndSetConstraints] component is unmounted, not setting constraints!`)
     }
   }
-  /** ---------- /IDEAL */
-
 
   const handleChange = (panel) => (event, newExpanded) => {
     setExpanded(newExpanded ? panel : false);
   };
 
-  const constraintsList = allConstraints.map((constraint, index) => {
-    return (
-      <Accordion expanded={expanded === constraint.title} onChange={handleChange(constraint.title)} key={index}>
-        <AccordionSummary>
-          <div><b>{constraint.title}</b></div>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div>
-            <Constraint constraint={constraint} handleConstraintDelete={props.handleConstraintDelete} handleConstraintUpdate={props.handleConstraintUpdate}></Constraint>
-          </div>
-        </AccordionDetails>
-      </Accordion>
-    )
-  })
+  const handleConstraintUpdate = async (partialConstraintEvent) => {
+    ConstraintsAPI.updateConstraint(partialConstraintEvent)
+      .then(async ([response, error]) => {
+
+        // handleResponse() ???
+
+        // TODO: Change the manner of notification. Alert sucks.
+        if (error) {
+          alert(error)
+        } else if (response.status !== 200) {
+          // TODO: read body of response. Code here is incorrect.
+          const jsonPromise = response.json();
+          jsonPromise.then((data) => {
+          alert(data);
+          })
+
+          alert("Something went wrong :(")
+        } else {
+          fetchAndSetConstraints();
+        }
+      }
+      )
+  }
+
+
+  // TEST
+
+  // const handleResponse(successMsg, failureMsg, successCallback, failureCallback)
+  // {
+  //   if (status === 200) {
+  //     alert(successmsg);
+
+  //     if (successCallback) {
+  //       successCallback()
+  //     }
+
+  //     do something (probably just positive notification)
+  //   } else {
+  //     negative notification
+  //   }
+  // }
+
+
+
+
+  const handleConstraintDelete = async (constraintID) => {
+    ConstraintsAPI.deleteConstraint(constraintID)
+      .then(async ([response, error]) => {
+        // TODO: Change the manner of notification. Alert sucks.
+        if (error) {
+          alert(error)
+        } else if (response.status !== 200) {
+          // TODO: read body of response. Code here is incorrect.
+          const jsonPromise = response.json();
+          jsonPromise.then((data) => {
+            alert(data);
+          })
+
+          alert("Something went wrong :(")
+        } else {
+          fetchAndSetConstraints();
+        }
+      }
+      )
+  }
 
   return (
     <>
-      {constraintsList}
+      {
+        allConstraints.map((constraint, index) => {
+          return (
+            <Accordion expanded={expanded === constraint.title} onChange={handleChange(constraint.title)} key={index}>
+              <AccordionSummary>
+                <div><b>{constraint.title}</b></div>
+              </AccordionSummary>
+              <AccordionDetails>
+                <div>
+                  <Constraint
+                    constraint={constraint}
+                    handleConstraintDelete={handleConstraintDelete}
+                    handleConstraintUpdate={handleConstraintUpdate}
+                  ></Constraint>
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          )
+        })
+      }
     </>
   );
 }

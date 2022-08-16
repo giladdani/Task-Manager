@@ -45,8 +45,7 @@ export const Constraint = (props) => {
     }
 
     const handleDeleteClick = async () => {
-        const id = props.constraint.id;
-        props.handleConstraintDelete(id);
+        props.handleConstraintDelete(props.constraint.id);
     }
 
     const getCheckedDays = () => {

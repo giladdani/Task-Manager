@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-// // import { ConstraintsList } from '../components/ConstraintsList';
 import TextField from '@mui/material/TextField';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -49,43 +48,39 @@ export const Constraints = () => {
 
         if (componentMounted.current) {
             setAllConstraints(constraints);
-          } else {
+        } else {
             console.log(`[Constraints - fetchAndUpdateConstraints] component is unmounted, not setting constraints!`)
-          }
+        }
     }
 
     const handleCreateClick = async () => {
-        try {
-            const checkedDays = getCheckedDays(); // TODO: change to numbers to match FullCalendar
+        const checkedDays = getCheckedDays(); // TODO: change to numbers to match FullCalendar
+        const body = {
+            days: checkedDays,
+            forbiddenStartDate: constraintStartTime,
+            forbiddenEndDate: constraintEndTime,
+            title: constraintNameValue,
+        };
 
-            const body = {
-                days: checkedDays,
-                forbiddenStartDate: constraintStartTime,
-                forbiddenEndDate: constraintEndTime,
-                title: constraintNameValue,
-            };
 
-            const response = await fetch('http://localhost:3001/api/constraints', {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'POST',
-                body: JSON.stringify(body),
-            });
-
-            if (response.status !== 200) {
-                throw new Error('Error while adding constraint');
-            } else {
-                console.log('Constraint added');
-                alert("Constraints added!");
-                await fetchAndUpdateConstraints();
-            }
+        ConstraintsAPI.createConstraint(body)
+        .then(async ([response, error]) => {
+          // TODO: Change the manner of notification. Alert sucks.
+          if (error) {
+            alert(error)
+          } else if (response.status !== 200) {
+            // TODO: read body of response. Code here is incorrect.
+            // const jsonPromise = response.json();
+            // jsonPromise.then((data) => {
+            // alert(data);
+            // })
+  
+            alert("Something went wrong :(")
+          } else {
+            await fetchAndUpdateConstraints();
+          }
         }
-        catch (err) {
-            console.error(err);
-        }
+        )
     }
 
     const getCheckedDays = () => {
@@ -122,70 +117,19 @@ export const Constraints = () => {
         return checkedDays;
     }
 
-    const handleConstraintUpdate = async (partialConstraintEvent) => {
-        console.log(`Updating constraint ${partialConstraintEvent.title}`);
-
-        try {
-            const body = {
-                days: partialConstraintEvent.days,
-                forbiddenStartDate: partialConstraintEvent.forbiddenStartDate,
-                forbiddenEndDate: partialConstraintEvent.forbiddenEndDate,
-                title: partialConstraintEvent.title,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/constraints/${partialConstraintEvent.id}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'PUT',
-                body: JSON.stringify(body),
-            });
-
-            if (response.status !== 200) throw new Error(`Error while updating constraint: '${partialConstraintEvent.title}'`)
-            console.log(`Constraint updated: '${partialConstraintEvent.title}'`);
-            alert(`Constraint ${body.title} updated successfully`);
-            await fetchAndUpdateConstraints();
-        }
-        catch (err) {
-            console.error(err);
-        }
-    }
-
-    const handleConstraintDelete = async (constraintID) => {
-        try {
-            const response = await fetch(`http://localhost:3001/api/constraints/${constraintID}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token'),
-                },
-                method: 'DELETE',
-            });
-
-            if (response.status !== 200) throw new Error('Error while deleting constraint')
-            console.log(`Constraint ${constraintID} deleted`);
-            await fetchAndUpdateConstraints();
-        }
-        catch (err) {
-            console.error(err);
-        }
-    }
-
     const handleDaysChange = (e) => {
         setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
     }
 
     const daysCheckboxes = <FormGroup>
-                        <FormControlLabel control={<Checkbox name="sundayValue" onChange={handleDaysChange} />} label="Sunday" />
-                        <FormControlLabel control={<Checkbox name="mondayValue" onChange={handleDaysChange} />} label="Monday" />
-                        <FormControlLabel control={<Checkbox name="tuesdayValue" onChange={handleDaysChange} />} label="Tuesday" />
-                        <FormControlLabel control={<Checkbox name="wednesdayValue" onChange={handleDaysChange} />} label="Wednesday" />
-                        <FormControlLabel control={<Checkbox name="thursdayValue" onChange={handleDaysChange} />} label="Thursday" />
-                        <FormControlLabel control={<Checkbox name="fridayValue" onChange={handleDaysChange} />} label="Friday" />
-                        <FormControlLabel control={<Checkbox name="saturdayValue" onChange={handleDaysChange} />} label="Saturday" />
-                    </FormGroup>
+        <FormControlLabel control={<Checkbox name="sundayValue" onChange={handleDaysChange} />} label="Sunday" />
+        <FormControlLabel control={<Checkbox name="mondayValue" onChange={handleDaysChange} />} label="Monday" />
+        <FormControlLabel control={<Checkbox name="tuesdayValue" onChange={handleDaysChange} />} label="Tuesday" />
+        <FormControlLabel control={<Checkbox name="wednesdayValue" onChange={handleDaysChange} />} label="Wednesday" />
+        <FormControlLabel control={<Checkbox name="thursdayValue" onChange={handleDaysChange} />} label="Thursday" />
+        <FormControlLabel control={<Checkbox name="fridayValue" onChange={handleDaysChange} />} label="Friday" />
+        <FormControlLabel control={<Checkbox name="saturdayValue" onChange={handleDaysChange} />} label="Saturday" />
+    </FormGroup>
 
     return (
         <>
@@ -194,11 +138,9 @@ export const Constraints = () => {
                     <tr>
                         <td className="accordion">
                             <h2 className="center_text">Your constraints</h2>
-                                <ConstraintsAccordion
-                                    constraints={allConstraints}
-                                    onConstraintUpdate={handleConstraintUpdate}
-                                    onConstraintDelete={handleConstraintDelete}>
-                                </ConstraintsAccordion>
+                            <ConstraintsAccordion
+                                constraints={allConstraints}
+                            ></ConstraintsAccordion>
                         </td>
                         <td className="center_elem">
                             <h2>Create constraint</h2>

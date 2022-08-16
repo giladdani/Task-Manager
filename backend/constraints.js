@@ -1,11 +1,12 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const ConstraintEventModel = require('./models/constraint')
+const dbConstraints = require('./dal/dbConstraints');
 const utils = require('./utils');
 const router = express.Router();
 
 // Routing
-router.post('/', (req, res) => { addConstraint(req, res) });
+router.post('/', (req, res) => { createConstraint(req, res) });
 router.put('/:id', (req, res) => { updateConstraint(req, res) });
 router.delete('/:id', (req, res) => { deleteConstraint(req, res) });
 router.get('/', (req, res) => { getConstraints(req, res) });
@@ -15,23 +16,23 @@ router.get('/', (req, res) => { getConstraints(req, res) });
 const getConstraints = async (req, res) => {
     try {
         const userEmail = utils.getEmailFromReq(req);
-        const allConstraints = await ConstraintEventModel.find({ 'email': userEmail });
-        res.status(StatusCodes.OK).send(allConstraints);
+        const allConstraints = await dbConstraints.find({ 'email': userEmail });
 
+        res.status(StatusCodes.OK).send(allConstraints);
     } catch (err) {
         console.log(`[getConstraints] Error!\n${err}`);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
     }
 }
 
-const addConstraint = async (req, res) => {
+const createConstraint = async (req, res) => {
     let errorMsg = null;
     try {
         const constraint = await receiveConstraintFromReq(req);
         constraint.id = utils.generateId();
 
-        const docs = await ConstraintEventModel.create(constraint, (a, b) => { });
-
+        // ! Delete if all works well with insert
+        const docs = await dbConstraints.create(constraint);
     } catch (err) {
         errorMsg = err;
     }
@@ -52,36 +53,50 @@ const updateConstraint = async (req, res) => {
         const constraint = await receiveConstraintFromReq(req);
         constraint.id = constraintId;
 
-        const docs = await ConstraintEventModel.updateOne({ 'id': constraintId }, constraint);
+        // ! Delete if all works well with updateOne
+        // // const docs = await ConstraintEventModel.updateOne({ 'id': constraintId }, constraint);
+        const docs = await dbConstraints.replaceOne({ 'id': constraintId }, constraint);
+
     } catch (err) {
         errorMsg = err;
     }
 
     if (errorMsg == null) {
-        console.log(`Updated constraint ${constraintId}`);
+        console.log(`[updateConstraint] Updated constraint ${constraintId}`);
         res.status(StatusCodes.OK).send('Constraint updated');
     } else {
-        console.log("ERROR: Failed to update constraint");
+        console.log("[updateConstraint] ERROR: Failed to update constraint");
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
     }
 }
 
 const deleteConstraint = async (req, res) => {
+    let statusCode = null;
+    let resMsg = null;
     let errorMsg = null;
     const constraintId = req.params.id;
+    let docs;
     try {
-        const docs = await ConstraintEventModel.deleteOne({ 'id': constraintId })
+        docs = await dbConstraints.deleteOne({ 'id': constraintId })
     } catch (err) {
         errorMsg = err;
     }
 
     if (errorMsg == null) {
-        console.log("Deleted constraint " + constraintId);
-        res.status(StatusCodes.OK).send('Constraint deleted');
+        if (docs.deletedCount === 0) {
+            resMsg = "Error: Found no constraint matching that ID.";
+            statusCode = StatusCodes.BAD_REQUEST;
+        } else {
+            resMsg = "Deleted constraint " + constraintId;
+            statusCode = StatusCodes.OK;
+        }
     } else {
-        console.log("ERROR: Failed to delete constraint " + constraintId);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
+        resMsg = errorMsg;
+        statusCode = StatusCodes.INTERNAL_SERVER_ERROR
     }
+    
+    console.log(resMsg);
+    res.status(statusCode).send(resMsg);
 }
 
 const receiveConstraintFromReq = async (req) => {
@@ -109,14 +124,20 @@ const receiveConstraintFromReq = async (req) => {
 
     let endMinuteStr = forbiddenEndDate.getMinutes().toString();
     endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
-
     const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
 
     const title = req.body.title;
 
+
     // Create constraint event
-    const startRecur = new Date(); // TODO: add option for user to set start date?
-    const endRecur = null; // TODO: add option for user to set end date?
+    // // const startRecur = new Date(); // TODO: add option for user to set start date?
+    const startRecur = req.body.startRecur;
+
+    // // const endRecur = null; // TODO: add option for user to set end date?
+    const endRecur = req.body.endRecur; 
+
+    // TODO: check validity
+
     const constraintEvent = {
         daysOfWeek: days,
         startTime: forbiddenStartDuration,

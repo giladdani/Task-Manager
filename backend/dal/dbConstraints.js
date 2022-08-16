@@ -12,6 +12,25 @@ async function find(query) {
     return promise;
 }
 
+async function create(documents) {
+    const promise = await Model.create(documents);
+
+    return promise;
+}
+
+async function deleteOne(query) {
+    let promise = Model.deleteOne(query);
+
+    return promise;
+}
+
+async function replaceOne(filter, replacement) {
+    let promise = Model.updateOne(filter, replacement);
+
+    return promise;
+}
+
+
 
 
 /* --------------------------------------------------------------
@@ -20,6 +39,9 @@ async function find(query) {
 -----------------------------------------------------------------
 -------------------------------------------------------------- */
 module.exports = {
-    find: find,
     findOne: findOne,
+    find: find,
+    create: create,
+    deleteOne: deleteOne,
+    replaceOne: replaceOne,
 }
