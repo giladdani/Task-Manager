@@ -60,6 +60,7 @@ module.exports = {
     find: find,
     findOne: findOne,
     create: create,
+    deleteOne: deleteOne,
 
     // Custom Functions
     addApprovingUser: addApprovingUser,
