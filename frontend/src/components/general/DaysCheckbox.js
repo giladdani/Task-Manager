@@ -5,19 +5,64 @@ import { useEffect, useState } from 'react';
 
 export const DaysCheckbox = (props) => {
     const [days, setDays] = useState({
-        sundayValue: props.startChecked,
-        mondayValue: props.startChecked,
-        tuesdayValue: props.startChecked,
-        wednesdayValue: props.startChecked,
-        thursdayValue: props.startChecked,
-        fridayValue: props.startChecked,
-        saturdayValue: props.startChecked,
+        sundayValue: false,
+        mondayValue: false,
+        tuesdayValue: false,
+        wednesdayValue: false,
+        thursdayValue: false,
+        fridayValue: false,
+        saturdayValue: false,
     })
+
+    useEffect(() => {
+        if (props.startingDays) {
+            setStartingDays();
+        } else if (props.startChecked) {
+            setDaysValue(props.startChecked);
+        }
+
+        let daysArr = getCheckedDays(days);
+        props.setDays(daysArr);
+    }, [])
 
     useEffect(() => {
         let daysArr = getCheckedDays(days);
         props.setDays(daysArr);
     }, [days])
+
+    const setStartingDays = () => {
+        let sundayValue = props.startingDays.includes(0);
+        let mondayValue = props.startingDays.includes(1);
+        let tuesdayValue = props.startingDays.includes(2);
+        let wednesdayValue = props.startingDays.includes(3);
+        let thursdayValue = props.startingDays.includes(4);
+        let fridayValue = props.startingDays.includes(5);
+        let saturdayValue = props.startingDays.includes(6);
+
+        setDays(
+            {
+                sundayValue: sundayValue,
+                mondayValue: mondayValue,
+                tuesdayValue: tuesdayValue,
+                wednesdayValue: wednesdayValue,
+                thursdayValue: thursdayValue,
+                fridayValue: fridayValue,
+                saturdayValue: saturdayValue,
+            }
+        )
+    }
+
+    const setDaysValue = (bValue) => {
+        setDays({
+            sundayValue: bValue,
+            mondayValue: bValue,
+            tuesdayValue: bValue,
+            wednesdayValue: bValue,
+            thursdayValue: bValue,
+            fridayValue: bValue,
+            saturdayValue: bValue,
+        })
+    }
 
     const handleDaysChange = (e) => {
         setDays((prev => ({ ...prev, [e.target.name]: e.target.checked })));
@@ -46,7 +91,7 @@ export const DaysCheckbox = (props) => {
  * @param {*} daysObj 
  * @returns 
  */
- export const getCheckedDays = (daysObj) => {
+export const getCheckedDays = (daysObj) => {
     const checkedDays = [];
 
     if (daysObj.sundayValue) {
