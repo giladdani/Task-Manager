@@ -13,7 +13,7 @@ export const Constraints = () => {
     const [constraintStartTime, setConstraintStartTime] = useState(new Date());
     const [constraintEndTime, setConstraintEndTime] = useState(new Date());
     const [constraintNameValue, setConstraintNameValue] = useState("");
-    const [allConstraints, setAllConstraints] = useState([]);
+    const [rerenderFlag, setFlag] = useState(false);
     const componentMounted = useRef(true);
 
     useEffect(() => {
@@ -21,16 +21,6 @@ export const Constraints = () => {
             componentMounted.current = false;
         }
     }, []);
-
-    const fetchAndUpdateConstraints = async () => {
-        const constraints = await ConstraintsAPI.fetchConstraints();
-
-        if (componentMounted.current) {
-            setAllConstraints(constraints);
-        } else {
-            console.log(`[Constraints - fetchAndUpdateConstraints] component is unmounted, not setting constraints!`)
-        }
-    }
 
     const handleCreateClick = async () => {
         const body = {
@@ -54,7 +44,7 @@ export const Constraints = () => {
 
                     alert("Something went wrong :(")
                 } else {
-                    await fetchAndUpdateConstraints();
+                    setFlag(!rerenderFlag);
                 }
             }
             )
@@ -72,7 +62,7 @@ export const Constraints = () => {
                         <td className="accordion">
                             <h2 className="center_text">Your constraints</h2>
                             <ConstraintsAccordion
-                                key={allConstraints}
+                                key={rerenderFlag}
                             ></ConstraintsAccordion>
                         </td>
                         <td className="center_elem">
