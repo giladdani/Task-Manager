@@ -17,6 +17,7 @@ import { DynamicInputList } from '../components/DynamicInputList';
 import MultipleSelectChip from '../components/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 import { getCheckedDays } from '../components/general/DaysCheckbox';
+import { isValidStatus } from '../apis/APIUtils';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 const ProjectsAPI = require('../apis/ProjectsAPI.js');
 
@@ -47,7 +48,7 @@ export const Projects = (props) => {
     const componentMounted = useRef(true);
 
     useEffect(async () => {
-        const tempConstraints = await ConstraintsAPI.fetchConstraints();
+        const tempConstraints = await ConstraintsAPI.fetchConstraintsData();
         setConstraints(tempConstraints);
     }, [])
 
@@ -100,31 +101,57 @@ export const Projects = (props) => {
             let response;
             let error;
             if (shareChecked) {
-                [response, error] = await ProjectsAPI.createSharedProject(body);
-                alert(`Sent a request to share. Awaiting users approval.`);
+                ProjectsAPI.createSharedProject(body)
+                    .then(response => {
+                        // TODO: handle notifications
+                        if (isValidStatus(response, ProjectsAPI.createSharedProjectValidStatusArr)) {
+
+                        } else {
+
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    })
             } else {
                 toggleLoading(true);
-                [response, error] = await ProjectsAPI.createIndividualProject(body);
 
-                let msg = "";
-                if (!error) {
-                    let jsonRes = await response.json();
-                    let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
-                    if (estimatedTimeLeft > 0) {
-                        msg = `Project added.
-                        \nNote! There was not enough time to match the estimated hours.
-                        Estimated time left: ${estimatedTimeLeft}`
-                    } else {
-                        msg = `Project added.`;
-                    }
-                } else {
-                    msg = "Whoops, something went wrong!"; // TODO: fetch message from the server's response?
-                }
+                ProjectsAPI.createIndividualProject(body)
+                    .then(response => {
+                        // TODO: set notification! See old code below
+                        if (isValidStatus(response, ProjectsAPI.createIndividualProjectValidStatusArr)) {
 
-                toggleLoading(false);
-                setProjectCreationMsg(msg);
-                console.log(msg);
-                toggleSuccessDialog(true);
+                        } else {
+
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    })
+                    .finally(() => {
+                        toggleLoading(false);
+                    })
+
+                // ! Old notification code
+                // let msg = "";
+                // if (!error) {
+                //     let jsonRes = await response.json();
+                //     let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
+                //     if (estimatedTimeLeft > 0) {
+                //         msg = `Project added.
+                //         \nNote! There was not enough time to match the estimated hours.
+                //         Estimated time left: ${estimatedTimeLeft}`
+                //     } else {
+                //         msg = `Project added.`;
+                //     }
+                // } else {
+                //     msg = "Whoops, something went wrong!"; // TODO: fetch message from the server's response?
+                // }
+
+                // toggleLoading(false);
+                // setProjectCreationMsg(msg);
+                // console.log(msg);
+                // toggleSuccessDialog(true);
             }
         }
         catch (err) {
@@ -139,11 +166,11 @@ export const Projects = (props) => {
         let userEmail = sessionStorage.getItem('user_email');
         let foundUserEmail = false;
 
-        for(const email of emailList) {
+        for (const email of emailList) {
             participatingEmails.push(email);
             foundUserEmail = foundUserEmail || (email === userEmail);
         }
-        
+
         if (!foundUserEmail) {
             participatingEmails.push(userEmail);
         }

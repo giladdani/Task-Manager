@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PendingProject as PendingProject } from './PendingProject';
+import { isValidStatus } from '../../apis/APIUtils.js'
 const ProjectsAPI = require('../../apis/ProjectsAPI.js')
 
 export const PendingProjectsList = (props) => {
@@ -19,21 +20,30 @@ export const PendingProjectsList = (props) => {
     }, []);
 
     const fetchAndUpdateProjects = async () => {
-        const [pendingProjects, error] = await ProjectsAPI.fetchPendingProjects();
-
-        if (componentMounted.current) {
-            setPendingProjects(pendingProjects);
-        } else {
-            console.log(`[PendingProjectList - fetchAndUpdateProjects] component is unmounted, not setting pending projects!`)
-        }
+        ProjectsAPI.fetchPendingProjectsData()
+        .then(data => {
+          if (componentMounted.current) {
+            setPendingProjects(data);
+          } else {
+            console.log(`[PendingProjectsList - fetchAndUpdateProjects] component is unmounted, not setting pending projects!`)
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        })
     }
 
     const approveProject = async (project) => {
-        const [res, err] = await ProjectsAPI.approvePendingProject(project);
-
-        if (!err) {
-            fetchAndUpdateProjects();
-        }
+        ProjectsAPI.approvePendingProject(project)
+        .then(response => {
+            if (isValidStatus(response, ProjectsAPI.approvePendingValidStatusArr)) {
+                fetchAndUpdateProjects();
+                // TODO: add success and error notifications
+            }
+        })
+        .catch(err => {
+            console.error(err);
+        })
     }
 
     return (

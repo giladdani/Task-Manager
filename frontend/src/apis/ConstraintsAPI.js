@@ -1,4 +1,10 @@
 const consts = require('./consts.js')
+const apiUtils = require('./APIUtils.js')
+
+const basicValidStatus = [200];
+const deleteValidStatusArr = basicValidStatus;
+const updateValidStatusArr = basicValidStatus;
+const createValidStatusArr = basicValidStatus;
 
 async function createConstraint(body) {
     let response = null;
@@ -26,93 +32,74 @@ async function createConstraint(body) {
     return [response, error];
 }
 
-const fetchConstraints = async () => {
-    let res = null;
+const fetchConstraintsData = async () => {
+    console.log(`[ConstraintsAPI - fetchConstraintsData] Fetching constraints data`);
 
-    try {
-        const response = await fetch(`${consts.host}/constraints`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+    let dataPromise = fetchConstraintsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-        if (response.status !== 200) {
-            throw new Error('Error while fetching constraints');
-        }
+    console.log(`[ConstraintsAPI - fetchConstraintsData] Returning promise.`);
 
-        const data = await response.json();
+    return dataPromise;
+}
 
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-    }
+const fetchConstraintsRes = async () => {
+    console.log(`[ConstraintsAPI - fetchConstraintsRes] Fetching constraints response.`);
 
-    return res;
+    const response = fetch(`${consts.host}/constraints`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
+
+    console.log(`[ConstraintsAPI - fetchConstraintsRes] After server call, returning promise.`);
+
+    return response;
 }
 
 async function updateConstraint(partialConstraintEvent) {
-    let response = null;
-    let connectionError = null;
     console.log(`[ConstraintsAPI - updateConstraint] Updating constraint ${partialConstraintEvent.title}`);
 
-    try {
-        const body = {
-            days: partialConstraintEvent.days,
-            forbiddenStartDate: partialConstraintEvent.forbiddenStartDate,
-            forbiddenEndDate: partialConstraintEvent.forbiddenEndDate,
-            title: partialConstraintEvent.title,
-        };
+    const body = {
+        days: partialConstraintEvent.days,
+        forbiddenStartDate: partialConstraintEvent.forbiddenStartDate,
+        forbiddenEndDate: partialConstraintEvent.forbiddenEndDate,
+        title: partialConstraintEvent.title,
+    };
 
-        response = await fetch(`http://localhost:3001/api/constraints/${partialConstraintEvent.id}`, {
-            headers: consts.standardHeaders,
-            method: 'PUT',
-            body: JSON.stringify(body),
-        });
+    let responsePromise = fetch(`http://localhost:3001/api/constraints/${partialConstraintEvent.id}`, {
+        headers: consts.standardHeaders,
+        method: 'PUT',
+        body: JSON.stringify(body),
+    });
 
-        if (response.status !== 200) {
-            console.error(`[ConstraintsAPI - updateConstraint] Server failed to update constraint ${partialConstraintEvent.title}.`);
-        } else {
-            console.log(`[ConstraintsAPI - updateConstraint] Constraint updated successfully: ${partialConstraintEvent.title}.`);
-        }
-    }
-    catch (err) {
-        console.error(err);
-        connectionError = err;
+    console.log(`[ConstraintsAPI - updateConstraint] After server call, returning promise.`);
 
-        // ! CONSIDER: response.status == // SOME ERROR CODE, find out
-    }
-
-    return [response, connectionError];
+    return responsePromise;
 }
 
 async function deleteConstraint(constraintID) {
-    let response = null;
-    let error = null;
     console.log(`[ConstraintsAPI - deleteConstraint] Deleting constraint (ID: ${constraintID})`);
 
-    try {
-        response = await fetch(`http://localhost:3001/api/constraints/${constraintID}`, {
-            headers: consts.standardHeaders,
-            method: 'DELETE',
-        });
+    let responsePromise = fetch(`http://localhost:3001/api/constraints/${constraintID}`, {
+        headers: consts.standardHeaders,
+        method: 'DELETE',
+    });
 
-        if (response.status !== 200) {
-            console.error(`[ConstraintsAPI - deleteConstraint] Server failed to delete constraint (ID: ${constraintID}).`);
-        } else {
-            console.log(`[ConstraintsAPI - deleteConstraint] Constraint deleted successfully (ID: ${constraintID}).`);
-        }
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
+    console.log(`[ConstraintsAPI - deleteConstraint] After server call, returning promise.`);
 
-    return [response, error];
+    return responsePromise;
 }
 
 module.exports = {
+    deleteValidStatusArr: deleteValidStatusArr,
+    updateValidStatusArr: updateValidStatusArr,
+    createValidStatusArr: createValidStatusArr,
+
     createConstraint: createConstraint,
-    fetchConstraints: fetchConstraints,
+    fetchConstraintsRes: fetchConstraintsRes,
+    fetchConstraintsData: fetchConstraintsData,
     updateConstraint: updateConstraint,
     deleteConstraint: deleteConstraint,
 }

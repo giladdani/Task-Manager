@@ -1,193 +1,141 @@
 const consts = require('./consts.js')
+const apiUtils = require('./APIUtils.js')
 
-async function fetchPendingProjects() {
-    let res = null;
-    let error = null;
+const basicValidStatus = [200];
+const fetchPendingProjectsValidStatusArr = basicValidStatus;
+const approvePendingValidStatusArr = basicValidStatus;
+const fetchProjectsValidStatusArr = basicValidStatus;
+const deleteProjectValidStatusArr = basicValidStatus;
+const exportProjectValidStatusArr = basicValidStatus;
+const createSharedProjectValidStatusArr = basicValidStatus;
+const createIndividualProjectValidStatusArr = basicValidStatus;
 
-    try {
-        const response = await fetch(`${consts.host}/projects/pending`, {
-            headers: consts.standardHeaders,
-            method: 'GET',
-        });
+async function fetchPendingProjectsData() {
+    console.log(`[ProjectsAPI - fetchPendingProjectsData] Fetching pending projects data`);
 
-        if (response.status !== 200) {
-            let errorMsg = await response.text();
-            throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
-        }
+    let dataPromise = fetchPendingProjectsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-        const data = await response.json();
+    console.log(`[ProjectsAPI - fetchPendingProjectsData] Returning promise.`);
 
-        res = data;
-    } catch (err) {
-        console.error(err);
-        error = err;
-    }
+    return dataPromise;
+}
 
-    return [res, error];
+async function fetchPendingProjectsRes() {
+    const response = fetch(`${consts.host}/projects/pending`, {
+        headers: consts.standardHeaders,
+        method: 'GET',
+    });
+
+    return response;
 }
 
 async function approvePendingProject(project) {
-    let res = null;
-    let error = null;
+    const body = {
+        project: project,
+    };
 
-    try {
-        const body = {
-            project: project,
-        };
+    const responsePromise = fetch(`${consts.host}/projects/shared/approved`, {
+        headers: consts.standardHeaders,
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
 
-        const response = await fetch(`${consts.host}/projects/shared/approved`, {
-            headers: consts.standardHeaders,
-            method: 'POST',
-            body: JSON.stringify(body),
-        });
-
-        if (response.status !== 200) {
-            let errorMsg = await response.text();
-            throw errorMsg;
-        }
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return responsePromise;
 }
 
-const fetchProjects = async () => {
-    let res = null;
-    let error = null;
+const fetchProjectsData = async () => {
+    console.log(`[ProjectsAPI - fetchProjectsData] Fetching projects data`);
 
-    try {
+    let dataPromise = fetchProjectsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-        const response = await fetch(`${consts.host}/projects`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+    console.log(`[ProjectsAPI - fetchProjectsData] Returning promise.`);
 
-        if (response.status !== 200) throw new Error('Error while fetching projects')
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
+    return dataPromise;
+}
 
-    return [res, error];
+const fetchProjectsRes = async () => {
+    console.log(`[ProjectsAPI - fetchProjectsRes] Fetching projects response.`);
+
+    const response = fetch(`${consts.host}/projects`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
+
+    console.log(`[ProjectsAPI - fetchProjectsRes] Returning promise.`);
+
+    return response;
 }
 
 const deleteProject = async (project) => {
-    console.log(`Deleting project ${project.title}. Project ID: ${project.id}`);
-    let res = null;
-    let error = null;
+    console.log(`[ProjectsAPI - deleteProject] Deleting project ${project.title}. Project ID: ${project.id}`);
 
-    try {
-        const response = await fetch(`${consts.host}/projects/${project.id}`, {
-            headers: consts.standardHeaders,
-            method: 'DELETE',
-        });
+    const response = fetch(`${consts.host}/projects/${project.id}`, {
+        headers: consts.standardHeaders,
+        method: 'DELETE',
+    });
 
-        if (response.status !== 200) {
-            throw new Error(`Failed to delete project ${project.title} (ID: ${project.id})`);
-        }
+    console.log(`[ProjectsAPI - deleteProject] Request sent, returning promise.`);
 
-        console.log(`Project ${project.title} (ID: ${project.id}) deleted`);
-
-        res = response;
-    }
-    catch (err) {
-        console.error(err);
-        error = err
-    }
-
-    return [res, error];
+    return response;
 }
 
 const exportProject = async (project) => {
-    let response = null;
-    let error = null;
-    console.log(`Exporting project ${project.title}. Project ID: ${project.id}`);
+    console.log(`[ProjectsAPI - exportProject] Exporting project ${project.title}. Project ID: ${project.id}`);
 
-    try {
-        response = await fetch(`${consts.host}/projects/export/${project.id}`, {
-            headers: consts.standardHeaders,
-            method: 'POST',
-        });
+    const responsePromise = fetch(`${consts.host}/projects/export/${project.id}`, {
+        headers: consts.standardHeaders,
+        method: 'POST',
+    });
 
-        if (response.status !== 200) {
-            console.error(`[ProjectsAPI - exportProject] Failed to export project ${project.title} (ID: ${project.id})`);
-        } else {
-            console.log(`[ProjectsAPI - exportProject] Project ${project.title} (ID: ${project.id}) exported to Google.`);
-        }
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
+    console.log(`[ProjectsAPI - exportProject] Sent request, returning promise.`);
 
-    return [response, error];
+    return responsePromise;
 }
 
-
 const createSharedProject = async (body) => {
-    let res = null;
-    let error = null;
     console.log(`[ProjectsAPI - createSharedProject] Creating shared project ${body.projectTitle}.`);
 
-    try {
-        const response = await fetch('http://localhost:3001/api/projects/shared', {
-            headers: consts.standardHeaders,
-            method: 'POST',
-            body: JSON.stringify(body),
-        });
+    const responsePromise = fetch('http://localhost:3001/api/projects/shared', {
+        headers: consts.standardHeaders,
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
 
-        if (response.status !== 200) {
-            let errorMsg = await response.text();
-            throw new Error('[ProjectsAPI - createSharedProject] Invalid parameters for the project:\n\n' + errorMsg)
-        }
-
-        res = response;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return responsePromise;
 }
 
 const createIndividualProject = async (body) => {
-    let res = null;
-    let error = null;
     console.log(`[ProjectsAPI - createSharedProject] Creating shared project ${body.projectTitle}.`);
 
-    try {
-        const response = await fetch('http://localhost:3001/api/projects', {
-            headers: consts.standardHeaders,
-            method: 'POST',
-            body: JSON.stringify(body),
-        });
+    const response = fetch('http://localhost:3001/api/projects', {
+        headers: consts.standardHeaders,
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
 
-        if (response.status !== 200) {
-            let errorMsg = await response.text();
-            throw new Error('Invalid parameters for the project:\n\n' + errorMsg)
-        }
-
-        res = response;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return response;
 }
 
 module.exports = {
-    fetchPendingProjects: fetchPendingProjects,
+    fetchPendingProjectsValidStatusArr: fetchPendingProjectsValidStatusArr,
+    approvePendingValidStatusArr: approvePendingValidStatusArr,
+    fetchProjectsValidStatusArr: fetchProjectsValidStatusArr,
+    deleteProjectValidStatusArr: deleteProjectValidStatusArr,
+    exportProjectValidStatusArr: exportProjectValidStatusArr,
+    createSharedProjectValidStatusArr: createSharedProjectValidStatusArr,
+    createIndividualProjectValidStatusArr: createIndividualProjectValidStatusArr,
+
+    fetchPendingProjectsData: fetchPendingProjectsData,
+    fetchPendingProjectsRes: fetchPendingProjectsRes,
     approvePendingProject: approvePendingProject,
-    fetchProjects: fetchProjects,
+    fetchProjectsData: fetchProjectsData,
+    fetchProjectsRes: fetchProjectsRes,
     deleteProject: deleteProject,
     exportProject: exportProject,
     createSharedProject: createSharedProject,

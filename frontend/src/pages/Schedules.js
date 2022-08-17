@@ -25,21 +25,24 @@ export class Schedules extends React.Component {
         let calendarRef = React.createRef();    // we need this to be able to add events
         this.setState({ calendarRef: calendarRef });
 
-        let googlePromise = EventsAPI.fetchGoogleEvents()
-            .then(([events, errGoogle]) => {
+        let googlePromise = EventsAPI.fetchGoogleEventsData()
+            .then(events => {
                 this.addEventsToScheduleGoogle(events);
             })
+            .catch(err => console.error(err));
 
-        let constraintsPromise = ConstraintsAPI.fetchConstraints()
+        let constraintsPromise = ConstraintsAPI.fetchConstraintsData()
             .then(constraintEvents => {
                 constraintEvents.forEach(constraint => { constraint.editable = false })
                 this.addEventsToScheduleFullCalendar(constraintEvents);
             })
+            .catch(err => console.error(err));
 
-        let projectPromise = EventsAPI.fetchAllProjectEvents()
-            .then(([projectEvents, errProject]) => {
+        let projectPromise = EventsAPI.fetchAllProjectEventsData()
+            .then(projectEvents => {
                 this.addEventsToScheduleFullCalendar(projectEvents);
             })
+            .catch(err => console.error(err));
 
         Promise.all([googlePromise, constraintsPromise, projectPromise])
             .then(responses => {
@@ -70,8 +73,8 @@ export class Schedules extends React.Component {
         // TODO: add check if unmounted like in ProjectsAccordion. Problem: this is class, accordion is function. Can't use same code.
 
         try {
-            EventsAPI.fetchUnsyncedGoogleEvents()
-                .then(([unsyncedEvents, error]) => {
+            EventsAPI.fetchUnsyncedGoogleEventsData()
+                .then((unsyncedEvents) => {
                     try {
                         console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
                         let calendarApi = this.state.calendarRef.current.getApi();
@@ -96,7 +99,7 @@ export class Schedules extends React.Component {
                 })
         }
         catch (err) {
-            console.log(`[updateUnsyncedEvents] Error:\n${err}`);
+            console.error(`[updateUnsyncedEvents] Error:\n${err}`);
         }
     }
 
