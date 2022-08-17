@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import TextField from '@mui/material/TextField';
+import Button from "@material-ui/core/Button";
 
 export const DynamicInputList = (props) => {
     const [inputList, setList] = useState([{ value: "" }]);
@@ -27,40 +29,40 @@ export const DynamicInputList = (props) => {
                 inputList.map((item, index) => (
                     <div key={index}>
                         <div className="first-division">
-                            <input
-                                disabled={props.disabled}
-                                name="value"
-                                type="text"
-                                value={item.value}
+                            <TextField 
                                 onChange={(e) => handleChange(e, index)}
+                                value={item.value} 
+                                name="value" 
+                                disabled={props.disabled}
+                                placeholder="User email..."
+                                variant="outlined"
+                                size="small"
                             />
-                            {inputList.length !== 1 && (
-                                <button
-                                    disabled={props.disabled}
-                                    type="button"
-                                    onClick={() => handleRemove(index)}
-                                    className="remove-btn"
-                                >
+                            {inputList.length !== 1 && (index != inputList.length - 1) && (
+                                <Button
+                                disabled={props.disabled}
+                                onClick={() => handleRemove(index)}
+                                variant="contained"
+                                size="small">
                                     <span>Remove</span>
-                                </button>
+                                </Button>
                             )}
                         </div>
                         <div className="second-division">
                             {inputList.length - 1 === index && (
-                                <button
-                                    disabled={props.disabled}
-                                    type="button"
-                                    onClick={handleAdd}
-                                    className="add-btn"
-                                >
+                                <Button
+                                disabled={props.disabled}
+                                onClick={handleAdd}
+                                variant="contained"
+                                size="small">
                                     <span>Add a user</span>
-                                </button>
+                                </Button>
                             )}
                         </div>
                     </div>
                 ))
             }
-        </div >
+        </div>
     )
 
     return temp1;

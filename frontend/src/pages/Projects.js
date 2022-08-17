@@ -16,7 +16,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
 import MultipleSelectChip from '../components/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
-import { getCheckedDays } from '../components/general/DaysCheckbox';
+import { getCheckedDays } from '../components/general/DaysCheckbox';    // TODO: delete?
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 const ProjectsAPI = require('../apis/ProjectsAPI.js');
 
@@ -224,7 +224,7 @@ export const Projects = (props) => {
         return errorMsg;
     }
 
-    function isValidEmail(email) {
+    function isValidEmail(email) {      // TODO: move to a util file?
         const re =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
@@ -277,7 +277,7 @@ export const Projects = (props) => {
                 <tbody>
                     <tr>
                         <td>
-                            <label>Users to share with: </label>
+                            <label>Shared project? </label>
                         </td>
                         <td>
                             <FormControlLabel
@@ -285,12 +285,12 @@ export const Projects = (props) => {
                                     checked={shareChecked}
                                     onChange={handleShareCheckboxChange}
                                 />}
-                                label="Share"
+                                label="Yes"
                             />
                         </td>
                     </tr>
-                    <tr>
-                        <td></td>
+                    <tr hidden={!shareChecked}>
+                        <td><label>Users to share with:</label></td>
                         <td>
                             <DynamicInputList
                                 disabled={!shareChecked}
@@ -303,7 +303,8 @@ export const Projects = (props) => {
                             <label>Project Name:</label>
                         </td>
                         <td>
-                            <input type="text" onChange={(newValue) => { setProjectName(newValue.target.value) }}></input>
+                            {/* <input type="text" onChange={(newValue) => { setProjectName(newValue.target.value) }}></input> */}
+                            <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" />
                         </td>
                     </tr>
                     <tr>
@@ -311,7 +312,8 @@ export const Projects = (props) => {
                             <label>Estimated Time (Hours):</label>
                         </td>
                         <td>
-                            <input type="number" min="1" step="1" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input>
+                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input> */}
+                            <TextField type="number" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} value="0" size="small"/>
                         </td>
                     </tr>
                     <tr>
@@ -319,7 +321,8 @@ export const Projects = (props) => {
                             <label>Session Length (Minutes):</label>
                         </td>
                         <td>
-                            <input type="number" min="1" step="1" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input>
+                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input> */}
+                            <TextField type="number" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} value="0" size="small"/>
                         </td>
                     </tr>
                     <tr>
@@ -329,7 +332,8 @@ export const Projects = (props) => {
                             </Tooltip>
                         </td>
                         <td>
-                            <input type="number" min="1" step="1" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}></input>
+                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}></input> */}
+                            <TextField type="number" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} size="small"/>
                         </td>
                     </tr>
                     <tr>
@@ -356,6 +360,7 @@ export const Projects = (props) => {
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
                                     ampm={false}
+                                    minDateTime={new Date()}
                                 />
                             </LocalizationProvider>
                         </td>
@@ -402,7 +407,8 @@ export const Projects = (props) => {
                             </Tooltip>
                         </td>
                         <td>
-                            <input type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}></input>
+                            {/* <input type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}></input> */}
+                            <TextField type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}  InputProps={{ inputProps: { min: 1 } }} value="0"/>
                         </td>
                     </tr>
                     <tr>
