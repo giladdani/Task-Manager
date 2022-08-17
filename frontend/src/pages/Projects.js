@@ -75,7 +75,7 @@ export const Projects = (props) => {
         try {
             let errorMsg = checkInputValidity();
             if (errorMsg != null) {
-                alert(errorMsg);
+                props.setMsg(errorMsg);
                 return;
             }
 
@@ -272,6 +272,7 @@ export const Projects = (props) => {
 
     return (
         <>
+            {/* <Snackbar msg={snackbarMsg} key={renderFlag}></Snackbar> */}
             <h1>Create project schedule</h1>
             <table>
                 <tbody>

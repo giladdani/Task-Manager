@@ -9,7 +9,7 @@ export const Login = (props) => {
         <div className="center_elem center_text">
             <h1>Please sign in with your Google account:</h1>
             <h4>(Task Manager requires access to your Google Calendar)</h4>
-            <GoogleLoginButton onLogin={onGoogleLogin} />
+            <GoogleLoginButton onLogin={onGoogleLogin} setMsg={props.setMsg}/>
         </div>
     )
 }
