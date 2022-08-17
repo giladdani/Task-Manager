@@ -108,26 +108,30 @@ const receiveConstraintFromReq = async (req) => {
 
     const days = req.body.days;
 
-    let forbiddenStartDateStr = req.body.forbiddenStartDate;
-    let forbiddenStartDate = new Date(forbiddenStartDateStr);
-    let startHourStr = forbiddenStartDate.getHours().toString();
-    startHourStr = addZeroDigitIfNeeded(startHourStr);
 
-    let startMinuteStr = forbiddenStartDate.getMinutes().toString();
-    startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
-    const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
+    // ! DELETE if getDurationFromDate function works well.
+    // // let forbiddenStartDateStr = req.body.forbiddenStartDate;
+    // // let forbiddenStartDate = new Date(forbiddenStartDateStr);
+    // // let startHourStr = forbiddenStartDate.getHours().toString();
+    // // startHourStr = addZeroDigitIfNeeded(startHourStr);
 
-    let forbiddenEndDateStr = req.body.forbiddenEndDate;
-    const forbiddenEndDate = new Date(forbiddenEndDateStr);
-    let endHourStr = forbiddenEndDate.getHours();
-    endHourStr = addZeroDigitIfNeeded(endHourStr);
+    // // let startMinuteStr = forbiddenStartDate.getMinutes().toString();
+    // // startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
+    // // const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
 
-    let endMinuteStr = forbiddenEndDate.getMinutes().toString();
-    endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
-    const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
 
+    // // let forbiddenEndDateStr = req.body.forbiddenEndDate;
+    // // const forbiddenEndDate = new Date(forbiddenEndDateStr);
+    // // let endHourStr = forbiddenEndDate.getHours();
+    // // endHourStr = addZeroDigitIfNeeded(endHourStr);
+
+    // // let endMinuteStr = forbiddenEndDate.getMinutes().toString();
+    // // endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
+    // // const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
+
+    const forbiddenStartDuration = getDurationFromDate(req.body.forbiddenStartDate);
+    const forbiddenEndDuration = getDurationFromDate(req.body.forbiddenEndDate);
     const title = req.body.title;
-
 
     // Create constraint event
     // // const startRecur = new Date(); // TODO: add option for user to set start date?
@@ -152,6 +156,18 @@ const receiveConstraintFromReq = async (req) => {
     }
 
     return constraintEvent;
+}
+
+const getDurationFromDate = (date) => {
+    let d = new Date(date); // In case the argument is in form of a string.
+    let hours = d.getHours().toString();
+    hours = addZeroDigitIfNeeded(hours);
+
+    let minutes = d.getMinutes().toString();
+    minutes = addZeroDigitIfNeeded(minutes);
+    const duration = `${hours}:${minutes}`;
+
+    return duration;
 }
 
 

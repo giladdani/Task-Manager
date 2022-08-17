@@ -5,7 +5,9 @@ import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Constraint } from './Constraint';
+import { ThreeDots } from 'react-loader-spinner'
 const ConstraintsAPI = require('../../apis/ConstraintsAPI.js')
+
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
@@ -35,7 +37,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ConstraintsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
-  const [allConstraints, setAllConstraints] = useState(props.constraints);
+  const [allConstraints, setAllConstraints] = useState();
   const componentMounted = useRef(true);
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export const ConstraintsAccordion = (props) => {
           // TODO: read body of response. Code here is incorrect.
           const jsonPromise = response.json();
           jsonPromise.then((data) => {
-          alert(data);
+            alert(data);
           })
 
           alert("Something went wrong :(")
@@ -132,7 +134,14 @@ export const ConstraintsAccordion = (props) => {
 
   return (
     <>
+      {!allConstraints &&
+        <ThreeDots color="#00BFFF" height={80} width={80} />
+      }
       {
+        allConstraints && allConstraints.length === 0 &&
+        <p>You have no constraints</p>
+      }
+      {allConstraints &&
         allConstraints.map((constraint, index) => {
           return (
             <Accordion expanded={expanded === constraint.title} onChange={handleChange(constraint.title)} key={index}>
