@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from '@mui/material/Avatar';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Logout from '@mui/icons-material/Logout';
-import ListItemIcon from '@mui/material/ListItemIcon';
 
 export const AvatarPhoto = () => {
     const [avatarUrl, setAvatarUrl] = useState('');
-    const [anchorMenu, setAnchorMenu] = useState(null);
 
     const fetchUserAvatarUrl = async() =>{
         try {

@@ -3,11 +3,10 @@ import { Schedules } from '../pages/Schedules';
 import { Projects } from '../pages/Projects';
 import { Constraints } from '../pages/Constraints';
 import { ProjectManagement } from '../pages/ProjectManagement';
-import { AvatarPhoto } from './AvatarPhoto';
 import { NavBar } from './NavBar';
 import { Routes, Route } from "react-router-dom";
 
-export const MainPagesContainer = () => {
+export const MainPagesContainer = (props) => {
     const setEvents = (events) => {
         allEvents.events = events;
     }
@@ -20,31 +19,29 @@ export const MainPagesContainer = () => {
     const pages = [{
       name: "Schedules",
       relativePath: "/schedules",
-      element: <Schedules setEvents={setEvents} />
+      element: <Schedules setEvents={setEvents} setMsg={props.setMsg} />
     },{
       name: "Projects",
       relativePath: "/projects",
-      element: <Projects events={allEvents} />
+      element: <Projects events={allEvents} setMsg={props.setMsg} />
     },{
       name: "Constraints",
       relativePath: "/constraints",
-      element: <Constraints />
+      element: <Constraints setMsg={props.setMsg} />
     },{
       name: "Project Management",
       relativePath: "/projectmanagement",
-      element: <ProjectManagement allEvents={allEvents} />
+      element: <ProjectManagement allEvents={allEvents} setMsg={props.setMsg} />
     }]
 
     const routes = pages.map((page, index) => <Route path={page.relativePath} element={page.element} key={index}/>);
 
     return(
       <>
-        {/* <div>{<AvatarPhoto />}</div> */}
-          {/* <NavBar pages={pages}/> */}
-          <NavBar pages={pages} />
-          <Routes>
-            {routes}
-          </Routes>
+        <NavBar pages={pages} />
+        <Routes>
+          {routes}
+        </Routes>
       </>
     )
   }

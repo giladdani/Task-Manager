@@ -2,13 +2,13 @@ import { GoogleLogin } from "react-google-login"
 import { useState } from 'react'
 import { ThreeDots } from 'react-loader-spinner'
 
-
 export const GoogleLoginButton = (props) => {
     const [loggingIn, setLoggingIn] = useState(false);
 
     const getLoggedInUserData = async (response) => {
         setLoggingIn(true);
 
+        //TODO: add timer to logging process and show error if it's timed out
         const { code } = response;
         try {
             const res = await fetch(`http://localhost:3001/api/users`, {
@@ -31,7 +31,7 @@ export const GoogleLoginButton = (props) => {
     }
 
     const responseError = (error) => {
-        console.log(error);
+        props.setMsg(error);
     }
 
     return (
