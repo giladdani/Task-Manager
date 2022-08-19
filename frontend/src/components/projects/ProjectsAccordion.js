@@ -6,6 +6,7 @@ import MuiAccordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Project } from './Project';
+import { isValidStatus } from '../../apis/APIUtils';
 const ProjectsAPI = require('../../apis/ProjectsAPI.js')
 
 
@@ -53,42 +54,42 @@ export const ProjectsAccordion = (props) => {
   }, []);
 
   const fetchAndSetProjects = async () => {
-    const [projects, error] = await ProjectsAPI.fetchProjects();
-
-    if (componentMounted.current) {
-      setAllProjects(projects);
-    } else {
-      console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
-    }
+    ProjectsAPI.fetchProjectsData()
+    .then(data => {
+      if (componentMounted.current) {
+        setAllProjects(data);
+      } else {
+        console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
+      }
+    })
+    .catch(err => {
+      console.error(err);
+    })
   }
 
   const deleteProject = async (project) => {
     ProjectsAPI.deleteProject(project)
-      .then(([response, error]) => {
-        // TODO: check if RESPONSE OK
-        fetchAndSetProjects();
+      .then(response => {
+        if (isValidStatus(response, ProjectsAPI.deleteProjectValidStatusArr)) {
+          fetchAndSetProjects();
+        }
+      })
+      .catch(err => {
+        console.error(err);
       })
   }
 
   const exportProject = async (project) => {
     ProjectsAPI.exportProject(project)
-      .then(([response, error]) => {
-        // TODO: Change the manner of notification. Alert sucks.
-        if (error) {
-          alert(error);
-        } else if (response.status !== 200) {
-          // TODO: read body of response. Code here is incorrect.
-          // const jsonPromise = response.json();
-          // jsonPromise.then((data) => {
-            // alert(data);
-          // })
-
-          alert("Something went wrong :(")
-        } else {
-          alert("Project exported!");
-          fetchAndSetProjects();
-        }
-      })
+    .then(response => {
+      if (isValidStatus(response, ProjectsAPI.exportProjectValidStatusArr)) {
+        fetchAndSetProjects();
+      }
+      // TODO: add notifications!
+    })
+    .catch(err => {
+      console.error(err);
+    })
   }
 
   const handleChange = (panel) => (event, newExpanded) => {

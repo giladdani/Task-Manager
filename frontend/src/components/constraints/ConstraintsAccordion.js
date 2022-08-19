@@ -6,8 +6,8 @@ import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Constraint } from './Constraint';
 import { ThreeDots } from 'react-loader-spinner'
+import { isValidStatus } from '../../apis/APIUtils.js'
 const ConstraintsAPI = require('../../apis/ConstraintsAPI.js')
-
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
@@ -53,13 +53,17 @@ export const ConstraintsAccordion = (props) => {
   }, []);
 
   const fetchAndSetConstraints = async () => {
-    const constraints = await ConstraintsAPI.fetchConstraints();
-
-    if (componentMounted.current) {
-      setAllConstraints(constraints);
-    } else {
-      console.log(`[ConstraintsAccordion - fetchAndSetConstraints] component is unmounted, not setting constraints!`)
-    }
+    ConstraintsAPI.fetchConstraintsData()
+    .then(data => {
+      if (componentMounted.current) {
+        setAllConstraints(data);
+      } else {
+        console.log(`[ConstraintsAccordion - fetchAndSetConstraints] component is unmounted, not setting constraints!`)
+      }
+    })
+    .catch(err => {
+      console.log(err);
+    })
   }
 
   const handleChange = (panel) => (event, newExpanded) => {
@@ -68,68 +72,32 @@ export const ConstraintsAccordion = (props) => {
 
   const handleConstraintUpdate = async (partialConstraintEvent) => {
     ConstraintsAPI.updateConstraint(partialConstraintEvent)
-      .then(async ([response, error]) => {
-
-        // handleResponse() ???
-
-        // TODO: Change the manner of notification. Alert sucks.
-        if (error) {
-          alert(error)
-        } else if (response.status !== 200) {
-          // TODO: read body of response. Code here is incorrect.
-          const jsonPromise = response.json();
-          jsonPromise.then((data) => {
-            alert(data);
-          })
-
-          alert("Something went wrong :(")
-        } else {
+      .then(async (response) => {
+        if (isValidStatus(response, ConstraintsAPI.updateValidStatusArr)) {
           fetchAndSetConstraints();
+        } else {
+          // TODO: Change the manner of notification. Alert sucks.
+          alert("Something went wrong :(")
         }
-      }
-      )
+      })
+      .catch(err => {
+        console.error(err);
+      })
   }
-
-
-  // TEST
-
-  // const handleResponse(successMsg, failureMsg, successCallback, failureCallback)
-  // {
-  //   if (status === 200) {
-  //     alert(successmsg);
-
-  //     if (successCallback) {
-  //       successCallback()
-  //     }
-
-  //     do something (probably just positive notification)
-  //   } else {
-  //     negative notification
-  //   }
-  // }
-
-
-
 
   const handleConstraintDelete = async (constraintID) => {
     ConstraintsAPI.deleteConstraint(constraintID)
-      .then(async ([response, error]) => {
-        // TODO: Change the manner of notification. Alert sucks.
-        if (error) {
-          alert(error)
-        } else if (response.status !== 200) {
-          // TODO: read body of response. Code here is incorrect.
-          const jsonPromise = response.json();
-          jsonPromise.then((data) => {
-            alert(data);
-          })
-
-          alert("Something went wrong :(")
-        } else {
+      .then(async (response) => {
+        if (isValidStatus(response, ConstraintsAPI.deleteValidStatusArr)) {
           fetchAndSetConstraints();
+        } else {
+          // TODO: Change the manner of notification. Alert sucks.
+          alert("Something went wrong :(")
         }
-      }
-      )
+      })
+      .catch(err => {
+        console.error(err);
+      })
   }
 
   return (

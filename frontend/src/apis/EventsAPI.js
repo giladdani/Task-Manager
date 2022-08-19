@@ -1,69 +1,66 @@
 const consts = require('./consts.js')
+const apiUtils = require('./APIUtils.js')
 
-async function fetchGoogleEvents() {
-    let res = null;
-    let error = null;
+const basicValidStatus = [200];
+const validStatusArr_fetchGoogleEvents = basicValidStatus;
+const validStatusArr_fetchUnsyncedGoogleEvents = basicValidStatus;
+const validStatusArr_fetchAllProjectEvents = basicValidStatus;
+const validStatusArr_fetchProjectEvents = basicValidStatus;
+const validStatusArr_fetchAllEvents = basicValidStatus;
 
-    try {
-        const response = await fetch(`${consts.host}/calendar/events/google`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+async function fetchGoogleEventsData() {
+    let dataPromise = fetchGoogleEventsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-        if (response.status !== 200) throw new Error('Error while fetching events');
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return dataPromise;
 }
 
-async function fetchUnsyncedGoogleEvents() {
-    let res = null;
-    let error = null;
+async function fetchGoogleEventsRes() {
+    const responsePromise = fetch(`${consts.host}/calendar/events/google`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
 
-    try {
-        const response = await fetch(`${consts.host}/calendar/events/google/unsynced`, {
-            headers: consts.standardHeaders,
-            method: 'GET',
-        });
-
-        if (response.status !== 200) throw new Error('Error while fetching unsynced events');
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return responsePromise
 }
 
-async function fetchAllProjectEvents() {
-    let res = null;
-    let error = null;
+async function fetchUnsyncedGoogleEventsData() {
+    let dataPromise = fetchUnsyncedGoogleEventsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-    try {
-        const response = await fetch(`${consts.host}/projects/events`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+    return dataPromise;
+}
 
-        if (response.status !== 200) throw new Error('Error while fetching events');
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
+async function fetchUnsyncedGoogleEventsRes() {
+    const responsePromise = fetch(`${consts.host}/calendar/events/google/unsynced`, {
+        headers: consts.standardHeaders,
+        method: 'GET',
+    });
 
-    return [res, error];
+    return responsePromise;
+
+}
+
+async function fetchAllProjectEventsData() {
+    let dataPromise = fetchAllProjectEventsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
+
+    return dataPromise;
+}
+
+async function fetchAllProjectEventsRes() {
+    const responsePromise = fetch(`${consts.host}/projects/events`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
+
+    return responsePromise;
 }
 
 /**
@@ -71,29 +68,22 @@ async function fetchAllProjectEvents() {
  * @param {*} projectId 
  * @returns 
  */
-async function fetchProjectEvents(projectId) {
-    let res = null;
-    let error = null;
+async function fetchProjectEventsData(projectId) {
+    let dataPromise = fetchProjectEventsRes(projectId)
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-    try {
-        const response = await fetch(`${consts.host}/calendar/${projectId}/events`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+    return dataPromise;
+}
 
-        if (response.status !== 200) {
-            throw new Error('Error while fetching specific project events');
-        }
+async function fetchProjectEventsRes(projectId) {
+    const responsePromise = fetch(`${consts.host}/calendar/${projectId}/events`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
 
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return responsePromise;
 }
 
 /**
@@ -101,35 +91,34 @@ async function fetchProjectEvents(projectId) {
  * @param {*} projectId 
  * @returns 
  */
-async function fetchAllEvents() {
-    let res = null;
-    let error = null;
+async function fetchAllEventsData() {
+    let dataPromise = fetchAllEventsRes()
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
 
-    try {
-        const response = await fetch(`${consts.host}/calendar/events`, {
-            headers: consts.standardHeaders,
-            method: 'GET'
-        });
+    return dataPromise;
+}
 
-        if (response.status !== 200) {
-            throw new Error('Error while fetching specific project events');
-        }
+async function fetchAllEventsRes() {
+    const responsePromise = await fetch(`${consts.host}/calendar/events`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
 
-        const data = await response.json();
-        res = data;
-    }
-    catch (err) {
-        console.error(err);
-        error = err;
-    }
-
-    return [res, error];
+    return responsePromise;
 }
 
 module.exports = {
-    fetchGoogleEvents: fetchGoogleEvents,
-	fetchAllEvents: fetchAllEvents,
-    fetchAllProjectEvents: fetchAllProjectEvents,
-    fetchUnsyncedGoogleEvents: fetchUnsyncedGoogleEvents,
-    fetchProjectEvents: fetchProjectEvents,
+    validStatusArr_fetchGoogleEvents: validStatusArr_fetchGoogleEvents,
+    validStatusArr_fetchUnsyncedGoogleEvents: validStatusArr_fetchUnsyncedGoogleEvents,
+    validStatusArr_fetchAllProjectEvents: validStatusArr_fetchAllProjectEvents,
+    validStatusArr_fetchProjectEvents: validStatusArr_fetchProjectEvents,
+    validStatusArr_fetchAllEvents: validStatusArr_fetchAllEvents,
+
+    fetchGoogleEventsData: fetchGoogleEventsData,
+    fetchAllEventsData: fetchAllEventsData,
+    fetchAllProjectEventsData: fetchAllProjectEventsData,
+    fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
+    fetchProjectEventsData: fetchProjectEventsData,
 }

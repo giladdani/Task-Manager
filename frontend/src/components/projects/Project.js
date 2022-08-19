@@ -89,7 +89,7 @@ export const Project = (props) => {
     }, [totalHoursPast, totalHoursFuture]);
 
     const fetchAndUpdateProjectEvents = async () => {
-        const [projectEvents, error] = await EventsAPI.fetchProjectEvents(props.project.id);
+        const [projectEvents, error] = await EventsAPI.fetchProjectEventsData(props.project.id);
 
         if (componentMounted.current && !error) {
             setProjectEvents(projectEvents);
