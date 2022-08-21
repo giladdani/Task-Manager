@@ -40,8 +40,20 @@ function accessRoleAllowsWritingGEvent(gEvent) {
     return accessRole === googleAccessRole.writer || accessRole === googleAccessRole.owner;
 }
 
+function isConstraintEvent(event) {
+    if (!event) {
+        return false;
+    }
+    if (!event.extendedProps || !event.extendedProps.isConstraint) {
+        return false;
+    }
+
+    return event.extendedProps.isConstraint;
+}
+
 module.exports = {
     noPermissionMsg: noPermissionMsg,
     accessRoleAllowsWritingFCEvent: accessRoleAllowsWritingFCEvent,
     accessRoleAllowsWritingGEvent: accessRoleAllowsWritingGEvent,
+    isConstraintEvent: isConstraintEvent,
 }

@@ -1,5 +1,5 @@
 const consts = require('./consts.js')
-const apiUtils = require('./APIUtils.js')
+const apiUtils = require('./APIUtils.js');
 
 const basicValidStatus = [200];
 const validStatusArr_fetchGoogleEvents = basicValidStatus;
@@ -7,6 +7,9 @@ const validStatusArr_fetchUnsyncedGoogleEvents = basicValidStatus;
 const validStatusArr_fetchAllProjectEvents = basicValidStatus;
 const validStatusArr_fetchProjectEvents = basicValidStatus;
 const validStatusArr_fetchAllEvents = basicValidStatus;
+const validStatusArr_updateEvent = [200]; // Google uses 200
+const validStatusArr_deleteEvent = [200, 204]; // Google uses 204
+
 
 async function fetchGoogleEventsData() {
     let dataPromise = fetchGoogleEventsRes()
@@ -101,9 +104,38 @@ async function fetchAllEventsData() {
 }
 
 async function fetchAllEventsRes() {
-    const responsePromise = await fetch(`${consts.host}/calendar/events`, {
+    const responsePromise = fetch(`${consts.host}/calendar/events`, {
         headers: consts.standardHeaders,
         method: 'GET'
+    });
+
+    return responsePromise;
+}
+
+async function updateEvent(event, fieldsToUpdate) {
+    const body = {
+        event: event,
+        fieldsToUpdate: fieldsToUpdate
+    }
+
+    const responsePromise = await fetch(`http://localhost:3001/api/calendar/events`, {
+        headers: consts.standardHeaders,
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    });
+
+    return responsePromise;
+}
+
+async function deleteEvent(event) {
+    const body = {
+        event: event
+    };
+
+    const responsePromise = fetch(`${consts.host}/calendar/events`, {
+        headers: consts.standardHeaders,
+        method: 'DELETE',
+        body: JSON.stringify(body)
     });
 
     return responsePromise;
@@ -115,10 +147,14 @@ module.exports = {
     validStatusArr_fetchAllProjectEvents: validStatusArr_fetchAllProjectEvents,
     validStatusArr_fetchProjectEvents: validStatusArr_fetchProjectEvents,
     validStatusArr_fetchAllEvents: validStatusArr_fetchAllEvents,
+    validStatusArr_updateEvent: validStatusArr_updateEvent,
+    validStatusArr_deleteEvent: validStatusArr_deleteEvent,
 
     fetchGoogleEventsData: fetchGoogleEventsData,
     fetchAllEventsData: fetchAllEventsData,
     fetchAllProjectEventsData: fetchAllProjectEventsData,
     fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
     fetchProjectEventsData: fetchProjectEventsData,
+    updateEvent: updateEvent,
+    deleteEvent: deleteEvent,
 }

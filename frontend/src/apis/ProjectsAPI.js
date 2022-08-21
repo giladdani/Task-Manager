@@ -9,6 +9,8 @@ const deleteProjectValidStatusArr = basicValidStatus;
 const exportProjectValidStatusArr = basicValidStatus;
 const createSharedProjectValidStatusArr = basicValidStatus;
 const createIndividualProjectValidStatusArr = basicValidStatus;
+const validStatusArr_rescheduleProjectEvent = basicValidStatus;
+
 
 async function fetchPendingProjectsData() {
     console.log(`[ProjectsAPI - fetchPendingProjectsData] Fetching pending projects data`);
@@ -122,6 +124,29 @@ const createIndividualProject = async (body) => {
     return response;
 }
 
+async function getRescheduledProjectEventsData(event) {
+    let dataPromise = getRescheduledProjectEventsRes(event)
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
+
+    return dataPromise;
+}
+
+async function getRescheduledProjectEventsRes(event) {
+    const body = {
+        event: event,
+    };
+
+    const responsePromise = fetch(`${consts.host}/projects/events/reschedule`, {
+        headers: consts.standardHeaders,
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    });
+
+    return responsePromise;
+}
+
 module.exports = {
     fetchPendingProjectsValidStatusArr: fetchPendingProjectsValidStatusArr,
     approvePendingValidStatusArr: approvePendingValidStatusArr,
@@ -130,6 +155,7 @@ module.exports = {
     exportProjectValidStatusArr: exportProjectValidStatusArr,
     createSharedProjectValidStatusArr: createSharedProjectValidStatusArr,
     createIndividualProjectValidStatusArr: createIndividualProjectValidStatusArr,
+    validStatusArr_rescheduleProjectEvent: validStatusArr_rescheduleProjectEvent,
 
     fetchPendingProjectsData: fetchPendingProjectsData,
     fetchPendingProjectsRes: fetchPendingProjectsRes,
@@ -140,4 +166,6 @@ module.exports = {
     exportProject: exportProject,
     createSharedProject: createSharedProject,
     createIndividualProject: createIndividualProject,
+    getRescheduledProjectEventsData: getRescheduledProjectEventsData,
+    getRescheduledProjectEventsRes: getRescheduledProjectEventsRes,
 }

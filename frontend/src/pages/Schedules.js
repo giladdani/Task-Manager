@@ -5,6 +5,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
+import { isValidStatus } from '../apis/APIUtils'
+import ProjectsAPI from '../apis/ProjectsAPI'
 const eventUtils = require('../event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
@@ -14,7 +16,6 @@ export class Schedules extends React.Component {
         super(props);
 
         this.state = {
-            currentEvents: [],  // TODO: delete? do we use this?
             isLoading: false,
             isDialogOpen: false,
             selectedEvent: { title: "" },
@@ -50,20 +51,17 @@ export class Schedules extends React.Component {
             .then(responses => {
                 this.setState({ isLoading: false })
 
-                /** 
-                 * TODO:
-                 * I want to remove this so that each page can independently request all events from the server,
-                 * and not rely on passing through the Schedules page.
-                 */
-                let calendarApi = this.state.calendarRef.current.getApi();
-                const allEvents = calendarApi.getEvents();
-                this.props.setEvents(allEvents);
+                this.setState({ fetchedInitialEvents: true });
+                let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
+                this.setState({ interval: intervalInfo });
+                console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
             })
 
-        this.setState({ fetchedInitialEvents: true });
-        let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
-        this.setState({ interval: intervalInfo });
-        console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
+            // ! DELETE if all works well since moving these lines to to the Promise.all().then() part, above.
+        // // this.setState({ fetchedInitialEvents: true });
+        // // let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
+        // // this.setState({ interval: intervalInfo });
+        // // console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
     }
 
     async componentWillUnmount() {
@@ -91,7 +89,9 @@ export class Schedules extends React.Component {
                                         }
                                     }
                                 } else if (unsyncedEvent.status === "cancelled") {
-                                    fullCalendarEvent.remove();
+                                    if (unsyncedEvent.calendarId === fullCalendarEvent.extendedProperties.googleCalendarId) {
+                                        fullCalendarEvent.remove();
+                                    }
                                 } else {
                                     this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
                                 }
@@ -113,6 +113,7 @@ export class Schedules extends React.Component {
     updateGoogleEvent = (googleEvent, fullCalendarEvent) => {
         let start = googleEvent.start.dateTime;
         let end = googleEvent.end.dateTime;
+        let originalEditableSetting = fullCalendarEvent.editable;
 
         /**
          * TODO:
@@ -124,10 +125,12 @@ export class Schedules extends React.Component {
             return;
         }
 
+        fullCalendarEvent.setProp("editable", true);
         fullCalendarEvent.setDates(start, end);
         fullCalendarEvent.setProp("title", googleEvent.summary);
         fullCalendarEvent.setProp("backgroundColor", googleEvent.backgroundColor);
         fullCalendarEvent.setProp("borderColor", googleEvent.foregroundColor);
+        fullCalendarEvent.setProp("editable", originalEditableSetting);
     }
 
     handleEventDragged = (eventInfo) => {
@@ -137,14 +140,11 @@ export class Schedules extends React.Component {
         }
 
         const fieldsToUpdate = {
+            title: eventInfo.event.title,
             start: eventInfo.event.start,
             end: eventInfo.event.end
         }
         this.updateEvent(eventInfo.event, fieldsToUpdate);
-    }
-
-    accessRoleAllowsWriting = (event) => {
-
     }
 
     updateEvent = async (event, fieldsToUpdate) => {
@@ -153,27 +153,19 @@ export class Schedules extends React.Component {
             return;
         }
 
-        const body = {
-            event: event,
-            fieldsToUpdate: fieldsToUpdate
-        }
-        try {
-            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'PATCH',
-                body: JSON.stringify(body)
+        EventsAPI.updateEvent(event, fieldsToUpdate)
+            .then(response => {
+                if (isValidStatus(response, EventsAPI.validStatusArr_updateEvent)) {
+                    console.log(`Success in updating event ${event.title}`);
+                    this.props.setNotificationMsg("Event updated");
+                } else {
+                    this.props.setNotificationMsg("Something went wrong! Event not updated.");
+                }
+            })
+            .catch(err => {
+                console.error(err)
+                this.props.setNotificationMsg("Something went wrong! Event not updated.");
             });
-
-            if (response.status !== 200) throw new Error('Error while updating events');
-            return response;
-        }
-        catch (err) {
-            console.error(err);
-        }
     }
 
     handleEventEditOnDialog = async (fieldsToUpdate) => {
@@ -308,29 +300,6 @@ export class Schedules extends React.Component {
         this.setState({ isDialogOpen: isOpen });
     }
 
-    isConstraintEvent = (event) => {
-        if (!event) {
-            return false;
-        }
-        if (!event.extendedProps || !event.extendedProps.isConstraint) {
-            return false;
-        }
-
-        return event.extendedProps.isConstraint;
-    }
-
-    isUnexportedProjectEvent = (event) => {
-        if (!event) {
-            return false;
-        }
-
-        if (!event.extendedProps || !event.extendedProps.unexportedEvent) {
-            return false;
-        }
-
-        return event.extendedProps.unexportedEvent;
-    }
-
     updateUnexportedProjectEvent(event) {
         console.log(`Updating unexported project event: ${event.title}`);
     }
@@ -371,32 +340,6 @@ export class Schedules extends React.Component {
         this.updateConstraintDisplayValue(displayType);
     }
 
-    insertGeneratedEventsToGoogleCalendar = async (events, googleCalendarID) => {
-        try {
-            const body = {
-                events: events,
-                googleCalendarId: googleCalendarID,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/events/generated`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) throw new Error('Error while inserting events to Google calendar');
-            const resJson = await response.json();
-            return resJson;
-        }
-        catch (err) {
-            console.error(err);
-        }
-    }
-
     handleEventClick = (clickInfo) => {
         if (eventUtils.accessRoleAllowsWritingFCEvent(clickInfo.event) === false) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
@@ -409,78 +352,44 @@ export class Schedules extends React.Component {
 
     handleEventDeleteOnDialog = async (event) => {
         // We want to edit constraints only from the constraints page 
-        // because at the moment we're unsure how to handle editing it with recurring events.
-        if (this.isConstraintEvent(event)) {
+        // because at the moment of writing 
+        // we're unsure how to handle editing it with recurring events.
+        if (eventUtils.isConstraintEvent(event)) {
             return;
         }
 
-        try {
-            const body = {
-                event: event
-            };
-
-            const response = await fetch(`http://localhost:3001/api/calendar/events`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'DELETE',
-                body: JSON.stringify(body)
+        EventsAPI.deleteEvent(event)
+            .then(response => {
+                if (isValidStatus(response, EventsAPI.validStatusArr_deleteEvent)) {
+                    console.log(`Success in deleting event ${event.title}`);
+                    event.remove();
+                    this.toggleDialog(false);
+                    this.props.setNotificationMsg("Event deleted");
+                } else {
+                    this.props.setNotificationMsg("Something went wrong! Event not deleted.");
+                }
+            })
+            .catch(err => {
+                console.error(err)
+                this.props.setNotificationMsg("Something went wrong! Event not deleted.");
             });
-
-            if (response.status !== 200) {
-                throw new Error('Error while fetching events');
-            }
-
-            console.log(`Success in deleting event ${event.title}`);
-            event.remove();
-            this.toggleDialog(false);
-        }
-        catch (err) {
-            console.error(err);
-        }
     }
 
     handleEventReschedule = async (event) => {
-        let rescheduledEvents = await this.fetchRescheduledEvents(event);
+        // ! DELETE after checking that promise code works well with returning the data
+        // // let rescheduledEvents = await ProjectsAPI.getRescheduledProjectEventsData(event);
 
-        return rescheduledEvents;
-    }
+        // // return rescheduledEvents;
 
-    fetchRescheduledEvents = async (event) => {
-        let res = null;
-        try {
-            let calendarApi = this.state.calendarRef.current.getApi();
-            const allEvents = calendarApi.getEvents();
-
-            const body = {
-                event: event,
-                allEvents: allEvents,
-            };
-
-            const response = await fetch(`http://localhost:3001/api/projects/events/reschedule`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'access_token': sessionStorage.getItem('access_token')
-                },
-                method: 'PATCH',
-                body: JSON.stringify(body)
-            });
-
-            if (response.status !== 200) {
-                throw new Error('Error while fetching events');
-            }
-
-            const data = await response.json();
-            res = data;
-        }
-        catch (err) {
+        ProjectsAPI.getRescheduledProjectEventsData(event)
+        .then(data => {
+            return data;
+        })
+        .catch(err => {
             console.error(err);
-        }
-
-        return res;
+            this.props.setNotificationMsg("Failed to get rescheduling suggestions.");
+            return null;
+        })
     }
 
     handleConfirmRescheduling = async (eventToReschedule, rescheduledEventsArr) => {

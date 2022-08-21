@@ -61,149 +61,254 @@ const getAllEvents = async (req, res) => {
 
 const updateEvent = async (req, res) => {
     const event = req.body.event;
+    if (!event) {
+        res.status(StatusCodes.BAD_REQUEST).send("Must attach event to request.");
+        return;
+    }
+
     const fieldsToUpdate = req.body.fieldsToUpdate;
-    let errorMsg = null;
-    if (utils.isConstraintEvent(event)) {
-        res.status(StatusCodes.BAD_REQUEST).send("Cannot update constraints from this call.");
-    } else if (utils.isUnexportedProjectEvent(event)) {
-        errorMsg = await updateUnexportedEvent(event, fieldsToUpdate);
-    } else {
-        errorMsg = await updateGoogleEvent(req);
+    if (!fieldsToUpdate) {
+        res.status(StatusCodes.BAD_REQUEST).send("Must attach fields to update");
+        return;
     }
 
-    if (errorMsg === null) {
-        res.status(StatusCodes.OK).send();
-    } else {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with updating event: ${errorMsg}`);
-    }
-}
-
-const updateGoogleEvent = async (req) => {
-    let errorMsg = null;
-    const accessToken = utils.getAccessTokenFromRequest(req);
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-    const googleEventId = req.body.event.extendedProps.googleEventId; // TODO: add a check that this even exists, and if not return error
-    const googleCalendarId = req.body.event.extendedProps.googleCalendarId; // TODO: add a check that this even exists, and if not return error
-    const params = {
-        auth: utils.oauth2Client,
-        calendarId: googleCalendarId,
-        eventId: googleEventId,
-        resource: {
-            summary: req.body.fieldsToUpdate.title,
-            start: {
-                dateTime: new Date(req.body.fieldsToUpdate.start)
-            },
-            end: {
-                dateTime: new Date(req.body.fieldsToUpdate.end)
-            }
+    try {
+        if (utils.isConstraintEvent(event)) {
+            res.status(StatusCodes.BAD_REQUEST).send("Cannot update constraints from this call.");
+        } else if (utils.isUnexportedProjectEvent(event)) {
+            updateUnexportedEvent(req, res);
+        } else {
+            updateGoogleEvent(req, res);
         }
     }
-    try {
-        const response = await googleCalendarApi.events.patch(params);
-    }
     catch (err) {
-        console.log(err);
-        errorMsg = err;
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with updating event: ${err}`);
     }
-
-    return errorMsg;
 }
 
-const updateUnexportedEvent = async (event, fieldsToUpdate) => {
-    let errorMsg = null;
-
-    event.title = fieldsToUpdate.title;
-    event.start = fieldsToUpdate.start;
-    event.end = fieldsToUpdate.end;
-
-    if (!event.id) {
-        errorMsg = "No event id.";
-        console.log(errorMsg);
-        return errorMsg;
+const missingEventUpdateFields = (req) => {
+    if (!req) {
+        return true;
     }
 
+    if (!req.body) {
+        return true;
+    }
+
+    if (!req.body.event) {
+        return true;
+    }
+
+    if (!req.body.fieldsToUpdate) {
+        return true;
+    }
+
+    if (!req.body.fieldsToUpdate.title) {
+        return true;
+    }
+
+    if (!req.body.fieldsToUpdate.start) {
+        return true;
+    }
+
+    if (!req.body.fieldsToUpdate.end) {
+        return true;
+    }
+
+    return false;
+}
+
+const missingUnexportedEventUpdateFields = (req) => {
+    if (missingEventUpdateFields(req)) {
+        return true;
+    }
+
+    if (!req.body.event.id) {
+        return true;
+    }
+
+    return false;
+}
+
+const missingGoogleEventUpdateFields = (req) => {
+    if (missingEventUpdateFields(req)) {
+        return true;
+    }
+
+    if (!req.body.event.extendedProps) {
+        return true;
+    }
+
+    if (!req.body.event.extendedProps.googleEventId) {
+        return true;
+    }
+
+    if (!req.body.event.extendedProps.googleCalendarId) {
+        return true;
+    }
+
+    return false;
+}
+
+const updateGoogleEvent = async (req, res) => {
+    /**
+     * Google Calendar API documentation:
+     * https://developers.google.com/calendar/api/v3/reference/events/patch
+     */
     try {
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({ access_token: accessToken });
+        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+
+        if (missingGoogleEventUpdateFields(req)) {
+            res.status(StatusCodes.BAD_REQUEST).send("Missing fields in the request.");
+            return;
+        }
+
+        if (!utils.accessRoleAllowsWritingFCEvent(req.body.event)) {
+            res.status(StatusCodes.FORBIDDEN).send("Access role does not allow updating.");
+            return;
+        }
+
+        const googleEventId = req.body.event.extendedProps.googleEventId;
+        const googleCalendarId = req.body.event.extendedProps.googleCalendarId;
+        const params = {
+            auth: utils.oauth2Client,
+            calendarId: googleCalendarId,
+            eventId: googleEventId,
+            resource: {
+                summary: req.body.fieldsToUpdate.title,
+                start: {
+                    dateTime: new Date(req.body.fieldsToUpdate.start)
+                },
+                end: {
+                    dateTime: new Date(req.body.fieldsToUpdate.end)
+                }
+            }
+        }
+
+        const response = await googleCalendarApi.events.patch(params);
+        res.status(response.status).send();
+    }
+    catch (err) {
+        console.error(err);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with updating event: ${err}`);
+    }
+}
+
+const updateUnexportedEvent = async (req, res) => {
+    try {
+        if (missingUnexportedEventUpdateFields(req)) {
+            res.status(StatusCodes.BAD_REQUEST).send("Missing fields in the request.");
+            return;
+        }
+
+        let fieldsToUpdate = req.body.fieldsToUpdate;
+        let event = req.body.event;
+        event.title = fieldsToUpdate.title;
+        event.start = fieldsToUpdate.start;
+        event.end = fieldsToUpdate.end;
         const docs = await EventModel.updateOne({ 'id': event.id }, event);
-    } catch (err) {
-        console.log(err);
-        errorMsg = err;
+        if (docs.matchedCount === 1 && docs.modifiedCount === 1) {
+            console.log(`[updateUnexportedEvent] Successfully updated unexported event ${event.id}`);
+            res.status(StatusCodes.OK).send();
+        } else {
+            console.log("ERROR: Failed to update unexported event.");
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+        }
     }
-
-    if (errorMsg == null) {
-        console.log(`[updateUnexportedEvent] Successfully updated unexported event ${event.id}`);
-    } else {
-        console.log("ERROR: Failed to update unexported event.");
+    catch (err) {
+        console.error(err);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with updating event: ${err}`);
     }
-
-    return errorMsg;
 }
 
 const deleteEvent = async (req, res) => {
-    const event = req.body.event;
-    let errorMsg = null;
-    if (utils.isConstraintEvent(event)) {
-        res.status(StatusCodes.BAD_REQUEST).send("Cannot delete constraints from this call.");
-    } else if (utils.isUnexportedProjectEvent(event)) {
-        errorMsg = await deleteDBEvent(event);
-    } else {
-        errorMsg = await deleteGoogleEvent(req);
-    }
-
-    if (errorMsg === null) {
-        res.status(StatusCodes.OK).send();
-    } else {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with deleting event: ${errorMsg}`);
-    }
-}
-
-const deleteDBEvent = async (event) => {
-    const eventId = event.id;
-
-    let errorMsg = null;
-    let docs = null;
     try {
-        docs = await dbUnexportedEvents.deleteOne({ 'id': eventId })
-    } catch (err) {
-        errorMsg = err;
+        const event = req.body.event;
+        if (utils.isConstraintEvent(event)) {
+            res.status(StatusCodes.BAD_REQUEST).send("Cannot delete constraints from this call.");
+        } else if (utils.isUnexportedProjectEvent(event)) {
+            deleteUnexportedEvent(req, res);
+        } else {
+            deleteGoogleEvent(req, res);
+        }
     }
-
-    return errorMsg;
+    catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with deleting event: ${err}`);
+    }
 }
 
-const deleteGoogleEvent = async (req) => {
+const deleteUnexportedEvent = async (req, res) => {
+    const eventId = req.body.event.id;
+
+    try {
+        let docs = await dbUnexportedEvents.deleteOne({ 'id': eventId })
+
+        if (docs.deletedCount == 1) {
+            res.status(StatusCodes.OK).send();
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).send("Could not find event ID.");
+        }
+    } catch (err) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with deleting unexported event: ${err}`);
+    }
+}
+
+const deleteGoogleEvent = async (req, res) => {
+    /**
+     * Google delete documentation:
+     * https://developers.google.com/calendar/api/v3/reference/events/delete
+     */
+
     const accessToken = utils.getAccessTokenFromRequest(req);
     utils.oauth2Client.setCredentials({ access_token: accessToken });
     const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-    const googleEventId = req.body.event.extendedProps.googleEventId; // TODO: add a check that this even exists, and if not return error
+
+    if (missingGoogleEventDeleteFields(req)) {
+        res.status(StatusCodes.BAD_REQUEST).send("Missing fields necessary for deleting Google event.");
+        return;
+    }
+
+    const googleEventId = req.body.event.extendedProps.googleEventId;
     const googleCalendarId = req.body.event.extendedProps.googleCalendarId;
-
-    if (!googleEventId) {
-        return "Error! No google event id.";
-    }
-
-    if (!googleCalendarId) {
-        return "Error! No google calendar id.";
-    }
-
-    let errorMsg = null;
     try {
         const response = await googleCalendarApi.events.delete({
             auth: utils.oauth2Client,
             calendarId: googleCalendarId,
             eventId: googleEventId,
         });
-        // res.status(StatusCodes.OK).send(response);
 
-        // TODO: check that response is 200 OK
+        if (response.status === 204 || response.status === 200) {
+            res.status(StatusCodes.OK).send();
+        } else {
+            res.status(response.status).send();
+        }
     }
     catch (err) {
-        console.log(err);
-        errorMsg = err;
-        // res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+        console.error(err);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+    }
+}
+
+const missingGoogleEventDeleteFields = (req) => {
+    if (!req.body.event) {
+        return true;
     }
 
-    return errorMsg;
+    if (!req.body.event.extendedProps) {
+        return true;
+    }
+
+    if (!req.body.event.extendedProps.googleEventId) {
+        return true;
+    }
+
+    if (!req.body.event.extendedProps.googleCalendarId) {
+        return true;
+    }
+
+    return false;
 }
 
 const getGoogleEvents = async (req, res) => {
