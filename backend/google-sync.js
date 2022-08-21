@@ -4,6 +4,7 @@ const utils = require('./utils');
 const dbUsers = require('./dal/dbUsers');
 const dbGoogleEvents = require('./dal/dbGoogleEvents');
 const dbProjects = require('./dal/dbProjects');
+const { googleAccessRole } = require('./utils');
 
 
 const syncGoogleData = async (accessToken, email) => {
@@ -14,16 +15,14 @@ const syncGoogleData = async (accessToken, email) => {
         const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
 
         const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
-        updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
+        await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
         let newCalendarId2Sync = await getNewCalendarsIds(unsyncedGoogleCalendars, email);
         let deletedCalendarsId = getDeletedCalendarsIds(unsyncedGoogleCalendars);
-
         addMissingCalendars(newCalendarId2Sync, email);
         updateUserDeletedCalendars(deletedCalendarsId, email);
         updateDeletedProjects(deletedCalendarsId, email);
         let deletedCalendarEvents = await getDeletedCalendarsEventsDB(deletedCalendarsId, email);
         removeDeletedCalendarsEvents(deletedCalendarsId, email);
-        // unsyncedEvents = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
         let [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap] = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
         updateEventCollectionSyncTokens(calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email);
         updateDBWithUnsyncedEvents(allUnsyncedEvents, email)
@@ -43,7 +42,7 @@ const syncGoogleData = async (accessToken, email) => {
  * @param {*} email 
  */
 const updateDeletedProjects = async (deletedCalendarsId, email) => {
-    for(const calendarId of deletedCalendarsId) {
+    for (const calendarId of deletedCalendarsId) {
         await dbProjects.deleteOne({ 'googleCalendarId': calendarId });
 
     }
@@ -54,7 +53,7 @@ const updateUserDeletedCalendars = async (deletedCalendarsId, email) => {
 }
 
 const removeDeletedCalendarsEvents = async (deletedCalendarsId, email) => {
-    for(const calendarId of deletedCalendarsId) {
+    for (const calendarId of deletedCalendarsId) {
         await dbGoogleEvents.deleteEventsByCalendar(email, calendarId);
     }
 
@@ -112,7 +111,7 @@ const updateDBWithUnsyncedEvents = async (unsyncedEvents, email) => {
 }
 
 const addMissingCalendars = async (missingCalendarId2Sync, email) => {
-    for(const element of missingCalendarId2Sync) {
+    for (const element of missingCalendarId2Sync) {
         await dbUsers.addCalendar(email, element.key);
     }
 
@@ -186,11 +185,13 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
 
             for (const calendar of calendarList.data.items) {
                 const calendarSyncToken = getCalendarSyncToken(userData, calendar.id);
-                const [unsyncedCalendarEvents, nextSyncToken] = await getUnsyncedEventsFromCalendar(googleCalendarClient, calendar.id, calendarSyncToken, email, calendar.summary);
+                // const calendarACL = await getCalendarACL(googleCalendarClient, calendar); // TODO: cannot request ACL for calendars you are not owner of - add check or remove
+                let [unsyncedCalendarEvents, nextSyncToken] = await getUnsyncedEventsFromCalendar(googleCalendarClient, calendar.id, calendarSyncToken, email, calendar.summary);
                 calendarId2PrevSyncTokenMap.set(calendar.id, calendarSyncToken);
                 calendarId2NextSyncTokenMap.set(calendar.id, nextSyncToken);
                 let calendarEventsWithCalendarId = unsyncedCalendarEvents.map(event => {
                     const [background, foreground] = getColorString(calendar, event, calendarColors, eventColors);
+                    let accessRole = getEventAccessRole(calendar, event, email);
 
                     return (
                         {
@@ -201,6 +202,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
                             email: email,
                             fetchedByUser: false,
                             isGoogleEvent: true,
+                            accessRole: accessRole,
                         })
                 }
                 );
@@ -215,17 +217,17 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
 
 /**
  * Returns unsynced calendars only. Does not update the sync token!
- * @param {*} calendar 
+ * @param {*} googleCalendarClient 
  * @param {*} email 
  * @returns An array of [calendars, prevSyncToken, nextSyncToken]. Note that nextSyncToken may be the same as current sync token.
  */
-const getUnsyncedGoogleCalendars = async (calendar, email) => {
+const getUnsyncedGoogleCalendars = async (googleCalendarClient, email) => {
     const userData = await dbUsers.findOne({ email: email });
     let syncToken = userData.calendarsSyncToken;
     let prevSyncToken = syncToken;
     let calendars = [];
     let nextSyncToken = null;
-    let response = await calendar.calendarList.list({ syncToken: syncToken, });
+    let response = await googleCalendarClient.calendarList.list({ syncToken: syncToken, });
     calendars = response.data.items;
     nextSyncToken = response.data.nextSyncToken;
 
@@ -236,7 +238,7 @@ const updateUserCalendarsSyncToken = async (prevSyncToken, nextSyncToken, email)
     let updatePromise = null;
 
     if (prevSyncToken !== nextSyncToken) {
-        dbUsers.updateCalendarsSyncToken(email,)
+        dbUsers.updateCalendarsSyncToken(email,nextSyncToken)
     }
 
     return updatePromise;
@@ -285,6 +287,21 @@ const getCalendarSyncToken = (userData, calendarId) => {
     return syncToken;
 }
 
+const getCalendarACL = async (googleCalendarApi, calendar) => {
+    /**
+     * TODO: check access role?
+     * If you try to retrieve ACL of a calendar you aren't the owner of, Google will deny.
+     * See access role field:
+     * https://developers.google.com/calendar/api/v3/reference/calendarList#resource
+     */
+
+    let response = await googleCalendarApi.acl.list({
+        calendarId: calendar.id,
+    });
+
+
+}
+
 /**
  * This function returns all the unsynced events from the calendar, based on the calendar ID provided.
  * If the sync token is null, the function performs an initial sync.
@@ -298,9 +315,8 @@ const getCalendarSyncToken = (userData, calendarId) => {
  */
 const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, syncToken, email, summary) => {
     let events = [];
-    let prevSyncToken = syncToken;
     let nextSyncToken = null;
-    let areModifiedEvents = false;
+    let accessRole = null;
 
     if (syncToken === null) {
         [events, nextSyncToken] = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
@@ -371,23 +387,6 @@ const getInitialSyncEvents = async (googleCalendarApi, calendarId, email, calend
         pageToken = response.data.nextPageToken;
     } while (pageToken);
 
-    // ! DELETE if all works well after moving to DB
-    // // let query = {
-    // //     email: email,
-    // //     "eventListCalendarId2SyncToken.key": calendarId,
-    // // }
-
-    // // let updateRes = await UserModel.updateOne(
-    // //     query,
-    // //     {
-    // //         $set: {
-    // //             "eventListCalendarId2SyncToken.$.value": nextSyncToken,
-    // //         }
-    // //     }
-    // // );
-
-    // // await db.updateEventsCollectionSyncToken(email, calendarId, nextSyncToken);
-
     return [events, nextSyncToken];
 }
 
@@ -416,7 +415,18 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
      * Unexported events can maintain a black color.
      */
 
+    if (event.attendees) {
+        /**
+         * Invites appear on Google Calendar as transparent.
+         * I could not find out how to specify a color as transparent in FullCalendar,
+         * so I set the color to be the main color of the website.
+         */
 
+        background = utils.websiteMainColor;
+    }
+
+
+    // Check if event has a specific color to override the basic calendar color
     if (event.colorId) {
         colorId = Number(event.colorId);
         colors = Object.entries(eventColors);
@@ -429,6 +439,31 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
     }
 
     return [background, foreground];
+}
+
+const getEventAccessRole = (calendar, event, email) => {
+    if (event.status === 'cancelled') {
+        return utils.googleAccessRole.none;
+    }
+
+    if (event.creator.email === email) {
+        return utils.googleAccessRole.owner;
+    }
+
+    if (event.organizer.self) {
+        return googleAccessRole.writer;
+        // TODO: maybe this needs to be owner too?
+    }
+
+    if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {
+        if (event.guestsCanModify) {
+            return googleAccessRole.writer;
+        } else {
+            return googleAccessRole.reader;
+        }
+    }
+
+    return googleAccessRole.none;
 }
 
 /**

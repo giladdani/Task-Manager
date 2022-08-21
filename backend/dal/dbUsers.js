@@ -20,7 +20,7 @@ async function removeDeletedCalendars(email, deletedCalendarsId) {
     let promise = null;
     if (deletedCalendarsId.length > 0) {
         // Remove deleted calendars from the user's sync token array.
-        await Model.updateOne(
+        promise = await Model.updateOne(
             { email: email },
             {
                 $pull: {

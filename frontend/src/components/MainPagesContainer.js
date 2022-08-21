@@ -19,7 +19,7 @@ export const MainPagesContainer = (props) => {
     const pages = [{
       name: "Schedules",
       relativePath: "/schedules",
-      element: <Schedules setEvents={setEvents} setMsg={props.setMsg} />
+      element: <Schedules setEvents={setEvents} setNotificationMsg={props.setMsg} />
     },{
       name: "Projects",
       relativePath: "/projects",

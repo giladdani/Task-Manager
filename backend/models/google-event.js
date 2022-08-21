@@ -24,6 +24,7 @@ const googleEventSchema = new Schema({
     fetchedByUser: Boolean,
     isGoogleEvent: Boolean,
     status: String,
+    accessRole: String,
     extendedProperties: {
         private: {
             fullCalendarEventId: String,
