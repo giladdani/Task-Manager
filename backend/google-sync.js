@@ -446,13 +446,12 @@ const getEventAccessRole = (calendar, event, email) => {
         return utils.googleAccessRole.none;
     }
 
-    if (event.creator.email === email) {
-        return utils.googleAccessRole.owner;
-    }
+    // if (event.creator.email === email) {
+    //     return utils.googleAccessRole.owner;
+    // }
 
-    if (event.organizer.self) {
-        return googleAccessRole.writer;
-        // TODO: maybe this needs to be owner too?
+    if (event.organizer.email === calendar.id) {
+        return calendar.accessRole;
     }
 
     if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {

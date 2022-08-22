@@ -18,6 +18,24 @@ const googleAccessRole = {
     owner: 'owner',
 }
 
+function accessRoleAllowsWritingFCEvent(fcEvent) {
+    if (!fcEvent) {
+        return false;
+    }
+
+    if (!fcEvent.extendedProps) {
+        return false;
+    }
+
+    let accessRole = fcEvent.extendedProps.accessRole;
+
+    if (!accessRole) {
+        return false;
+    }
+
+    return accessRole === googleAccessRole.writer || accessRole === googleAccessRole.owner;
+}
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -214,6 +232,7 @@ module.exports = {
     oauth2Client: oauth2Client,
     websiteMainColor: websiteMainColor,
     googleAccessRole: googleAccessRole,
+    accessRoleAllowsWritingFCEvent: accessRoleAllowsWritingFCEvent,
     generateId: generateId,
     getAccessTokenFromRequest: getAccessTokenFromRequest,
     getEmailFromReq: getEmailFromReq,
