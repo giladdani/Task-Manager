@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
 import EventDialog from '../components/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
+const eventUtils = require('../event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
 
@@ -17,6 +18,7 @@ export class Schedules extends React.Component {
             isLoading: false,
             isDialogOpen: false,
             selectedEvent: { title: "" },
+            requestingUnsyncedEvents: false,
         }
     }
 
@@ -71,35 +73,40 @@ export class Schedules extends React.Component {
 
     updateUnsyncedEvents = async () => {
         // TODO: add check if unmounted like in ProjectsAccordion. Problem: this is class, accordion is function. Can't use same code.
-
-        try {
-            EventsAPI.fetchUnsyncedGoogleEventsData()
-                .then((unsyncedEvents) => {
-                    try {
-                        console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
-                        let calendarApi = this.state.calendarRef.current.getApi();
-                        for (const unsyncedEvent of unsyncedEvents) {
-                            let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
-                            if (!fullCalendarEvent) {
-                                if (unsyncedEvent.status !== "cancelled") {
-                                    let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
-                                    if (fcEvent) {
-                                        calendarApi.addEvent(fcEvent);
+        if (this.state.requestingUnsyncedEvents === false) {
+            this.setState({ requestingUnsyncedEvents: true }, () => {
+                console.log(`[updateUnsyncedEvents] Requesting from the server unsynced events.`)
+                EventsAPI.fetchUnsyncedGoogleEventsData()
+                    .then((unsyncedEvents) => {
+                        try {
+                            console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
+                            let calendarApi = this.state.calendarRef.current.getApi();
+                            for (const unsyncedEvent of unsyncedEvents) {
+                                let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
+                                if (!fullCalendarEvent) {
+                                    if (unsyncedEvent.status !== "cancelled") {
+                                        let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
+                                        if (fcEvent) {
+                                            calendarApi.addEvent(fcEvent);
+                                        }
                                     }
+                                } else if (unsyncedEvent.status === "cancelled") {
+                                    fullCalendarEvent.remove();
+                                } else {
+                                    this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
                                 }
-                            } else if (unsyncedEvent.status === "cancelled") {
-                                fullCalendarEvent.remove();
-                            } else {
-                                this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
                             }
+                        } catch (err) {
+                            console.log(`[updateUnsyncedEvents] Error in THEN part:\n${err}`)
                         }
-                    } catch (err) {
-                        console.log(`[updateUnsyncedEvents] Error in THEN part:\n${err}`)
-                    }
-                })
-        }
-        catch (err) {
-            console.error(`[updateUnsyncedEvents] Error:\n${err}`);
+                    })
+                    .catch(err => {
+                        console.error(`[updateUnsyncedEvents] Error:\n${err}`);
+                    })
+                    .finally(() => {
+                        this.setState({ requestingUnsyncedEvents: false });
+                    })
+            })
         }
     }
 
@@ -124,6 +131,11 @@ export class Schedules extends React.Component {
     }
 
     handleEventDragged = (eventInfo) => {
+        if (eventUtils.accessRoleAllowsWritingFCEvent(eventInfo.event) === false) {
+            this.props.setNotificationMsg(eventUtils.noPermissionMsg);
+            return;
+        }
+
         const fieldsToUpdate = {
             start: eventInfo.event.start,
             end: eventInfo.event.end
@@ -131,7 +143,16 @@ export class Schedules extends React.Component {
         this.updateEvent(eventInfo.event, fieldsToUpdate);
     }
 
+    accessRoleAllowsWriting = (event) => {
+
+    }
+
     updateEvent = async (event, fieldsToUpdate) => {
+        if (eventUtils.accessRoleAllowsWritingFCEvent(event) === false) {
+            this.props.setNotificationMsg(eventUtils.noPermissionMsg);
+            return;
+        }
+
         const body = {
             event: event,
             fieldsToUpdate: fieldsToUpdate
@@ -205,12 +226,13 @@ export class Schedules extends React.Component {
         const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
         const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
         const googleEventId = event.id;
+        const editable = eventUtils.accessRoleAllowsWritingGEvent(event);
 
         fcEvent = {
             id: localEventId,
             googleEventId: googleEventId,
             googleCalendarId: event.calendarId,
-            editable: true,
+            editable: editable,
             title: event.summary,
             start: event.start.dateTime,
             end: event.end.dateTime,
@@ -218,6 +240,7 @@ export class Schedules extends React.Component {
             projectId: fullCalendarProjectId,
             borderColor: event.foregroundColor,
             backgroundColor: event.backgroundColor,
+            accessRole: event.accessRole,
         }
 
         return fcEvent;
@@ -258,7 +281,7 @@ export class Schedules extends React.Component {
         if (!googleEvent.extendedProperties.private) {
             return id;
         }
-        
+
         if (!googleEvent.extendedProperties.private.fullCalendarEventID) {
             return id;
         }
@@ -375,6 +398,11 @@ export class Schedules extends React.Component {
     }
 
     handleEventClick = (clickInfo) => {
+        if (eventUtils.accessRoleAllowsWritingFCEvent(clickInfo.event) === false) {
+            this.props.setNotificationMsg(eventUtils.noPermissionMsg);
+            return;
+        }
+
         this.setState({ selectedEvent: clickInfo.event });
         this.toggleDialog(true);
     }

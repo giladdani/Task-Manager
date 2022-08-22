@@ -8,6 +8,15 @@ const EventModel = require('./models/unexported-event')
 const GoogleEventModel = require('./models/google-event')
 const consts = require('./consts');
 
+const websiteMainColor = '#282c34';
+
+const googleAccessRole = {
+    none: 'none',
+    freeBusyReader: 'freeBusyReader',
+    reader: 'reader',
+    writer: 'writer',
+    owner: 'owner',
+}
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -203,6 +212,8 @@ function isValidDate(date) {
 
 module.exports = {
     oauth2Client: oauth2Client,
+    websiteMainColor: websiteMainColor,
+    googleAccessRole: googleAccessRole,
     generateId: generateId,
     getAccessTokenFromRequest: getAccessTokenFromRequest,
     getEmailFromReq: getEmailFromReq,

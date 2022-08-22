@@ -208,65 +208,22 @@ const deleteGoogleEvent = async (req) => {
 
 const getGoogleEvents = async (req, res) => {
     const email = utils.getEmailFromReq(req);
-
-    // const allEvents = await dbGoogleEvents.find({ email: email, fetchedByUser: false });
     const allEvents = await dbGoogleEvents.find({ email: email });
-
     res.status(StatusCodes.OK).send(allEvents);
-
-    /* 
-    GoogleEventModel.updateMany(
-        { email: email },
-        {
-            $set:
-            {
-                fetchedByUser: true,
-            }
-        })
-        .then(res => {
-            console.log(`Finished updating user ${email} Google events to fetched.`);
-        })
-    // */
 }
 
 const getUnsyncedGoogleEvents = async (req, res) => {
     const email = utils.getEmailFromReq(req);
     const accessToken = await utils.getAccessTokenFromRequest(req);
     let unsyncedEvents = [];
-    let deletedCalendarEvents = [];
     let error = null;
 
-    // TODO: use two promises above and then promise all once emal and access token are retrieved
     try {
-        // / Method 1: receive unsynced events from Google directly and isert them into DB
-        // // [unsyncedEvents, deletedCalendarEvents] = await googleSync.syncGoogleData(accessToken, email);
         unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
-
         console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}.`);
         if (unsyncedEvents.length > 0) {
             console.log(`Unsynced events: ${unsyncedEvents.length}.`);
         }
-
-        // // if (deletedCalendarEvents.length > 0) {
-        // //     console.log(`Deleted calendars events: ${deletedCalendarEvents.length}.`);
-        // // }
-
-
-        // / Method 2: receive from DB. Good if we use intervals server-side to update.
-        /*
-        {    
-            unsyncedEvents = await GoogleEventModel.find({ email: email, fetchedByUser: false });
-            GoogleEventModel.updateMany( // Avoid await?
-            { email: email },
-            {
-                $set:
-                {
-                    fetchedByUser: true,
-                }
-            }
-            )
-        }
-        // */
     } catch (err) {
         console.log(`[getUnsyncedGoogleEvents] Error:\n${err}`)
         error = err;
