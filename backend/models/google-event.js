@@ -31,6 +31,7 @@ const googleEventSchema = new Schema({
             fullCalendarProjectId: String,
         }
     },
+    tags: [Schema.Types.Mixed],
 })
 
 const GoogleEvent = mongoose.model('GoogleEvent', googleEventSchema);

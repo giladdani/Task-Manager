@@ -13,6 +13,7 @@ const unexportedEventSchema = new Schema({
     backgroundColor: String,
     unexportedEvent: Boolean,
     email: String,
+    tags: [Schema.Types.Mixed],
 })
 
 const UnexportedEvent = mongoose.model('UnexportedEvent', unexportedEventSchema);
