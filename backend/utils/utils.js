@@ -4,8 +4,8 @@ const axios = require('axios').default;
 const uuidv4 = require('uuid').v4;
 const nodemailer = require('nodemailer');
 
-const EventModel = require('./models/unexported-event')
-const GoogleEventModel = require('./models/google-event')
+const EventModel = require('../models/unexported-event')
+const GoogleEventModel = require('../models/google-event')
 const consts = require('./consts');
 
 const websiteMainColor = '#282c34';
@@ -18,7 +18,21 @@ const googleAccessRole = {
     owner: 'owner',
 }
 
-function accessRoleAllowsWritingFCEvent(fcEvent) {
+function accessRoleAllowsWriting_GoogleDBEvent(dbGEvent) {
+    if (!dbGEvent) {
+        return false;
+    }
+
+    let accessRole = dbGEvent.accessRole;
+
+    if (!accessRole) {
+        return false;
+    }
+
+    return accessRole === googleAccessRole.writer || accessRole === googleAccessRole.owner;
+}
+
+function accessRoleAllowsWriting_FullCalendarEvent(fcEvent) {
     if (!fcEvent) {
         return false;
     }
@@ -228,11 +242,42 @@ function isValidDate(date) {
     return date instanceof Date && !isNaN(date);
 }
 
+const getRandomColor = () => {
+    let randomColor = Math.floor(Math.random() * 16777215).toString(16);
+    randomColor = "#" + randomColor;
+
+    return randomColor;
+}
+
+/**
+ * This function receives an update resource for a Google Calendar event patch call.
+ * If project tags are updated, and in particular if one is removed, then we need to go over the ignored tags of the specific event, and update them.
+ * If an event ignores tag X, and tag X has been removed from the project, the tag also needs to be pulled from the event's ignored array.
+ * This function performs that filter and makes sure that the updateResource will have the proper array of ignored IDs.
+ * @param {*} dbGEvent The google event, as saved in our database, to be patched.
+ * @param {*} updateResource The update resource with all the fields to be patched.
+ * @returns The update resource with the proper ignoredTagIds field after filtering, if at all necessary. 
+ */
+function pullDeletedTagsFromIgnoredGEvent(dbGEvent, updateResource) {
+    if (updateResource.projectTagIds) {
+        let ignoredProjectTagIds = resource.ignoredProjectTagIds;
+        if (!ignoredProjectTagIds) {
+            ignoredProjectTagIds = dbGEvent.extendedProperties.private.ignoredProjectTagIds;
+        }
+
+        ignoredProjectTagIds = ignoredProjectTagIds.filter(ignoredId => eventUpdates.projectTagIds.includes(ignoredId));
+        resource.extendedProperties = { private: { ignoredProjectTagIds: ignoredProjectTagIds } };
+    }
+
+    return updateResource;
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
     websiteMainColor: websiteMainColor,
     googleAccessRole: googleAccessRole,
-    accessRoleAllowsWritingFCEvent: accessRoleAllowsWritingFCEvent,
+    accessRoleAllowsWriting_FullCalendarEvent: accessRoleAllowsWriting_FullCalendarEvent,
+    accessRoleAllowsWriting_GoogleDBEvent: accessRoleAllowsWriting_GoogleDBEvent,
     generateId: generateId,
     getAccessTokenFromRequest: getAccessTokenFromRequest,
     getEmailFromReq: getEmailFromReq,
@@ -248,4 +293,6 @@ module.exports = {
     getEventEnd: getEventEnd,
     getEventDates: getEventDates,
     isValidDate: isValidDate,
+    getRandomColor: getRandomColor,
+    pullDeletedTagsFromIgnoredGEvent: pullDeletedTagsFromIgnoredGEvent,
 }

@@ -19,7 +19,7 @@ async function create(element) {
 }
 
 async function deleteOne(query) {
-    const promise = Model.deleteOne(query); 
+    const promise = Model.deleteOne(query);
 
     return promise;
 }
@@ -43,6 +43,48 @@ async function updateExportProject(projectId, googleCalendarId) {
     return promise;
 }
 
+async function addTags(projectId, tagIds) {
+    let promise = null;
+    if (tagIds.length > 0) {
+        promise = await Model.updateOne(
+            { projectId: projectId },
+            {
+                $addToSet: {
+                    tagIds: {
+                        $each: tagIds,
+                    }
+                }
+            }
+        )
+    }
+
+    return promise;
+}
+
+async function removeTags(projectId, tagIds) {
+    let promise = null;
+    if (tagIds.length > 0) {
+        promise = Model.updateOne(
+            { projectId: projectId },
+            {
+                $pull: {
+                    tagIds: {
+                        $in: tagIds,
+                    }
+                }
+            }
+        )
+    }
+
+    return promise;
+}
+
+async function updateOne(filter, update) {
+    promise = Model.updateOne(filter, update);
+    
+    return promise;
+}
+
 
 
 /* --------------------------------------------------------------
@@ -55,7 +97,10 @@ module.exports = {
     find: find,
     create: create,
     deleteOne: deleteOne,
+    updateOne: updateOne,
 
     // Custom Functions
     updateExportProject: updateExportProject,
+    addTags: addTags,
+    removeTags: removeTags,
 }

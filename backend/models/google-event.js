@@ -1,4 +1,4 @@
-const mongoose  = require("mongoose");
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 /**
@@ -29,6 +29,9 @@ const googleEventSchema = new Schema({
         private: {
             fullCalendarEventId: String,
             fullCalendarProjectId: String,
+            tagIds: [String],
+            projectTagIds: [String],
+            ignoredProjectTagIds: [String],
         }
     },
 })

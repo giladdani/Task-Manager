@@ -5,10 +5,12 @@ require('dotenv').config({path:__dirname+'/.env'})
 const createError = require('http-errors');
 
 // Local files
-const calendar = require('./calendar');
-const users = require('./users');
-const constraints = require('./constraints');
-const projects = require('./projects');
+const events = require('./business-logic/events');
+const users = require('./business-logic/users');
+const constraints = require('./business-logic/constraints');
+const projects = require('./business-logic/projects');
+const tags = require('./business-logic/tags.js');
+
 
 // Constants
 const DbUri = `mongodb+srv://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@task-manager.sh855.mongodb.net/TaskManager?retryWrites=true&w=majority`
@@ -27,10 +29,12 @@ app.use(
 // Routing
 const router = express.Router();
 app.use('/api', router);
-router.use('/calendar', calendar);
+
+router.use('/events', events);
 router.use('/users', users);
 router.use('/constraints', constraints);
 router.use('/projects', projects);
+router.use('/tags', tags);
 
 mongoose.connect(DbUri).then(result => {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

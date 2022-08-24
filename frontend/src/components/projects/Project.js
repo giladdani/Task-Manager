@@ -89,13 +89,17 @@ export const Project = (props) => {
     }, [totalHoursPast, totalHoursFuture]);
 
     const fetchAndUpdateProjectEvents = async () => {
-        const [projectEvents, error] = await EventsAPI.fetchProjectEventsData(props.project.id);
-
-        if (componentMounted.current && !error) {
-            setProjectEvents(projectEvents);
-        } else {
-            console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
-        }
+        EventsAPI.fetchProjectEventsData(props.project.id)
+        .then(data => {
+            if (componentMounted.current) {
+                setProjectEvents(data);
+            } else {
+                console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
+            }
+        })
+        .catch(err => {
+            console.error(err);
+        })
     }
 
     const calculateHoursPast = () => {

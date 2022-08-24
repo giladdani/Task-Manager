@@ -1,6 +1,6 @@
-const dbConstraints = require('./dal/dbConstraints');
-const dataObjects = require('./dataobjects');
-const utils = require('./utils');
+const dbConstraints = require('../dal/dbConstraints');
+const dataObjects = require('../utils/dataobjects');
+const utils = require('../utils/utils');
 
 /**
  * This function receives an event to reschedule, with the event's project - which holds its parameters.

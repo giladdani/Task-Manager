@@ -57,7 +57,7 @@ export class Schedules extends React.Component {
                 console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
             })
 
-            // ! DELETE if all works well since moving these lines to to the Promise.all().then() part, above.
+        // ! DELETE if all works well since moving these lines to to the Promise.all().then() part, above.
         // // this.setState({ fetchedInitialEvents: true });
         // // let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
         // // this.setState({ interval: intervalInfo });
@@ -133,48 +133,74 @@ export class Schedules extends React.Component {
         fullCalendarEvent.setProp("editable", originalEditableSetting);
     }
 
-    handleEventDragged = (eventInfo) => {
+    handleEventDragged = async (eventInfo) => {
         if (eventUtils.accessRoleAllowsWritingFCEvent(eventInfo.event) === false) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
             return;
         }
 
         const fieldsToUpdate = {
-            title: eventInfo.event.title,
             start: eventInfo.event.start,
             end: eventInfo.event.end
         }
-        this.updateEvent(eventInfo.event, fieldsToUpdate);
+
+        let updated = await this.updateEvent(eventInfo.event, fieldsToUpdate)
+        if (!updated) {
+            let event = eventInfo.event;
+            event.setStart(eventInfo.oldEvent.start);
+            event.setEnd(eventInfo.oldEvent.end);
+        }
     }
 
+    /**
+     * @returns Boolean with the update result - true if updated, false if not.
+     */
     updateEvent = async (event, fieldsToUpdate) => {
-        if (eventUtils.accessRoleAllowsWritingFCEvent(event) === false) {
+        if (!eventUtils.accessRoleAllowsWritingFCEvent(event)) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
-            return;
+            return false;
         }
 
-        EventsAPI.updateEvent(event, fieldsToUpdate)
+        let updated = false;
+        return EventsAPI.updateEvent(event, fieldsToUpdate)
             .then(response => {
                 if (isValidStatus(response, EventsAPI.validStatusArr_updateEvent)) {
                     console.log(`Success in updating event ${event.title}`);
                     this.props.setNotificationMsg("Event updated");
+                    updated = true;
+
+                    return true;
                 } else {
                     this.props.setNotificationMsg("Something went wrong! Event not updated.");
+                    updated = false;
+
+                    return false;
                 }
             })
             .catch(err => {
                 console.error(err)
                 this.props.setNotificationMsg("Something went wrong! Event not updated.");
-            });
+                updated = false;
+
+                return false;
+            })
+            // .finally(() => {
+                // return updated;
+            // })
+
+        // return resPromise;
     }
 
     handleEventEditOnDialog = async (fieldsToUpdate) => {
-        await this.updateEvent(this.state.selectedEvent, fieldsToUpdate);
+        let updated = await this.updateEvent(this.state.selectedEvent, fieldsToUpdate);
         this.toggleDialog(false);
         let event = this.state.selectedEvent;
-        event.setProp("title", fieldsToUpdate.title);
-        event.setStart(fieldsToUpdate.start);
-        event.setEnd(fieldsToUpdate.end);
+
+        if (updated) {
+            if (fieldsToUpdate.title) event.setProp("title", fieldsToUpdate.title);
+            if (fieldsToUpdate.start) event.setStart(fieldsToUpdate.start);
+            if (fieldsToUpdate.end) event.setEnd(fieldsToUpdate.end);
+        }
     }
 
     addEventsToScheduleFullCalendar = (events) => {
@@ -382,14 +408,14 @@ export class Schedules extends React.Component {
         // // return rescheduledEvents;
 
         ProjectsAPI.getRescheduledProjectEventsData(event)
-        .then(data => {
-            return data;
-        })
-        .catch(err => {
-            console.error(err);
-            this.props.setNotificationMsg("Failed to get rescheduling suggestions.");
-            return null;
-        })
+            .then(data => {
+                return data;
+            })
+            .catch(err => {
+                console.error(err);
+                this.props.setNotificationMsg("Failed to get rescheduling suggestions.");
+                return null;
+            })
     }
 
     handleConfirmRescheduling = async (eventToReschedule, rescheduledEventsArr) => {
