@@ -56,7 +56,7 @@ export const Constraints = () => {
 
     return (
         <>
-            <table className="full_width">
+            <table className="full_width whiteFont">
                 <tbody>
                     <tr>
                         <td className="accordion">
@@ -73,7 +73,6 @@ export const Constraints = () => {
                                         <td><label>Name:</label></td>
                                         <td>
                                             <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" />
-                                            {/* <input type="textbox" onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} /> */}
                                         </td>
                                     </tr>
                                     <tr>
@@ -84,7 +83,7 @@ export const Constraints = () => {
                                     </tr>
                                     <tr>
                                         <td><label>Start time:</label></td>
-                                        <td className="whiteTimeFont">
+                                        <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
                                                     value={constraintStartTime}
@@ -97,7 +96,7 @@ export const Constraints = () => {
                                     </tr>
                                     <tr>
                                         <td><label>End time:</label></td>
-                                        <td className="whiteTimeFont">
+                                        <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
                                                     value={constraintEndTime}

@@ -11,17 +11,21 @@
 }
 
 /** MUI **/
-.MuiOutlinedInput-root:hover fieldset,
-.Mui-focused fieldset,
-.MuiOutlinedInput-root fieldset {
-  border-color: white !important;
-}
 
-.whiteTimeFont .MuiOutlinedInput-input,
-.MuiOutlinedInput-root,
+/* .MuiOutlinedInput-root fieldset  */
+/* .MuiOutlinedInput-root, */
+
 .MuiChip-root,
 .MuiAccordion-root {
   color: white !important;
+}
+
+.whiteFont .MuiOutlinedInput-root,
+.whiteFont .MuiOutlinedInput-root fieldset,
+.whiteFont .MuiOutlinedInput-root:hover fieldset,
+.whiteFont .Mui-focused fieldset{
+  color: white !important;
+  border-color:white!important
 }
 
 .MuiOutlinedInput-root fieldset {

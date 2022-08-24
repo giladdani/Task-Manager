@@ -7,11 +7,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsList';
-
+import MultipleSelectChip from '../MultipleSelectChip';
+import Select from '@mui/material/Select';
 
 /**
  * 
@@ -23,7 +20,7 @@ import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsLis
 
 
 export default function TagDialog(props) {
-    const [title, setEventName] = useState("");
+    const [title, setTagName] = useState("");
     const [selectedTags, setSelectedTags] = useState(props.selectedTags);
     const [nonSelectedTags, setNonSelectedTags] = useState([]);
 
@@ -42,14 +39,27 @@ export default function TagDialog(props) {
         // props.handleTagUpdate(selectedTags)
     }
 
+    const handleCreate = () => {
+
+    }
+
+    const handleCancel = () => {
+    }
+
     return (
         <>
             <Dialog open={props.isOpen} aria-labelledby="draggable-dialog-title" PaperComponent={PaperComponent} BackdropProps={{ style: { backgroundColor: "transparent" } }} disableScrollLock disableRestoreFocus>
-                <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit event</DialogTitle>
+                <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit tags</DialogTitle>
                 <DialogContent>
-                    <table id="editEventTable">
+                    <table>
                         <tbody>
                             <tr>
+                                <td>Tags:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <MultipleSelectChip items={selectedTags}></MultipleSelectChip>
+                                </td>
                                 {/* Dual ListBox
                                     handleUpdate={handleUpdate} 
                                     
@@ -61,15 +71,15 @@ export default function TagDialog(props) {
                             </tr>
                             <tr>
                                 <td>
-                                    <TextField label="Event name" value={title} onChange={(newValue) => setEventName(newValue.target.value)} autoFocus />
+                                    <TextField label="Tag name" value={title} onChange={(newValue) => setTagName(newValue.target.value)} size="small" autoFocus />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose} variant="contained" color="secondary">Create New</Button>
-                    <Button onClick={handleSave} variant="contained" color="success">Add Existing</Button>
+                    <Button onClick={handleCancel} variant="contained" color="secondary">Cancel</Button>
+                    <Button onClick={handleCreate} variant="contained" color="primary">Create New</Button>
                 </DialogActions>
                 {/* All User Tags component */}
             </Dialog>
