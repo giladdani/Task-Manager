@@ -7,10 +7,11 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsList';
+import MultipleSelectChip from './MultipleSelectChip';
+import Select from '@mui/material/Select';
+const TagsAPI = require('../../apis/TagsAPI.js');
+const APIUtils = require('../../apis/APIUtils.js')
+
 
 
 /**
@@ -23,55 +24,99 @@ import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsLis
 
 
 export default function TagDialog(props) {
-    const [title, setEventName] = useState("");
+    const [allUserTags, setAllUserTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState(props.selectedTags);
-    const [nonSelectedTags, setNonSelectedTags] = useState([]);
+    const [newTagTitle, setNewTagTitle] = useState("");
 
     useEffect(() => {
-        fetchAndSetTags();
+        fetchAndSetAllTags();
+        markSelectedTags();
     }, [])
 
-    async function fetchAndSetTags() {
-        // Fetch all user tags
-        //  Remove from them all selected tags
-        // //  set them for the dual listbox component
-        // setNonSelectedTags(data);
+    useEffect(() => {
+        markSelectedTags();
+    }, [allUserTags])
+
+    async function fetchAndSetAllTags() {
+        TagsAPI.fetchTagsData()
+            .then(tags => {
+                setAllUserTags(tags);
+            })
+            .catch(err => {
+                console.error(err);
+                // TODO: notification error, get in props
+            })
     }
 
-    function handleUpdate(selectedTags) {
-        // props.handleTagUpdate(selectedTags)
+    function markSelectedTags() {
+        // TODO:
+        // Mark all the selected tags from allUserTags
+        // Update the selectChip component
+    }
+
+    function handleUpdate() {
+        props.onTagsUpdate(selectedTags);
+    }
+
+    const handleCreate = () => {
+        TagsAPI.createTag(newTagTitle)
+        .then(response => {
+            if (APIUtils.isValidStatus(response, TagsAPI.validStatusArr_createTag)) {
+                fetchAndSetAllTags();
+                markSelectedTags();
+                // TODO: notification, get in props
+            } else {
+                // TODO: notification, get in props
+            }
+
+        })
+        .catch(err => {
+            console.error(err);
+            // TODO: notification error, get in props
+        })
+    }
+
+    const handleSave = () => {
+        handleUpdate();
+    }
+
+    const handleCancel = () => {
+        // TODO: change this to X to exit the dialog
+    }
+
+    const onSelectChange = (selected) => {
+        setSelectedTags(selected);
     }
 
     return (
         <>
             <Dialog open={props.isOpen} aria-labelledby="draggable-dialog-title" PaperComponent={PaperComponent} BackdropProps={{ style: { backgroundColor: "transparent" } }} disableScrollLock disableRestoreFocus>
-                <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit event</DialogTitle>
+                <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit tags</DialogTitle>
                 <DialogContent>
-                    <table id="editEventTable">
+                    <table>
                         <tbody>
                             <tr>
-                                {/* Dual ListBox
-                                    handleUpdate={handleUpdate} 
-                                    
-                                    selected={selectedTags}
-                                    nonSelected={nonSelectedTags}
-                                    setSelected={setSelectedTags}
-                                    setNonSelected={setNonSelectedTags}
-                                    */}
+                                <td>Tags:</td>
                             </tr>
                             <tr>
                                 <td>
-                                    <TextField label="Event name" value={title} onChange={(newValue) => setEventName(newValue.target.value)} autoFocus />
+                                    {/* <form> */}
+                                    <MultipleSelectChip items={allUserTags} onSelectChange={onSelectChange}></MultipleSelectChip>
+                                    {/* </form> */}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <TextField label="Tag name" value={title} onChange={(newValue) => setTagName(newValue.target.value)} size="small" autoFocus />
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose} variant="contained" color="secondary">Create New</Button>
-                    <Button onClick={handleSave} variant="contained" color="success">Add Existing</Button>
+                    <Button onClick={handleCancel} variant="contained" color="secondary">Cancel</Button>
+                    <Button onClick={handleCreate} variant="contained" color="primary">Create New</Button>
                 </DialogActions>
-                {/* All User Tags component */}
             </Dialog>
         </>
     );

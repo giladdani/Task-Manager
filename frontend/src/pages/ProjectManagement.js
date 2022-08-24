@@ -4,7 +4,7 @@ import { PendingProjectsList } from '../components/projects/PendingProjectList';
 export const ProjectManagement = (props) => {
     return (
         <>
-            <table className="full_width">
+            <table className="full_width whiteFont">
                 <tbody>
                     <tr>
                         <td className="accordion">

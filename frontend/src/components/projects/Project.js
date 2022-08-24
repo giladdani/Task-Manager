@@ -12,11 +12,13 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
 import { ButtonGroup } from '@mui/material';
 import { ThreeDots } from 'react-loader-spinner';
+import Select from '@mui/material/Select';
+import TagDialog from '../general/TagDialog.js';
 const EventsAPI = require('../../apis/EventsAPI.js');
 
 
 export const Project = (props) => {
-    const [projectTitle, setProjectName] = useState(props.project.title);
+    const [projectTitle, setProjectTitle] = useState(props.project.title);
     const [startDate, setStartDate] = useState(new Date(props.project.start));
     const [endDate, setEndDate] = useState(new Date(props.project.end));
     const [isBeingEdited, setIsBeingEdited] = useState(false);
@@ -27,6 +29,10 @@ export const Project = (props) => {
     const [totalHoursPast, setTotalHoursPast] = useState();
     const [totalHoursFuture, setTotalHoursFuture] = useState();
     const [totalHoursExpected, setTotalHoursExpected] = useState();
+    // const [tags, setTags] = useState(["Tag1","Tag2","Tag3"]);
+    const [tags, setTags] = useState(props.project.tags);
+
+    const [isTagDialogOpen, setTagDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const componentMounted = useRef(true);
 
@@ -219,6 +225,10 @@ export const Project = (props) => {
         setIsProcessing(false);
     }
 
+    const handleTagsUpdated = () => {
+        // TODO: Refetch project
+    }
+
     return (
         <>
             <table>
@@ -226,13 +236,7 @@ export const Project = (props) => {
                     <tr>
                         <td><label>Name:</label></td>
                         <td>
-                            <TextField value={projectTitle} disabled={!isBeingEdited} onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" />
-                            {/* <input
-                                type="text"
-                                value={projectTitle}
-                                disabled={!isBeingEdited}
-                                onChange={(newValue) => { setProjectName(newValue.target.value) }}>
-                            </input> */}
+                            <TextField value={projectTitle} disabled={!isBeingEdited} onChange={(newValue) => { setProjectTitle(newValue.target.value) }} variant="outlined" />
                         </td>
                     </tr>
                     <tr>
@@ -240,26 +244,26 @@ export const Project = (props) => {
                         <td>{props.project.timeEstimate}</td>
                     </tr>
                     <tr>
-                        <td><label>Events finished: </label></td>
+                        <td><label>Events finished:</label></td>
                         <td>{oldEvents.length}</td>
                     </tr>
                     <tr>
-                        <td><label>Hours done: </label></td>
+                        <td><label>Hours done:</label></td>
                         <td>{totalHoursPast}</td>
                     </tr>
                     <tr>
-                        <td><label>Events left: </label></td>
+                        <td><label>Events left:</label></td>
                         <td>{futureEvents.length}</td>
                     </tr>
                     <tr>
-                        <td><label>Hours left: </label></td>
+                        <td><label>Hours left:</label></td>
                         <td>{totalHoursFuture}</td>
                     </tr>
                     <tr>
                         <td>On track to perform {totalHoursExpected} out of estimated {props.project.timeEstimate} hours.</td>
                     </tr>
                     <tr>
-                        <td><label>Start date: </label></td>
+                        <td><label>Start date:</label></td>
                         <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
@@ -288,20 +292,36 @@ export const Project = (props) => {
                             </LocalizationProvider>
                         </td>
                     </tr>
+                    <tr>
+                        <td><label>Tags:</label></td>
+                        <td>
+                            <Select
+                                multiple
+                                native
+                                inputProps={{
+                                    id: 'select-multiple-native',
+                                }}>
+                                    {tags.map((tag) => (
+                                        <option key={tag} value={tag}>
+                                            {tag}
+                                        </option>
+                                    ))}
+                            </Select>
+                        </td>
+                    </tr>
+                    <tr><td></td><td><Button variant='contained' onClick={() => setTagDialogOpen(true)} disabled={!isBeingEdited} size="small">Edit Tags</Button></td></tr>
                 </tbody>
             </table>
-            <ButtonGroup
-                variant='contained'
-            >
-                <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited || isProcessing}>Edit</Button>
-                <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited || isProcessing}>Cancel</Button>
-                <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited || isProcessing}>Save</Button>
+            <ButtonGroup variant='contained'>
+                <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited || isProcessing} size="small">Edit</Button>
+                <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited || isProcessing} size="small">Cancel</Button>
+                <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited || isProcessing} size="small">Save</Button>
                 <Tooltip title="Deletes the project and all its events. If the project is already exported, it deletes the calendar from Google Calendar.">
-                    <Button variant='contained' onClick={handleOnDeleteClick} disabled={isProcessing}>Delete</Button>
+                    <Button variant='contained' onClick={handleOnDeleteClick} disabled={isProcessing} size="small">Delete</Button>
                 </Tooltip>
                 {!props.project.exportedToGoogle &&
                     <Tooltip title="Export all the project's events to your Google calendar. This creates a new Calendar for the events.">
-                        <Button variant='contained' onClick={handleOnExportClick} disabled={isProcessing}>Export</Button>
+                        <Button variant='contained' onClick={handleOnExportClick} disabled={isProcessing} size="small">Export</Button>
                     </Tooltip>
                 }
             </ButtonGroup>
@@ -331,6 +351,8 @@ export const Project = (props) => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <TagDialog isOpen={isTagDialogOpen} selectedTags={tags} onTagsUpdate={handleTagsUpdated}></TagDialog>
         </>
     )
 }

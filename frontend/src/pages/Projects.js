@@ -14,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
-import MultipleSelectChip from '../components/MultipleSelectChip';
+import MultipleSelectChip from '../components/general/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 import { getCheckedDays } from '../components/general/DaysCheckbox';
 import { isValidStatus } from '../apis/APIUtils';
@@ -301,7 +301,7 @@ export const Projects = (props) => {
         <>
             {/* <Snackbar msg={snackbarMsg} key={renderFlag}></Snackbar> */}
             <h1>Create project schedule</h1>
-            <table>
+            <table className="whiteFont">
                 <tbody>
                     <tr>
                         <td>
@@ -366,7 +366,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start Date:</label></td>
-                        <td className="whiteTimeFont">
+                        <td>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={startDate}
@@ -380,7 +380,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>End Date:</label></td>
-                        <td className="whiteTimeFont">
+                        <td>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
                                     value={endDate}
@@ -404,7 +404,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>Start time:</label></td>
-                        <td className="whiteTimeFont">
+                        <td>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={dailyStartHour}
@@ -417,7 +417,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td><label>End time:</label></td>
-                        <td className="whiteTimeFont">
+                        <td>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <TimePicker
                                     value={dailyEndHour}
@@ -450,14 +450,6 @@ export const Projects = (props) => {
                         <td>
                             <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
                         </td>
-                        {/* <td>
-                            <input
-                                type="number"
-                                value={dayRepetitionFrequency}
-                                min="1" step="1"
-                                onChange={(newValue) => { setDayRepetitionFrequency(newValue.target.value) }}>
-                            </input>
-                        </td> */}
                     </tr>
                     <tr>
                         <td>
@@ -465,13 +457,6 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             <form >
-                                {/* <select
-                                    onChange={onSelectConstraintChange}
-                                    name="constraints" id="constraints" multiple>
-                                    {constraints.map((constraint, index) => {
-                                        return <option key={index} id={constraint.id} value={constraint.id}>{constraint.title}</option>
-                                    })}
-                                </select> */}
                                 <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange}></MultipleSelectChip>
                             </form>
                         </td>
