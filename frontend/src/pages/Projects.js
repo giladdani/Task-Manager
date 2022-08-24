@@ -14,7 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/DynamicInputList';
-import MultipleSelectChip from '../components/MultipleSelectChip';
+import MultipleSelectChip from '../components/general/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 import { getCheckedDays } from '../components/general/DaysCheckbox';
 import { isValidStatus } from '../apis/APIUtils';

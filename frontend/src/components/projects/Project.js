@@ -29,7 +29,9 @@ export const Project = (props) => {
     const [totalHoursPast, setTotalHoursPast] = useState();
     const [totalHoursFuture, setTotalHoursFuture] = useState();
     const [totalHoursExpected, setTotalHoursExpected] = useState();
-    const [tags, setTages] = useState(["Tag1","Tag2","Tag3"]);
+    // const [tags, setTags] = useState(["Tag1","Tag2","Tag3"]);
+    const [tags, setTags] = useState(props.project.tags);
+
     const [isTagDialogOpen, setTagDialogOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const componentMounted = useRef(true);
@@ -223,6 +225,10 @@ export const Project = (props) => {
         setIsProcessing(false);
     }
 
+    const handleTagsUpdated = () => {
+        // TODO: Refetch project
+    }
+
     return (
         <>
             <table>
@@ -346,7 +352,7 @@ export const Project = (props) => {
                 </DialogActions>
             </Dialog>
 
-            <TagDialog isOpen={isTagDialogOpen} selectedTags={tags}></TagDialog>
+            <TagDialog isOpen={isTagDialogOpen} selectedTags={tags} onTagsUpdate={handleTagsUpdated}></TagDialog>
         </>
     )
 }
