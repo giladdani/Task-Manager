@@ -1,8 +1,8 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const ConstraintEventModel = require('./models/constraint')
-const dbConstraints = require('./dal/dbConstraints');
-const utils = require('./utils');
+const ConstraintEventModel = require('../models/constraint')
+const dbConstraints = require('../dal/dbConstraints');
+const utils = require('../utils/utils.js');
 const router = express.Router();
 
 // Routing

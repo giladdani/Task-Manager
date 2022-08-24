@@ -21,7 +21,7 @@ async function fetchGoogleEventsData() {
 }
 
 async function fetchGoogleEventsRes() {
-    const responsePromise = fetch(`${consts.host}/calendar/events/google`, {
+    const responsePromise = fetch(`${consts.fullRouteEvents}/google`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -39,7 +39,7 @@ async function fetchUnsyncedGoogleEventsData() {
 }
 
 async function fetchUnsyncedGoogleEventsRes() {
-    const responsePromise = fetch(`${consts.host}/calendar/events/google/unsynced`, {
+    const responsePromise = fetch(`${consts.fullRouteEvents}/google/unsynced`, {
         headers: consts.standardHeaders,
         method: 'GET',
     });
@@ -48,8 +48,8 @@ async function fetchUnsyncedGoogleEventsRes() {
 
 }
 
-async function fetchAllProjectEventsData() {
-    let dataPromise = fetchAllProjectEventsRes()
+async function fetchAllUnexportedEventsData() {
+    let dataPromise = fetchAllUnexportedEventsRes()
         .then(response => {
             return apiUtils.getResData(response);
         })
@@ -57,8 +57,8 @@ async function fetchAllProjectEventsData() {
     return dataPromise;
 }
 
-async function fetchAllProjectEventsRes() {
-    const responsePromise = fetch(`${consts.host}/projects/events`, {
+async function fetchAllUnexportedEventsRes() {
+    const responsePromise = fetch(`${consts.fullRouteEvents}/unexported`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -81,7 +81,7 @@ async function fetchProjectEventsData(projectId) {
 }
 
 async function fetchProjectEventsRes(projectId) {
-    const responsePromise = fetch(`${consts.host}/calendar/${projectId}/events`, {
+    const responsePromise = fetch(`${consts.fullRouteEvents}/project/${projectId}`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -104,7 +104,7 @@ async function fetchAllEventsData() {
 }
 
 async function fetchAllEventsRes() {
-    const responsePromise = fetch(`${consts.host}/calendar/events`, {
+    const responsePromise = fetch(`${consts.fullRouteEvents}`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -113,12 +113,15 @@ async function fetchAllEventsRes() {
 }
 
 async function updateEvent(event, fieldsToUpdate) {
-    const body = {
-        event: event,
-        fieldsToUpdate: fieldsToUpdate
-    }
+    // ! DELETE if new patch code works well
+    // const body = {
+        // event: event,
+        // fieldsToUpdate: fieldsToUpdate
+    // }
 
-    const responsePromise = await fetch(`http://localhost:3001/api/calendar/events`, {
+    const body = fieldsToUpdate;
+
+    const responsePromise = fetch(`${consts.fullRouteEvents}/${event.id}`, {
         headers: consts.standardHeaders,
         method: 'PATCH',
         body: JSON.stringify(body)
@@ -132,7 +135,7 @@ async function deleteEvent(event) {
         event: event
     };
 
-    const responsePromise = fetch(`${consts.host}/calendar/events`, {
+    const responsePromise = fetch(`${consts.fullRouteEvents}`, {
         headers: consts.standardHeaders,
         method: 'DELETE',
         body: JSON.stringify(body)
@@ -152,7 +155,7 @@ module.exports = {
 
     fetchGoogleEventsData: fetchGoogleEventsData,
     fetchAllEventsData: fetchAllEventsData,
-    fetchAllProjectEventsData: fetchAllProjectEventsData,
+    fetchAllProjectEventsData: fetchAllUnexportedEventsData,
     fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
     fetchProjectEventsData: fetchProjectEventsData,
     updateEvent: updateEvent,

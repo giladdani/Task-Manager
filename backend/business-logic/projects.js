@@ -1,24 +1,25 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const dbUnexportedEvents = require('./dal/dbUnexportedEvents');
-const dbProjects = require('./dal/dbProjects');
-const dbPendingProjects = require('./dal/dbPendingProjects');
 const { google } = require('googleapis');
+const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
+const dbProjects = require('../dal/dbProjects');
+const dbPendingProjects = require('../dal/dbPendingProjects');
 const algorithm = require('./algorithm');
-const utils = require('./utils');
-const googleSync = require('./google-sync');
+const utils = require('../utils/utils.js');
+const googleSync = require('../utils/google-sync');
+const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const router = express.Router();
 
 // Routing
 router.get('/', (req, res) => { getProjects(req, res) });
 router.post('/', (req, res) => { createProject(req, res) });
-router.get('/events', (req, res) => { getAllProjectEvents(req, res) });
 router.patch('/events/reschedule', (req, res) => { rescheduleProjectEvent(req, res) });
 router.get('/pending', (req, res) => { getPendingProjects(req, res) });
 router.post('/shared', (req, res) => { createSharedProject(req, res) });
 router.post('/shared/approved', (req, res) => { approveSharedProject(req, res) });
 router.post('/export/:id', (req, res) => { exportProject(req, res) });
 router.delete('/:id', (req, res) => { deleteProject(req, res) });
+router.patch('/:id', (req, res) => { patchProject(req, res) })
 
 
 // Functions
@@ -62,24 +63,6 @@ const getPendingProjects = async (req, res) => {
                 res.status(StatusCodes.OK).send(pendingProjects);
         } catch (err) {
                 console.log(`[getPendingProjects] Error!\n${err}`);
-                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
-        }
-}
-
-const getAllProjectEvents = async (req, res) => {
-        try {
-                const userEmail = utils.getEmailFromReq(req);
-
-                dbUnexportedEvents.find({ email: userEmail })
-                        .then(events => {
-                                res.status(StatusCodes.OK).send(events);
-                        })
-                        .catch(err => {
-                                console.log(`[getAllProjectEvents] Error!\n${err}`);
-                                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
-                        })
-        } catch (err) {
-                console.log(`[getAllProjectEvents] Error!\n${err}`);
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
         }
 }
@@ -388,6 +371,149 @@ const deleteProject = async (req, res) => {
 }
 
 /**
+ * The field values you specify replace the existing values. 
+ * Fields that you don’t specify in the request remain unchanged. 
+ * Array fields, if specified, overwrite the existing arrays; this discards any previous array elements.
+ * Project Patch could have side-effects. Some changes could affect the project's events.
+ * @param {*} req Potential fields for the body are the model fields of the project object (not all!):
+ *                projectSchema {
+                        title: String,
+                        timeEstimate: Number,
+                        start: Date,
+                        end: Date,
+                        sessionLengthMinutes: Number,
+                        spacingLengthMinutes: Number,
+                        backgroundColor: String,
+                        maxEventsPerDay: Number,
+                        dayRepetitionFrequency: Number,
+                        dailyStartHour: Date,
+                        dailyEndHour: Date,
+                        ignoredConstraintsIds: [String],
+                        tagIds: [String],
+                }
+ * @param {*} res 
+ * @returns 
+ */
+const patchProject = async (req, res) => {
+        try {
+                let projectId = req.params.id;
+                let [projectUpdates, eventUpdates] = getPatchFields(req);
+                let objForUpdate = { $set: projectUpdates }
+
+                patchEventsFromProjectPatch(projectId, eventUpdates, req);
+
+                dbProjects.updateOne({ id: projectId }, objForUpdate)
+                        .then(doc => {
+                                if (doc.modifiedCount === 1) {
+                                        res.status(StatusCodes.OK).send();
+                                } else {
+                                        res.status(StatusCodes.BAD_REQUEST).send("Could not find document.");
+                                }
+                        })
+
+
+        }
+        catch (err) {
+                res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+        }
+}
+
+/**
+ * Some fields (not all) affect events as well, so this function returns the project fields to update and event fields to update as a result.
+ * @returns [projectUpdates, eventUpdates] - two objects, each one holding the relevant fields to update in each type of object (project and project event).
+ */
+function getPatchFields(req) {
+        let projectUpdates = {};
+        let eventUpdates = {};
+
+        if (req.body.title) {
+                projectUpdates.title = req.body.title;
+                eventUpdates.title = req.body.title;
+        }
+
+        if (req.body.timeEstimate) projectUpdates.timeEstimate = req.body.timeEstimate;
+        if (req.body.start) projectUpdates.start = req.body.start;
+        if (req.body.end) projectUpdates.end = req.body.end;
+        if (req.body.sessionLengthMinutes) projectUpdates.sessionLengthMinutes = req.body.sessionLengthMinutes;
+        if (req.body.spacingLengthMinutes) projectUpdates.spacingLengthMinutes = req.body.spacingLengthMinutes;
+        if (req.body.backgroundColor) {
+                projectUpdates.backgroundColor = req.body.backgroundColor;
+                eventUpdates.backgroundColor = req.body.backgroundColor;
+
+        }
+
+        if (req.body.maxEventsPerDay) projectUpdates.maxEventsPerDay = req.body.maxEventsPerDay;
+        if (req.body.dayRepetitionFrequency) projectUpdates.dayRepetitionFrequency = req.body.dayRepetitionFrequency;
+        if (req.body.dailyStartHour) projectUpdates.dailyStartHour = req.body.dailyStartHour;
+        if (req.body.dailyEndHour) projectUpdates.dailyEndHour = req.body.dailyEndHour;
+        if (req.body.ignoredConstraintsIds) projectUpdates.ignoredConstraintsIds = req.body.ignoredConstraintsIds;
+        if (req.body.tagIds) {
+                projectUpdates.tagIds = req.body.tagIds;
+                eventUpdates.projectTagIds = req.body.tagIds;
+        }
+
+        return [projectUpdates, eventUpdates];
+}
+
+async function patchEventsFromProjectPatch(projectId, eventUpdates, req) {
+        let project = await dbProjects.findOne({ id: projectId });
+        if (project.exportedToGoogle) {
+                // TODO: Update Google events
+                patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req);
+        } else {
+                dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates);
+        }
+}
+
+async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
+        /** 
+         * ! This code has a lot of code duplication with the patch event code from events.js. 
+         * ! Is there any way to combine the two? 
+         * ! In general this code, since dealing with events, feels like it should be in events.js.
+         */
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        utils.oauth2Client.setCredentials({ access_token: accessToken });
+        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+        let email = utils.getEmailFromReq(req);
+        let dbGEvents = await dbGoogleEvents.findByProject(email, projectId);
+        for (const dbGEvent of dbGEvents) {
+                // TODO: change this to batch
+                if (!utils.accessRoleAllowsWriting_GoogleDBEvent(dbGEvent)) {
+                        continue;
+                }
+
+                const googleEventId = dbGEvent.id;
+                const googleCalendarId = dbGEvent.calendarId;
+                const resource = getEventPatchFieldsGoogle(eventUpdates);
+                resource = utils.pullDeletedTagsFromIgnoredGEvent(dbGEvent, resource);
+                const params = {
+                        auth: utils.oauth2Client,
+                        calendarId: googleCalendarId,
+                        eventId: googleEventId,
+                        resource: resource,
+                }
+        
+                const response = await googleCalendarApi.events.patch(params);
+        }
+}
+
+function getEventPatchFieldsGoogle(updateFields) {
+        // ! Almost identical to code in events.js! Figure how to either call the code in events.js, or move this to somewhere shared (like utils).
+        // ! Note that the code in events.js makes use of req, not an updateFields object. 
+        // ! Though it can just send req.body as the updateFields object.
+        let resource = {};
+    
+        if (updateFields.title) resource.summary = updateFields.title;
+        if (updateFields.start) resource.start = { dateTime: new Date(updateFields.start) };
+        if (updateFields.end) resource.end = { dateTime: new Date(updateFields.end) };
+        if (updateFields.tagIds) resource.extendedProperties = { private: { tagIds: updateFields.tagIds } };
+        if (updateFields.projectTagIds) resource.extendedProperties = { private: { projectTagIds: updateFields.projectTagIds } };
+        if (updateFields.ignoredProjectTagIds) resource.extendedProperties = { private: { ignoredProjectTagIds: updateFields.ignoredProjectTagIds } };
+    
+        return resource;
+    }
+
+/**
  * 
  * @param {*} req the user's request with the input parameters.
  * @returns the error message based on the faulty input parameters. Null if there are no errors.
@@ -477,7 +603,7 @@ function isPositiveInteger(input) {
 const createProjectObject = async (req) => {
         const projectId = utils.generateId();
         const userEmail = utils.getEmailFromReq(req);
-        const backgroundColor = getRandomColor();
+        const backgroundColor = utils.getRandomColor();
         let sharedProjectId = null;
         let participatingEmails = await getParticipatingEmails(req);
 
@@ -531,11 +657,42 @@ function isValidEmail(email) {
         return re.test(String(email).toLowerCase());
 }
 
-const getRandomColor = () => {
-        let randomColor = Math.floor(Math.random() * 16777215).toString(16);
-        randomColor = "#" + randomColor;
 
-        return randomColor;
+
+/* --------------------------------------------------------------
+-----------------------------------------------------------------
+---------------------------- Tags -------------------------------
+-----------------------------------------------------------------
+-------------------------------------------------------------- */
+async function removeTagsFromAllProjects(email, tagIds) {
+        if (!tagIds || tagIds.length === 0) {
+                return;
+        }
+
+        try {
+                const allProjects = await dbProjects.find({ 'email': email });
+                for (const project of allProjects) {
+                        removeTagsFromProject(project.id, tagIds);
+                }
+        } catch (err) {
+                console.error(err);
+        }
+}
+
+function removeTagsFromProject(projectId, tagIds) {
+        if (!projectId || !tagIds || tagIds.length === 0) {
+                return;
+        }
+
+        dbProjects.removeTags(project.id, tagIds);
+}
+
+async function addTagsToProject(projectId, tagIds) {
+        if (!projectId || !tagIds || tagIds.length === 0) {
+                return;
+        }
+
+        dbProjects.addTags(projectId, tagIds);
 }
 
 module.exports = router;

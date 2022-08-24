@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const utils = require('./utils');
-const UserModel = require('./models/user');
-const googleSync = require('./google-sync');
+const utils = require('../utils/utils.js');
+const UserModel = require('../models/user');
+const googleSync = require('../utils/google-sync');
 
 
 router.post('/', (req, res) => { createUserDataFromCode(req, res) });

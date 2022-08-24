@@ -1,9 +1,9 @@
 
 const { google } = require('googleapis');
 const utils = require('./utils');
-const dbUsers = require('./dal/dbUsers');
-const dbGoogleEvents = require('./dal/dbGoogleEvents');
-const dbProjects = require('./dal/dbProjects');
+const dbUsers = require('../dal/dbUsers');
+const dbGoogleEvents = require('../dal/dbGoogleEvents');
+const dbProjects = require('../dal/dbProjects');
 const { googleAccessRole } = require('./utils');
 
 

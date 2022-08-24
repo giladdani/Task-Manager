@@ -6,6 +6,15 @@ async function find(query) {
     return promise;
 }
 
+/**
+ * https://www.mongodb.com/docs/manual/reference/method/db.collection.findOne/
+ */
+ async function findOne(query, projection) {
+    const promise = Model.findOne(query, projection);
+
+    return promise;
+}
+
 async function insertMany(events) {
     let promise = Model.insertMany(events);
 
@@ -100,6 +109,7 @@ async function updateFetchStatus(email, fetchStatus) {
 -------------------------------------------------------------- */
 module.exports = {
     find: find,
+    findOne: findOne,
     insertMany: insertMany,
     deleteMany: deleteMany,
 

@@ -8,5 +8,5 @@ const tagSchema = new Schema({
     color: String,
 })
 
-const Tag = mongoose.model('ConstraintEvent', tagSchema);
+const Tag = mongoose.model('Tag', tagSchema);
 module.exports = Tag;
