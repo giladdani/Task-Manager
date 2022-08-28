@@ -10,10 +10,34 @@ async function createTag(title) {
         title: title,
     }
 
-    const response = await fetch(`${consts.host}/tags`, {
+    const response = await fetch(`${consts.fullRouteTags}`, {
         headers: consts.standardHeaders,
         method: 'POST',
         body: JSON.stringify(body),
+    });
+
+    return response;
+}
+
+async function getTagsDataByIds(ids) {
+    let dataPromise = getTagsResByIds(ids)
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
+
+    console.log(`[TagsAPI - fetchTagsData] Returning promise.`);
+
+    return dataPromise;
+}
+
+async function getTagsResByIds(ids) {
+    if (!ids || ids.length === 0) {
+        return null;
+    }
+    
+    const response = fetch(`${consts.fullRouteTags}/${ids}`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
     });
 
     return response;
@@ -39,7 +63,7 @@ const fetchTagsData = async () => {
 const fetchTagsRes = async () => {
     console.log(`[TagsAPI - fetchTagsRes] Fetching tags response.`);
 
-    const response = fetch(`${consts.host}/tags`, {
+    const response = fetch(`${consts.fullRouteTags}`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -73,7 +97,7 @@ const fetchTagsRes = async () => {
 async function deleteTag(tagId) {
     console.log(`[TagsAPI - deleteTag] Deleting tag (ID: ${tagId})`);
 
-    let responsePromise = fetch(`http://localhost:3001/api/tags/${tagId}`, {
+    let responsePromise = fetch(`${consts.fullRouteTags}/${tagId}`, {
         headers: consts.standardHeaders,
         method: 'DELETE',
     });
@@ -85,8 +109,9 @@ async function deleteTag(tagId) {
 
 module.exports = {
     validStatusArr_createTag: validStatusArr_createTag,
-    
+
     createTag: createTag,
+    getTagsDataByIds: getTagsDataByIds,
     fetchTagsData: fetchTagsData,
     fetchTagsRes: fetchTagsRes,
     deleteTag: deleteTag,

@@ -55,23 +55,11 @@ export const ProjectsAccordion = (props) => {
 
   const fetchAndSetProjects = async () => {
     ProjectsAPI.fetchProjectsData()
-    .then(data => {
-      if (componentMounted.current) {
-        setAllProjects(data);
-      } else {
-        console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
-      }
-    })
-    .catch(err => {
-      console.error(err);
-    })
-  }
-
-  const deleteProject = async (project) => {
-    ProjectsAPI.deleteProject(project)
-      .then(response => {
-        if (isValidStatus(response, ProjectsAPI.deleteProjectValidStatusArr)) {
-          fetchAndSetProjects();
+      .then(data => {
+        if (componentMounted.current) {
+          setAllProjects(data);
+        } else {
+          console.log(`[ProjectsAccordion - fetchAndSetProjects] component is unmounted, not setting projects!`)
         }
       })
       .catch(err => {
@@ -79,17 +67,37 @@ export const ProjectsAccordion = (props) => {
       })
   }
 
+  const deleteProject = async (project) => {
+    ProjectsAPI.deleteProject(project)
+      .then(response => {
+        if (isValidStatus(response, ProjectsAPI.deleteProjectValidStatusArr)) {
+          fetchAndSetProjects();
+          props.setNotificationMsg("Project deleted");
+        } else {
+          props.setNotificationMsg("Failed to delete");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        props.setNotificationMsg("Failed to delete");
+      })
+  }
+
   const exportProject = async (project) => {
+
     ProjectsAPI.exportProject(project)
-    .then(response => {
-      if (isValidStatus(response, ProjectsAPI.exportProjectValidStatusArr)) {
-        fetchAndSetProjects();
-      }
-      // TODO: add notifications!
-    })
-    .catch(err => {
-      console.error(err);
-    })
+      .then(response => {
+        if (isValidStatus(response, ProjectsAPI.exportProjectValidStatusArr)) {
+          fetchAndSetProjects();
+          props.setNotificationMsg("Project exported to Google");
+        } else {
+          props.setNotificationMsg("Failed to export");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        props.setNotificationMsg("Failed to export");
+      })
   }
 
   const handleChange = (panel) => (event, newExpanded) => {
@@ -110,6 +118,7 @@ export const ProjectsAccordion = (props) => {
                   project={project}
                   deleteProject={deleteProject}
                   exportProject={exportProject}
+                  setNotificationMsg={props.setNotificationMsg}
                 ></Project>
               </div>
             </AccordionDetails>

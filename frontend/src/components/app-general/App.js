@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Login } from '../pages/Login';
+import { Login } from '../../pages/Login';
 import { MainPagesContainer } from './MainPagesContainer';
-import Snackbar from './general/Snackbar'
+import Snackbar from '../general/Snackbar'
 
 const App = () => {
   const [snackbarMsg, setSnackbarMsg] = useState("");

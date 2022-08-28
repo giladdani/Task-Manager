@@ -1,4 +1,4 @@
-import { GoogleLoginButton } from "../components/GoogleLoginButton"
+import { GoogleLoginButton } from "../components/app-general/GoogleLoginButton"
 
 export const Login = (props) => {
     const onGoogleLogin = async () => {

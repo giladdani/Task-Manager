@@ -5,7 +5,7 @@ require('dotenv').config({path:__dirname+'/.env'})
 const createError = require('http-errors');
 
 // Local files
-const events = require('./business-logic/events');
+const events = require('./business-logic/events/events');
 const users = require('./business-logic/users');
 const constraints = require('./business-logic/constraints');
 const projects = require('./business-logic/projects');

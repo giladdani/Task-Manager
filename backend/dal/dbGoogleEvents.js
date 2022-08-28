@@ -98,6 +98,19 @@ async function updateFetchStatus(email, fetchStatus) {
     return promise;
 }
 
+/**
+ * Finds all the events with reference to this tag.
+ * @param {*} tagId 
+ */
+async function findByTag(tagId) {
+    let promise = Model.find(
+        {}
+        // {}
+    )
+
+    return promise;
+}
+
 
 
 
@@ -119,4 +132,5 @@ module.exports = {
     findByProject: findByProject,
     findByCalendar: findByCalendar,
     updateFetchStatus: updateFetchStatus,
+    findByTag: findByTag,
 }

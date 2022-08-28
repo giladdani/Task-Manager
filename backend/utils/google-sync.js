@@ -191,6 +191,7 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
                 calendarId2NextSyncTokenMap.set(calendar.id, nextSyncToken);
                 let calendarEventsWithCalendarId = unsyncedCalendarEvents.map(event => {
                     const [background, foreground] = getColorString(calendar, event, calendarColors, eventColors);
+                    // parseTags(event);
                     let accessRole = getEventAccessRole(calendar, event, email);
 
                     return (
@@ -238,7 +239,7 @@ const updateUserCalendarsSyncToken = async (prevSyncToken, nextSyncToken, email)
     let updatePromise = null;
 
     if (prevSyncToken !== nextSyncToken) {
-        dbUsers.updateCalendarsSyncToken(email,nextSyncToken)
+        dbUsers.updateCalendarsSyncToken(email, nextSyncToken)
     }
 
     return updatePromise;
@@ -439,6 +440,29 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
     }
 
     return [background, foreground];
+}
+
+/**
+ * The tags within a Google event are saved as a String, not an array.
+ * We save them in our DB as arrays of strings for comfort.
+ * So we need to perform some object modification when fetching the events.
+ */
+function parseTags(event) {
+    if (!event) return;
+    if (!event.extendedProperties) return;
+    if (!event.extendedProperties.private) return;
+
+    if (event.extendedProperties.private.independentTagIds) {
+        event.extendedProperties.private.independentTagIds = event.extendedProperties.private.independentTagIds.split(',');
+    }
+
+    if (event.extendedProperties.private.projectTagIdsString) {
+        event.extendedProperties.private.projectTagIdsString = event.extendedProperties.private.projectTagIdsString.split(',');
+    }
+
+    if (event.extendedProperties.private.ignoredProjectTagIdsString) {
+        event.extendedProperties.private.ignoredProjectTagIdsString = event.extendedProperties.private.ignoredProjectTagIdsString.split(',');
+    }
 }
 
 const getEventAccessRole = (calendar, event, email) => {

@@ -12,9 +12,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from "@material-ui/core/Tooltip";
 import { ButtonGroup } from '@mui/material';
 import { ThreeDots } from 'react-loader-spinner';
-import Select from '@mui/material/Select';
-import TagDialog from '../general/TagDialog.js';
+import APIUtils from '../../apis/APIUtils.js';
+import Tags from '../general/Tags';
 const EventsAPI = require('../../apis/EventsAPI.js');
+const ProjectsAPI = require('../../apis/ProjectsAPI.js');
 
 
 export const Project = (props) => {
@@ -29,10 +30,7 @@ export const Project = (props) => {
     const [totalHoursPast, setTotalHoursPast] = useState();
     const [totalHoursFuture, setTotalHoursFuture] = useState();
     const [totalHoursExpected, setTotalHoursExpected] = useState();
-    // const [tags, setTags] = useState(["Tag1","Tag2","Tag3"]);
-    const [tags, setTags] = useState(props.project.tags);
-
-    const [isTagDialogOpen, setTagDialogOpen] = useState(false);
+    const [tagIds, setTagIds] = useState(props.project.tagIds);
     const [isProcessing, setIsProcessing] = useState(false);
     const componentMounted = useRef(true);
 
@@ -96,16 +94,16 @@ export const Project = (props) => {
 
     const fetchAndUpdateProjectEvents = async () => {
         EventsAPI.fetchProjectEventsData(props.project.id)
-        .then(data => {
-            if (componentMounted.current) {
-                setProjectEvents(data);
-            } else {
-                console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
-            }
-        })
-        .catch(err => {
-            console.error(err);
-        })
+            .then(data => {
+                if (componentMounted.current) {
+                    setProjectEvents(data);
+                } else {
+                    console.log(`[Project - fetchAndUpdateProjectEvents] component is unmounted, not setting project events!`)
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            })
     }
 
     const calculateHoursPast = () => {
@@ -202,6 +200,37 @@ export const Project = (props) => {
 
     const handleOnSave = () => {
         setIsBeingEdited(false);
+        patchProject();
+    }
+
+    const patchProject = async () => {
+        let patchArguments = getPatchArguments();
+        ProjectsAPI.patchProject(patchArguments, props.project.id)
+            .then(response => {
+                if (APIUtils.isValidStatus(response, ProjectsAPI.validStatusArr_patchProject)) {
+                    // TODO: refetch?
+                    props.setNotificationMsg("Project updated");
+
+                } else {
+                    props.setNotificationMsg("Failed to update project");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                props.setNotificationMsg("Failed to update project");
+            })
+    }
+
+    const getPatchArguments = () => {
+        // TODO: should we use different hooks for updated fields, to somehow only take what has been changed?
+        const args = {
+            title: projectTitle,
+            start: startDate,
+            end: endDate,
+            tagIds: tagIds,
+        }
+
+        return args;
     }
 
     const handleOnDeleteClick = () => {
@@ -225,8 +254,8 @@ export const Project = (props) => {
         setIsProcessing(false);
     }
 
-    const handleTagsUpdated = () => {
-        // TODO: Refetch project
+    const handleTagsUpdated = (selectedTagIds) => {
+        setTagIds(selectedTagIds);
     }
 
     return (
@@ -293,23 +322,15 @@ export const Project = (props) => {
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Tags:</label></td>
                         <td>
-                            <Select
-                                multiple
-                                native
-                                inputProps={{
-                                    id: 'select-multiple-native',
-                                }}>
-                                    {tags.map((tag) => (
-                                        <option key={tag} value={tag}>
-                                            {tag}
-                                        </option>
-                                    ))}
-                            </Select>
+                            <Tags
+                                setNotificationMsg={props.setNotificationMsg}
+                                selectedTagIds={tagIds}
+                                onTagsUpdate={handleTagsUpdated}
+                                disabled={!isBeingEdited}
+                            ></Tags>
                         </td>
                     </tr>
-                    <tr><td></td><td><Button variant='contained' onClick={() => setTagDialogOpen(true)} disabled={!isBeingEdited} size="small">Edit Tags</Button></td></tr>
                 </tbody>
             </table>
             <ButtonGroup variant='contained'>
@@ -351,8 +372,6 @@ export const Project = (props) => {
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            <TagDialog isOpen={isTagDialogOpen} selectedTags={tags} onTagsUpdate={handleTagsUpdated}></TagDialog>
         </>
     )
 }

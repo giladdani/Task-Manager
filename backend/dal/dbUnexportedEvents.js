@@ -130,10 +130,15 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
             }
         }
 
-        objForUpdate = {
-            objForUpdate,
+        await Model.updateMany(
+            { projectId: projectId },
             pullUpdate,
-        }
+        );
+
+        // objForUpdate = {
+        //     objForUpdate,
+        //     pullUpdate,
+        // }
     }
 
 
@@ -141,6 +146,24 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
         { projectId: projectId },
         objForUpdate
     );
+
+    return promise;
+}
+
+/**
+ * When a tag is deleted, this removes it from all events.
+ */
+ async function deleteTag(tagId) {
+    let promise = Model.updateMany(
+        { },
+        {
+            $pull: {
+                independentTagIds: tagId,
+                projectTagIds: tagId,
+                ignoredProjectTagIds: tagId,
+                }
+            }
+    )
 
     return promise;
 }
@@ -156,14 +179,12 @@ module.exports = {
     find: find,
     findOne: findOne,
     updateOne: updateOne,
-    updateMany: updateMany,
     insertMany: insertMany,
     deleteOne: deleteOne,
     deleteMany: deleteMany,
 
     // Custom Functions
     findByProject: findByProject,
-    addTags: addTags,
-    removeTags: removeTags,
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
+    deleteTag: deleteTag,
 }

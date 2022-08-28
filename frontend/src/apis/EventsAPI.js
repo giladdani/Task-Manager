@@ -89,36 +89,7 @@ async function fetchProjectEventsRes(projectId) {
     return responsePromise;
 }
 
-/**
- * This function retrieves all the user's events: Google events and unexported events of all projects.
- * @param {*} projectId 
- * @returns 
- */
-async function fetchAllEventsData() {
-    let dataPromise = fetchAllEventsRes()
-        .then(response => {
-            return apiUtils.getResData(response);
-        })
-
-    return dataPromise;
-}
-
-async function fetchAllEventsRes() {
-    const responsePromise = fetch(`${consts.fullRouteEvents}`, {
-        headers: consts.standardHeaders,
-        method: 'GET'
-    });
-
-    return responsePromise;
-}
-
 async function updateEvent(event, fieldsToUpdate) {
-    // ! DELETE if new patch code works well
-    // const body = {
-        // event: event,
-        // fieldsToUpdate: fieldsToUpdate
-    // }
-
     const body = fieldsToUpdate;
 
     const responsePromise = fetch(`${consts.fullRouteEvents}/${event.id}`, {
@@ -154,7 +125,6 @@ module.exports = {
     validStatusArr_deleteEvent: validStatusArr_deleteEvent,
 
     fetchGoogleEventsData: fetchGoogleEventsData,
-    fetchAllEventsData: fetchAllEventsData,
     fetchAllProjectEventsData: fetchAllUnexportedEventsData,
     fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
     fetchProjectEventsData: fetchProjectEventsData,

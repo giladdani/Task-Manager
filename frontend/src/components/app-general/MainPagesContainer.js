@@ -1,8 +1,8 @@
 import React from 'react';
-import { Schedules } from '../pages/Schedules';
-import { Projects } from '../pages/Projects';
-import { Constraints } from '../pages/Constraints';
-import { ProjectManagement } from '../pages/ProjectManagement';
+import { Schedules } from '../../pages/Schedules';
+import { Projects } from '../../pages/Projects';
+import { Constraints } from '../../pages/Constraints';
+import { ProjectManagement } from '../../pages/ProjectManagement';
 import { NavBar } from './NavBar';
 import { Routes, Route } from "react-router-dom";
 
@@ -23,15 +23,15 @@ export const MainPagesContainer = (props) => {
     },{
       name: "Projects",
       relativePath: "/projects",
-      element: <Projects events={allEvents} setMsg={props.setMsg} />
+      element: <Projects events={allEvents} setNotificationMsg={props.setMsg} />
     },{
       name: "Constraints",
       relativePath: "/constraints",
-      element: <Constraints setMsg={props.setMsg} />
+      element: <Constraints setNotificationMsg={props.setMsg} />
     },{
       name: "Project Management",
       relativePath: "/projectmanagement",
-      element: <ProjectManagement allEvents={allEvents} setMsg={props.setMsg} />
+      element: <ProjectManagement allEvents={allEvents} setNotificationMsg={props.setMsg} />
     }]
 
     const routes = pages.map((page, index) => <Route path={page.relativePath} element={page.element} key={index}/>);

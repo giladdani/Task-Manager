@@ -24,6 +24,12 @@ async function deleteOne(query) {
     return promise;
 }
 
+async function updateOne(filter, update) {
+    promise = Model.updateOne(filter, update);
+    
+    return promise;
+}
+
 
 
 /* --------------------------------------------------------------
@@ -79,9 +85,19 @@ async function removeTags(projectId, tagIds) {
     return promise;
 }
 
-async function updateOne(filter, update) {
-    promise = Model.updateOne(filter, update);
-    
+/**
+ * Removes a deleted tag from all projects in the DB.
+ */
+async function deleteTag(tagId) {
+    let promise = Model.updateMany(
+        { },
+        {
+            $pull: {
+                tagIds: tagId,
+                }
+            }
+    )
+
     return promise;
 }
 
@@ -103,4 +119,5 @@ module.exports = {
     updateExportProject: updateExportProject,
     addTags: addTags,
     removeTags: removeTags,
+    deleteTag: deleteTag,
 }

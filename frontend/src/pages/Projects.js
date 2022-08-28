@@ -13,7 +13,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { DynamicInputList } from '../components/DynamicInputList';
+import { DynamicInputList } from '../components/general/DynamicInputList';
 import MultipleSelectChip from '../components/general/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 import { getCheckedDays } from '../components/general/DaysCheckbox';
@@ -116,20 +116,24 @@ export const Projects = (props) => {
             } else {
                 toggleLoading(true);
 
+                let msg = "";
                 ProjectsAPI.createIndividualProject(body)
                     .then(response => {
                         // TODO: set notification! See old code below
                         if (isValidStatus(response, ProjectsAPI.createIndividualProjectValidStatusArr)) {
-
+                            msg = "Project created";
                         } else {
-
+                            msg = "Failed to create project";
                         }
                     })
                     .catch(err => {
                         console.error(err);
+                        msg = "Failed to create project";
                     })
                     .finally(() => {
                         toggleLoading(false);
+                        console.log(msg);
+                        props.setNotificationMsg(msg);
                     })
 
                 // ! Old notification code
@@ -341,7 +345,13 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             {/* <input type="number" min="1" step="1" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input> */}
-                            <TextField type="number" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} value="0" size="small"/>
+                            <TextField
+                                type="number"
+                                onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}
+                                InputProps={{ inputProps: { min: 0 } }}
+                                value={estimatedTime}
+                                size="small"
+                            />
                         </td>
                     </tr>
                     <tr>
@@ -350,7 +360,13 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input> */}
-                            <TextField type="number" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} value="0" size="small"/>
+                            <TextField
+                                type="number"
+                                onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}
+                                InputProps={{ inputProps: { min: 0 } }}
+                                value={sessionLengthMinutes}
+                                size="small"
+                            />
                         </td>
                     </tr>
                     <tr>
@@ -361,7 +377,12 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}></input> */}
-                            <TextField type="number" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }} InputProps={{ inputProps: { min: 0 } }} size="small"/>
+                            <TextField
+                                type="number"
+                                onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}
+                                InputProps={{ inputProps: { min: 0 } }}
+                                size="small"
+                            />
                         </td>
                     </tr>
                     <tr>
@@ -436,7 +457,12 @@ export const Projects = (props) => {
                         </td>
                         <td>
                             {/* <input type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}></input> */}
-                            <TextField type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}  InputProps={{ inputProps: { min: 1 } }} value="0"/>
+                            <TextField
+                                type="number"
+                                onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}
+                                InputProps={{ inputProps: { min: 1 } }}
+                                value={maxEventsPerDay}
+                            />
                         </td>
                     </tr>
                     <tr>
