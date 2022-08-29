@@ -13,22 +13,13 @@ import DialogTitle from '@mui/material/DialogTitle';
  * * title
  * * text
  * * setOpen(Boolean)
- * * onCancel()
  * * onConfirm()
  * @returns 
  */
-export default function AlertConfirmDialog(props) {
+export default function AlertDialog(props) {
     const handleClose = () => {
         props.setOpen(false)
     };
-
-    const handleCancel = () => {
-        handleClose();
-
-        if (props.onCancel) {
-            props.onCancel();
-        }
-    }
 
     const handleConfirm = () => {
         handleClose();
@@ -42,7 +33,7 @@ export default function AlertConfirmDialog(props) {
         <div>
             <Dialog
                 open={props.open}
-                onClose={handleClose}
+                // onClose={handleCancel}
                 aria-labelledby="alert-dialog-title"
                 aria-describedby="alert-dialog-description"
             >
@@ -55,7 +46,6 @@ export default function AlertConfirmDialog(props) {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCancel} autoFocus>CANCEL</Button>
                     <Button onClick={handleConfirm}>OK</Button>
                 </DialogActions>
             </Dialog>

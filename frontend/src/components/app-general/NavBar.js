@@ -11,17 +11,13 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import IconButton from '@mui/material/IconButton';
 import { NavLink } from "react-router-dom";
 import { AvatarPhoto } from './AvatarPhoto';
+import generalUtils from '../../utils/general-utils';
 
 export const NavBar = (props) => {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
-  const handleLogout = () => {
-        sessionStorage.clear();  
-        window.location = "/";
-  }
-
-  const settings = [{name: 'Logout', action: handleLogout}];
+  const settings = [{name: 'Logout', action: generalUtils.handleLogout}];
 
   const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);

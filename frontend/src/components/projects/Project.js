@@ -322,7 +322,7 @@ export const Project = (props) => {
                         </td>
                     </tr>
                     <tr>
-                        <td>
+                        <td colSpan={"2"}>
                             <Tags
                                 setNotificationMsg={props.setNotificationMsg}
                                 selectedTagIds={tagIds}

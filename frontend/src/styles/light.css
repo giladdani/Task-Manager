@@ -1,0 +1,150 @@
+:root {
+    --main-bg-color: #ffffff;
+  }
+  
+  #editEventTable .MuiFormControl-root {
+    margin: 5px !important;
+  }
+  
+  #schedule-container {
+    margin: 1.5%;
+  }
+  
+  /** MUI **/
+  
+  /* .MuiOutlinedInput-root fieldset  */
+  /* .MuiOutlinedInput-root, */
+  
+  .MuiChip-root,
+  .MuiAccordion-root {
+    color: white !important;
+  }
+  
+  .whiteFont .MuiOutlinedInput-root,
+  .whiteFont .MuiOutlinedInput-root fieldset,
+  .whiteFont .MuiOutlinedInput-root:hover fieldset,
+  .whiteFont .Mui-focused fieldset{
+    color: white !important;
+    border-color:white!important
+  }
+  
+  .MuiOutlinedInput-root fieldset {
+    color: black;
+  }
+  
+  .MuiAccordion-root {
+    background-color: transparent !important;
+  }
+  
+  .MuiChip-root {
+    background-color: rgb(75, 75, 75) !important;
+  }
+  
+  .MuiMenuItem-root {
+    display: flex !important;
+  }
+  
+  .MuiPaper-root {
+    min-width: 0px !important;
+  }
+  
+  .accordion>div {
+    width: 50%;
+    margin: auto;
+  }
+  
+  /** coloring the calendar's day headers (they were white so text was invisible) in Scheduels page **/
+  .fc-col-header {
+    background-color: var(--main-bg-color)
+  }
+  
+  /** center the loader animation **/
+  div svg {
+    margin: auto;
+  }
+  
+  /**/
+  
+  .border {
+    border: 1px solid white;
+    padding: 10px;
+  }
+  
+  .horizontalAlign {
+    float: left;
+    clear: none;
+  }
+  
+  /** NavBar **/
+  .nav-bar {
+    background-color: rgb(21, 21, 21) !important;
+  }
+  
+  .nav-bar ul {
+    padding: 0px;
+    margin-left: 25%;
+    margin-right: 25%;
+  }
+  
+  .nav-bar li {
+    padding: 8px;
+    display: inline;
+  }
+  
+  .nav-bar li a:hover {
+    background-color: #0b0b0b;
+  }
+  
+  .nav-bar .active {
+    border-bottom: white 2px solid;
+  }
+  
+  .nav-bar li a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  /**/
+  
+  /** General page layout **/
+  .app-header {
+    background-color: var(--main-bg-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: calc(10px + 2vmin);
+    color: white !important;
+  }
+  
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .fc-event {
+    border-width: 7px;
+  }
+  
+  .center_elem {
+    margin: auto;
+  }
+  
+  .center_text {
+    text-align: center;
+  }
+  
+  .full_width {
+    width: 100%;
+  }
+  
+  .full_width td {
+    vertical-align: top;
+    width: 50%;
+  }
+  
+  /**/

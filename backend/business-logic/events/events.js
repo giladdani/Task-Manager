@@ -245,27 +245,32 @@ const getGoogleEvents = async (req, res) => {
 }
 
 const getUnsyncedGoogleEvents = async (req, res) => {
-    const email = utils.getEmailFromReq(req);
-    const accessToken = await utils.getAccessTokenFromRequest(req);
-    let unsyncedEvents = [];
-    let error = null;
+    let statusCode;
+    let data;
 
     try {
-        unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
+        const email = utils.getEmailFromReq(req);
+        const accessToken = utils.getAccessTokenFromRequest(req);
+        let unsyncedEvents = await googleSync.syncGoogleData(accessToken, email);
         console.log(`[getUnsyncedGoogleEvents] Fetching for ${email}.`);
         if (unsyncedEvents.length > 0) {
             console.log(`Unsynced events: ${unsyncedEvents.length}.`);
         }
+
+        statusCode = StatusCodes.OK;
+        data = unsyncedEvents;
     } catch (err) {
         console.log(`[getUnsyncedGoogleEvents] Error:\n${err}`)
-        error = err;
+        let [statusCodeRes, dataRes] = utils.parseError(err);
+        statusCode = statusCodeRes;
+        data = dataRes;
+
+        // if status code === 401, try to get new access token
+            // get refresh token for user
+            // get new access token from user
     }
 
-    if (!error) {
-        res.status(StatusCodes.OK).send(unsyncedEvents);
-    } else {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
-    }
+    res.status(statusCode).send(data);
 }
 
 const insertEventToCalendar = async (req, res) => {

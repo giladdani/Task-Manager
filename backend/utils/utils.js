@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const StatusCodes = require('http-status-codes').StatusCodes;
 const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, `${process.env.FRONTEND_HOST}:${process.env.FRONTEND_PORT}`);
 const axios = require('axios').default;
 const uuidv4 = require('uuid').v4;
@@ -282,6 +283,25 @@ function pullDeletedTagsFromIgnoredGEvent(dbGEvent, updateResource) {
     return updateResource;
 }
 
+/**
+ * 
+ * @param {*} error 
+ * @retuns [statusCode, data]
+ */
+function parseError(error) {
+    let statusCode = null;
+    let data = null;
+
+    if (error.code) {
+        console.error(`Status error: ${error.code}`);
+        statusCode = error.code;
+    } else {
+        statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
+    }
+
+    return [statusCode, data];
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
     websiteMainColor: websiteMainColor,
@@ -305,4 +325,5 @@ module.exports = {
     isValidDate: isValidDate,
     getRandomColor: getRandomColor,
     pullDeletedTagsFromIgnoredGEvent: pullDeletedTagsFromIgnoredGEvent,
+    parseError: parseError,
 }
