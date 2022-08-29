@@ -25,6 +25,7 @@ import Select from '@mui/material/Select';
 
 import TagDialog from './TagDialog.js';
 import TagManagement from './TagManagement';
+import AlertConfirmDialog from '../AlertConfirmDialog';
 
 
 const TagsAPI = require('../../../apis/TagsAPI.js');
@@ -44,6 +45,7 @@ export default function Tags(props) {
     const [newTagTitle, setNewTagTitle] = useState("");
 
     const [tagIdsToDelete, setTagIdsToDelete] = useState([]);
+    const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
 
 
     useEffect(() => {
@@ -131,22 +133,32 @@ export default function Tags(props) {
     }
 
     const handleDelete = () => {
-        // Confirmation dialog
-        // If ok => delete
-        for(const tagId of tagIdsToDelete) {   
-            TagsAPI.deleteTag(tagId)
-            .then(res => {
-                
-            })
-            .catch(err => {
-                console.error(err);
-            })
-        }
-
-        // If not => cancel
+        setDeleteConfirmDialogOpen(true);
     }
 
+    const handleConfirmDelete = () => {
+        if (!tagIdsToDelete || tagIdsToDelete.length === 0) {
+            props.setNotificationMsg("No tags chosen to delete");
+            return;
+        }
 
+        TagsAPI.deleteTags(tagIdsToDelete)
+        .then(res => {
+            if(APIUtils.isValidStatus(res, TagsAPI.validStatusArr_deleteTags)) {
+                props.setNotificationMsg("Tags deleted");
+            } else {
+                props.setNotificationMsg("Problem with deleting tags");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            props.setNotificationMsg("Failed to delete tags");
+        })
+    }
+
+    const handleDeleteDialogOpen = (openState) => {
+        setDeleteConfirmDialogOpen(openState);
+    }
 
     return (
         <Card>
@@ -168,6 +180,13 @@ export default function Tags(props) {
                     disabled={props.disabled}
                 ></MultipleSelectChip>
                 <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+                <AlertConfirmDialog
+                    open={deleteConfirmDialogOpen}
+                    title="Delete tags?"
+                    text="This will delete all selected tags from all your projects and events."
+                    setOpen={handleDeleteDialogOpen}
+                    onConfirm={handleConfirmDelete}
+                ></AlertConfirmDialog>
             </CardContent>
         </Card>
     )

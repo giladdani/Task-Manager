@@ -3,6 +3,7 @@ const apiUtils = require('./APIUtils.js')
 
 const basicValidStatus = [200];
 const validStatusArr_createTag = basicValidStatus;
+const validStatusArr_deleteTags = basicValidStatus;
 
 
 async function createTag(title) {
@@ -126,6 +127,7 @@ async function deleteTags(arrTagIds) {
 
 module.exports = {
     validStatusArr_createTag: validStatusArr_createTag,
+    validStatusArr_deleteTags: validStatusArr_deleteTags,
 
     createTag: createTag,
     getTagsDataByIds: getTagsDataByIds,
