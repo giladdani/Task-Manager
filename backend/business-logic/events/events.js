@@ -1,15 +1,15 @@
 const express = require('express');
 const { google } = require('googleapis');
 const StatusCodes = require('http-status-codes').StatusCodes;
-const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
-const dbProjects = require('../dal/dbProjects');
-const googleSync = require('../utils/google-sync.js');
-const utils = require('../utils/utils.js');
-const dbGoogleEvents = require('../dal/dbGoogleEvents');
+const dbUnexportedEvents = require('../../dal/dbUnexportedEvents');
+const dbProjects = require('../../dal/dbProjects');
+const googleSync = require('../../utils/google-sync.js');
+const utils = require('../../utils/utils.js');
+const dbGoogleEvents = require('../../dal/dbGoogleEvents');
+const eventsUtils = require('./events-utils');
 
 // Routing
 const router = express.Router();
-router.get('/', (req, res) => { getAllEvents(req, res) });
 router.get('/unexported', (req, res) => { getAllUnexportedEvents(req, res) });
 router.get('/google', (req, res) => { getGoogleEvents(req, res) });
 router.get('/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
@@ -19,9 +19,6 @@ router.delete('/', (req, res) => { deleteEvent(req, res) });
 router.patch('/:id', (req, res) => { updateEvent(req, res) });
 router.patch('/unexported/:id', (req, res) => { updateUnexportedEvent(req, res) });
 router.patch('/google/:id', (req, res) => { updateGoogleEvent(req, res) });
-
-
-
 
 const getAllUnexportedEvents = async (req, res) => {
     try {
@@ -75,12 +72,15 @@ const getProjectEvents = async (req, res) => {
     }
 }
 
-// TODO: return answer! What is going on here.
-const getAllEvents = async (req, res) => {
-    const email = utils.getEmailFromReq(req);
 
-    let events = await utils.getAllUserEvents(email);
-}
+
+
+
+/* --------------------------------------------------------------
+-----------------------------------------------------------------
+------------------------- UPDATE EVENT --------------------------
+-----------------------------------------------------------------
+-------------------------------------------------------------- */
 
 /**
  * The field values you specify replace the existing values. 
@@ -99,6 +99,8 @@ const updateEvent = async (req, res) => {
             return;
         }
 
+        // TODO: add check for forbidden fields - in particulat ProjectTagIds, which should be updated through projects
+
         let event = null;
 
         event = await dbUnexportedEvents.findOne({ id: eventId });
@@ -114,27 +116,6 @@ const updateEvent = async (req, res) => {
         }
 
         res.status(StatusCodes.BAD_REQUEST).send("Could not find event matching ID.");
-
-        // ! DELETE if refactoring into specific functions works
-        // const event = req.body.event;
-        // if (!event) {
-        //     res.status(StatusCodes.BAD_REQUEST).send("Must attach event to request.");
-        //     return;
-        // }
-
-        // const fieldsToUpdate = req.body.fieldsToUpdate;
-        // if (!fieldsToUpdate) {
-        //     res.status(StatusCodes.BAD_REQUEST).send("Must attach fields to update");
-        //     return;
-        // }
-
-        // if (utils.isConstraintEvent(event)) {
-        //     res.status(StatusCodes.BAD_REQUEST).send("Cannot update constraints from this call.");
-        // } else if (utils.isUnexportedProjectEvent(event)) {
-        //     updateUnexportedEvent(req, res);
-        // } else {
-        //     updateGoogleEvent(req, res);
-        // }
     }
     catch (err) {
         console.error(`[updateEvent] Error!\n${err}`)
@@ -142,183 +123,13 @@ const updateEvent = async (req, res) => {
     }
 }
 
-const missingEventUpdateFields = (req) => {
-    if (!req) {
-        return true;
-    }
-
-    if (!req.body) {
-        return true;
-    }
-
-    if (!req.body.event) {
-        return true;
-    }
-
-    if (!req.body.fieldsToUpdate) {
-        return true;
-    }
-
-    if (!req.body.fieldsToUpdate.title) {
-        return true;
-    }
-
-    if (!req.body.fieldsToUpdate.start) {
-        return true;
-    }
-
-    if (!req.body.fieldsToUpdate.end) {
-        return true;
-    }
-
-    return false;
-}
-
-const missingUnexportedEventUpdateFields = (req) => {
-    if (missingEventUpdateFields(req)) {
-        return true;
-    }
-
-    if (!req.body.event.id) {
-        return true;
-    }
-
-    return false;
-}
-
-const missingGoogleEventUpdateFields = (req) => {
-    if (missingEventUpdateFields(req)) {
-        return true;
-    }
-
-    if (!req.body.event.extendedProps) {
-        return true;
-    }
-
-    if (!req.body.event.extendedProps.googleEventId) {
-        return true;
-    }
-
-    if (!req.body.event.extendedProps.googleCalendarId) {
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * Google Calendar API documentation for Event Patch:
- * https://developers.google.com/calendar/api/v3/reference/events/patch
- * 
- * @param {*} req A client event patch request with fields to update.
- * @returns A google event patch resource object, with all the relevant fields to update.
- */
-function getEventPatchFieldsGoogle(req) {
-    let resource = {};
-
-    if (req.body.title) resource.summary = req.body.title;
-    if (req.body.start) resource.start = { dateTime: new Date(req.body.start) };
-    if (req.body.end) resource.end = { dateTime: new Date(req.body.end) };
-    if (req.body.tagIds) resource.extendedProperties = { private: { tagIds: req.body.tagIds } };
-    if (req.body.projectTagIds) resource.extendedProperties = { private: { projectTagIds: req.body.projectTagIds } };
-    if (req.body.ignoredProjectTagIds) resource.extendedProperties = { private: { ignoredProjectTagIds: req.body.ignoredProjectTagIds } };
-
-    return resource;
-}
-
-/**
- * MongoDB documentation for updateOne(): 
- * https://www.mongodb.com/docs/manual/reference/method/db.collection.updateOne/
- * 
- * @param {*} req A client event patch request with fields to update.
- * @returns An update object for MongoDB with the relevant fields to update.
- */
-function getEventPatchFieldsUnexported(req) {
-    let update = {};
-
-    if (req.body.title) update.title = req.body.title;
-    if (req.body.start) update.start = req.body.start;
-    if (req.body.end) update.end = req.body.end;
-    if (req.body.backgroundColor) update.backgroundColor = req.body.backgroundColor;
-    if (req.body.tagIds) update.tagIds = req.body.tagIds;
-    if (req.body.projectTagIds) update.projectTagIds = req.body.projectTagIds;
-    if (req.body.ignoredProjectTagIds) update.ignoredProjectTagIds = req.body.ignoredProjectTagIds;
-
-    update = { $set: update }
-
-    return update;
-}
-
 const updateGoogleEvent = async (req, res) => {
-    /**
-     * Google Calendar API documentation:
-     * https://developers.google.com/calendar/api/v3/reference/events/patch
-     */
     try {
         const accessToken = utils.getAccessTokenFromRequest(req);
-        utils.oauth2Client.setCredentials({ access_token: accessToken });
-        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-
-        /// New code:
         let eventId = req.params.id;
-        let dbGEvent = await dbGoogleEvents.findOne({ id: eventId });
-        if (!dbGEvent) {
-            res.status(StatusCodes.BAD_REQUEST).send("Could not find Google event matching the ID.");
-            return;
-        }
-
-        if (!utils.accessRoleAllowsWriting_GoogleDBEvent(dbGEvent)) {
-            res.status(StatusCodes.FORBIDDEN).send("Access role does not allow updating.");
-            return;
-        }
-
-        const googleEventId = dbGEvent.id;
-        const googleCalendarId = dbGEvent.calendarId;
-        let resource = getEventPatchFieldsGoogle(req);
-        resource = utils.pullDeletedTagsFromIgnoredGEvent(dbGEvent, resource);
-        const params = {
-            auth: utils.oauth2Client,
-            calendarId: googleCalendarId,
-            eventId: googleEventId,
-            resource: resource,
-        }
-
-        const response = await googleCalendarApi.events.patch(params);
-        res.status(response.status).send();
-
-        return;
-
-
-        // ! DELETE if new code works well
-        if (missingGoogleEventUpdateFields(req)) {
-            res.status(StatusCodes.BAD_REQUEST).send("Missing fields in the request.");
-            return;
-        }
-
-        // // if (!utils.accessRoleAllowsWritingFCEvent(req.body.event)) {
-        // //     res.status(StatusCodes.FORBIDDEN).send("Access role does not allow updating.");
-        // //     return;
-        // // }
-
-        // // const googleEventId = req.body.event.extendedProps.googleEventId;
-        // // const googleCalendarId = req.body.event.extendedProps.googleCalendarId;
-        // // const params = {
-        // //     auth: utils.oauth2Client,
-        // //     calendarId: googleCalendarId,
-        // //     eventId: googleEventId,
-        // //     resource: {
-        // //         summary: req.body.fieldsToUpdate.title,
-        // //         start: {
-        // //             dateTime: new Date(req.body.fieldsToUpdate.start)
-        // //         },
-        // //         end: {
-        // //             dateTime: new Date(req.body.fieldsToUpdate.end)
-        // //         }
-        // //     }
-        // // }
-
-        // // const response = await googleCalendarApi.events.patch(params);
-        // // res.status(response.status).send();
+        let dbGEvent = await dbGoogleEvents.findOne({id: eventId});
+        let [statusCode, msg] = await eventsUtils.patchGoogleEvent(accessToken, dbGEvent, req.body);
+        res.status(statusCode).send(msg);
     }
     catch (err) {
         console.error(err);
@@ -329,38 +140,9 @@ const updateGoogleEvent = async (req, res) => {
 const updateUnexportedEvent = async (req, res) => {
     try {
         let eventId = req.params.id;
-        let update = getEventPatchFieldsUnexported(req);
-
-        const docs = await dbUnexportedEvents.updateOne({ id: eventId }, update)
-        if (docs.matchedCount === 1 && docs.modifiedCount === 1) {
-            console.log(`[updateUnexportedEvent] Successfully updated unexported event ${eventId}`);
-            res.status(StatusCodes.OK).send();
-        } else {
-            console.log("ERROR: Failed to update unexported event.");
-            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
-        }
-
-        return;
-
-        // ! DELETE if new code works welel
-        // if (missingUnexportedEventUpdateFields(req)) {
-        //     res.status(StatusCodes.BAD_REQUEST).send("Missing fields in the request.");
-        //     return;
-        // }
-
-        // let fieldsToUpdate = req.body.fieldsToUpdate;
-        // let event = req.body.event;
-        // event.title = fieldsToUpdate.title;
-        // event.start = fieldsToUpdate.start;
-        // event.end = fieldsToUpdate.end;
-        // const docs = await EventModel.updateOne({ 'id': event.id }, event);
-        // if (docs.matchedCount === 1 && docs.modifiedCount === 1) {
-        //     console.log(`[updateUnexportedEvent] Successfully updated unexported event ${event.id}`);
-        //     res.status(StatusCodes.OK).send();
-        // } else {
-        //     console.log("ERROR: Failed to update unexported event.");
-        //     res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
-        // }
+        let unexEvent = await dbUnexportedEvents.findOne({id: eventId});
+        let [statusCode, msg] = await eventsUtils.patchUnexportedEvent(unexEvent, req.body);
+        res.status(statusCode).send(msg);
     }
     catch (err) {
         console.error(err);

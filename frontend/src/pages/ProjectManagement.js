@@ -11,6 +11,7 @@ export const ProjectManagement = (props) => {
                             <h2 className="center_text">Your projects</h2>
                             <ProjectsAccordion
                                 allEvents={props.allEvents}
+                                setNotificationMsg={props.setNotificationMsg}
                             >
                             </ProjectsAccordion>
                         </td>

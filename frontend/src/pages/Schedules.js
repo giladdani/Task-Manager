@@ -3,11 +3,11 @@ import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { ThreeDots } from 'react-loader-spinner'
-import EventDialog from '../components/EventDialog'
+import EventDialog from '../components/events/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
 import { isValidStatus } from '../apis/APIUtils'
 import ProjectsAPI from '../apis/ProjectsAPI'
-const eventUtils = require('../event-utils.js')
+const eventUtils = require('../utils/event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
 
@@ -21,6 +21,7 @@ export class Schedules extends React.Component {
             isDialogOpen: false,
             selectedEvent: { title: "" },
             requestingUnsyncedEvents: false,
+            rerenderFlag: false,
         }
     }
 
@@ -57,12 +58,6 @@ export class Schedules extends React.Component {
                 this.setState({ interval: intervalInfo });
                 console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
             })
-
-        // ! DELETE if all works well since moving these lines to to the Promise.all().then() part, above.
-        // // this.setState({ fetchedInitialEvents: true });
-        // // let intervalInfo = window.setInterval(this.updateUnsyncedEvents, 5000);
-        // // this.setState({ interval: intervalInfo });
-        // // console.log(`[componentDidMount: Schedules] Set up interval ${this.state.interval}`)
     }
 
     async componentWillUnmount() {
@@ -95,6 +90,11 @@ export class Schedules extends React.Component {
                                     }
                                 } else {
                                     this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
+
+                                    let event = this.state.selectedEvent;
+                                    if (event && event.id && event.id === unsyncedEvent.id) {
+                                        this.setState({ rerenderFlag: !this.state.rerenderFlag });
+                                    }
                                 }
                             }
                         } catch (err) {
@@ -111,9 +111,9 @@ export class Schedules extends React.Component {
         }
     }
 
-    updateGoogleEvent = (googleEvent, fullCalendarEvent) => {
-        let start = googleEvent.start.dateTime;
-        let end = googleEvent.end.dateTime;
+    updateGoogleEvent = (gEvent, fullCalendarEvent) => {
+        let start = gEvent.start.dateTime;
+        let end = gEvent.end.dateTime;
         let originalEditableSetting = fullCalendarEvent.editable;
 
         /**
@@ -128,14 +128,20 @@ export class Schedules extends React.Component {
 
         fullCalendarEvent.setProp("editable", true);
         fullCalendarEvent.setDates(start, end);
-        fullCalendarEvent.setProp("title", googleEvent.summary);
-        fullCalendarEvent.setProp("backgroundColor", googleEvent.backgroundColor);
-        fullCalendarEvent.setProp("borderColor", googleEvent.foregroundColor);
+        fullCalendarEvent.setProp("title", gEvent.summary);
+        fullCalendarEvent.setProp("backgroundColor", gEvent.backgroundColor);
+        fullCalendarEvent.setProp("borderColor", gEvent.foregroundColor);
+        
+        let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
+        fullCalendarEvent.setProp("extendedProps.independentTagsIds", independentTagsIds);
+        fullCalendarEvent.setProp("extendedProps.projectTagIds", projectTagIds);
+        fullCalendarEvent.setProp("extendedProps.ignoredProjectTagIds", ignoredProjectTagIds);
+        
         fullCalendarEvent.setProp("editable", originalEditableSetting);
     }
 
     handleEventDragged = async (eventInfo) => {
-        if (eventUtils.accessRoleAllowsWritingFCEvent(eventInfo.event) === false) {
+        if (eventUtils.fc_accessRoleAllowsWriting(eventInfo.event) === false) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
             return;
         }
@@ -157,7 +163,7 @@ export class Schedules extends React.Component {
      * @returns Boolean with the update result - true if updated, false if not.
      */
     updateEvent = async (event, fieldsToUpdate) => {
-        if (!eventUtils.accessRoleAllowsWritingFCEvent(event)) {
+        if (!eventUtils.fc_accessRoleAllowsWriting(event)) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
             return false;
         }
@@ -185,11 +191,6 @@ export class Schedules extends React.Component {
 
                 return false;
             })
-            // .finally(() => {
-                // return updated;
-            // })
-
-        // return resPromise;
     }
 
     handleEventEditOnDialog = async (fieldsToUpdate) => {
@@ -242,10 +243,11 @@ export class Schedules extends React.Component {
             return fcEvent;
         }
 
-        const fullCalendarProjectId = this.fetchProjectIdFromGoogleEvent(event);
-        const localEventId = this.fetchAppEventIdFromGoogleEvent(event);
+        const fullCalendarProjectId = eventUtils.g_getProjectId(event);
+        const localEventId = eventUtils.g_getAppEventId(event);
         const googleEventId = event.id;
-        const editable = eventUtils.accessRoleAllowsWritingGEvent(event);
+        const editable = eventUtils.g_accessRoleAllowsWriting(event);
+        const [independentTagIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(event);
 
         fcEvent = {
             id: localEventId,
@@ -260,52 +262,12 @@ export class Schedules extends React.Component {
             borderColor: event.foregroundColor,
             backgroundColor: event.backgroundColor,
             accessRole: event.accessRole,
+            independentTagIds: independentTagIds,
+            projectTagIds: projectTagIds,
+            ignoredProjectTagIds: ignoredProjectTagIds,
         }
 
         return fcEvent;
-    }
-
-    fetchProjectIdFromGoogleEvent = (googleEvent) => {
-        if (!googleEvent.extendedProperties) {
-            return null;
-        }
-
-        if (!googleEvent.extendedProperties.private) {
-            return null;
-        }
-
-        return googleEvent.extendedProperties.private.fullCalendarProjectId;
-    }
-
-    /**
-     * TODO:
-     * Perhaps we need to give up the local IDs, and stay only with Google IDs?
-     */
-    /**
-     * 
-     * @param {*} googleEvent 
-     * @returns the local ID given to the event by the application. 
-     * If no such ID exists (e.g. if it's solely a Google event), the Google ID is returned.
-     */
-    fetchAppEventIdFromGoogleEvent = (googleEvent) => {
-        if (!googleEvent) {
-            return null;
-        }
-
-        let id = googleEvent.id;
-        if (!googleEvent.extendedProperties) {
-            return id;
-        }
-
-        if (!googleEvent.extendedProperties.private) {
-            return id;
-        }
-
-        if (!googleEvent.extendedProperties.private.fullCalendarEventID) {
-            return id;
-        }
-
-        return googleEvent.extendedProperties.private.fullCalendarEventID;
     }
 
     handleDateSelect = (selectInfo) => {
@@ -368,7 +330,7 @@ export class Schedules extends React.Component {
     }
 
     handleEventClick = (clickInfo) => {
-        if (eventUtils.accessRoleAllowsWritingFCEvent(clickInfo.event) === false) {
+        if (eventUtils.fc_accessRoleAllowsWriting(clickInfo.event) === false) {
             this.props.setNotificationMsg(eventUtils.noPermissionMsg);
             return;
         }
@@ -482,6 +444,8 @@ export class Schedules extends React.Component {
                         onEventDelete={this.handleEventDeleteOnDialog}
                         onEventReschedule={this.handleEventReschedule}
                         handleConfirmRescheduling={this.handleConfirmRescheduling}
+                        setNotificationMsg={this.props.setNotificationMsg}
+                        key={this.state.rerenderFlag}
                     />
                 </div>
             </div>

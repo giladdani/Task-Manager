@@ -11,6 +11,10 @@ function isValidStatus(response, validStatusArr) {
 }
 
 async function getResData(response) {
+    if (!response) {
+        return null;
+    }
+    
     const dataPromise = response.json();
 
     return dataPromise;

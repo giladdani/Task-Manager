@@ -2,13 +2,14 @@ const consts = require('./consts.js')
 const apiUtils = require('./APIUtils.js')
 
 const basicValidStatus = [200];
-const fetchPendingProjectsValidStatusArr = basicValidStatus;
-const approvePendingValidStatusArr = basicValidStatus;
-const fetchProjectsValidStatusArr = basicValidStatus;
-const deleteProjectValidStatusArr = basicValidStatus;
-const exportProjectValidStatusArr = basicValidStatus;
-const createSharedProjectValidStatusArr = basicValidStatus;
-const createIndividualProjectValidStatusArr = basicValidStatus;
+const validStatusArr_fetchPendingProjects = basicValidStatus;
+const validStatusArr_approvePending = basicValidStatus;
+const validStatusArr_fetchProjects = basicValidStatus;
+const validStatusArr_patchProject = basicValidStatus;
+const validStatusArr_deleteProject = basicValidStatus;
+const validStatusArr_exportProject = basicValidStatus;
+const validStatusArr_createSharedProject = basicValidStatus;
+const validStatusArr_createIndividualProject = basicValidStatus;
 const validStatusArr_rescheduleProjectEvent = basicValidStatus;
 
 
@@ -72,6 +73,18 @@ const fetchProjectsRes = async () => {
     console.log(`[ProjectsAPI - fetchProjectsRes] Returning promise.`);
 
     return response;
+}
+
+const patchProject = async (patchFields, projectId) => {
+    const body = patchFields;
+
+    const responsePromise = fetch(`${consts.fullRouteProjects}/${projectId}`, {
+        headers: consts.standardHeaders,
+        method: 'PATCH',
+        body: JSON.stringify(body)
+    });
+
+    return responsePromise;
 }
 
 const deleteProject = async (project) => {
@@ -148,13 +161,14 @@ async function getRescheduledProjectEventsRes(event) {
 }
 
 module.exports = {
-    fetchPendingProjectsValidStatusArr: fetchPendingProjectsValidStatusArr,
-    approvePendingValidStatusArr: approvePendingValidStatusArr,
-    fetchProjectsValidStatusArr: fetchProjectsValidStatusArr,
-    deleteProjectValidStatusArr: deleteProjectValidStatusArr,
-    exportProjectValidStatusArr: exportProjectValidStatusArr,
-    createSharedProjectValidStatusArr: createSharedProjectValidStatusArr,
-    createIndividualProjectValidStatusArr: createIndividualProjectValidStatusArr,
+    fetchPendingProjectsValidStatusArr: validStatusArr_fetchPendingProjects,
+    approvePendingValidStatusArr: validStatusArr_approvePending,
+    fetchProjectsValidStatusArr: validStatusArr_fetchProjects,
+    validStatusArr_patchProject: validStatusArr_patchProject,
+    deleteProjectValidStatusArr: validStatusArr_deleteProject,
+    exportProjectValidStatusArr: validStatusArr_exportProject,
+    createSharedProjectValidStatusArr: validStatusArr_createSharedProject,
+    createIndividualProjectValidStatusArr: validStatusArr_createIndividualProject,
     validStatusArr_rescheduleProjectEvent: validStatusArr_rescheduleProjectEvent,
 
     fetchPendingProjectsData: fetchPendingProjectsData,
@@ -162,6 +176,7 @@ module.exports = {
     approvePendingProject: approvePendingProject,
     fetchProjectsData: fetchProjectsData,
     fetchProjectsRes: fetchProjectsRes,
+    patchProject: patchProject,
     deleteProject: deleteProject,
     exportProject: exportProject,
     createSharedProject: createSharedProject,

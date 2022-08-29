@@ -6,8 +6,13 @@ const dbProjects = require('../dal/dbProjects');
 const dbPendingProjects = require('../dal/dbPendingProjects');
 const algorithm = require('./algorithm');
 const utils = require('../utils/utils.js');
+const consts = require('../utils/consts.js');
 const googleSync = require('../utils/google-sync');
 const dbGoogleEvents = require('../dal/dbGoogleEvents');
+const { events } = require('../models/unexported-event');
+const eventsUtils = require('./events/events-utils');
+
+
 const router = express.Router();
 
 // Routing
@@ -236,15 +241,15 @@ const exportProject = async (req, res) => {
                         return;
                 }
 
-                let allProjectEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
-                if (allProjectEvents.length == 0) {
-                        res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it..`);
+                let unexportedProjEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
+                if (unexportedProjEvents.length == 0) {
+                        res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it.`);
                         return;
                 }
 
                 const googleResJson = await createGoogleCalendar(req, project);
                 const googleCalendarId = googleResJson.data.id;
-                const errMsg = await insertEventsToGoogleCalendar(req, allProjectEvents, project, googleCalendarId);
+                const errMsg = await insertEventsToGoogleCalendar(req, unexportedProjEvents, project, googleCalendarId);
 
                 await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
                 await dbProjects.updateExportProject(projectId, googleCalendarId);
@@ -285,7 +290,12 @@ const createGoogleCalendar = async (req, project) => {
         return res;
 }
 
-const insertEventsToGoogleCalendar = async (req, events, project, calendarId) => {
+const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
+        /**
+         * Google Calendar API docuemntation for Event resource.
+         * https://developers.google.com/calendar/api/v3/reference/events
+         */
+
         const accessToken = utils.getAccessTokenFromRequest(req);
         utils.oauth2Client.setCredentials({ access_token: accessToken });
         const calendar = google.calendar('v3');
@@ -293,9 +303,14 @@ const insertEventsToGoogleCalendar = async (req, events, project, calendarId) =>
 
         try {
                 // TODO: change this to batch
-                for (const event of events) {
+                for (const event of unexportedEvents) {
                         const eventId = event.id;
                         const projectId = project.id
+                        
+                        // extendedProperties only accepts Strings as the value, not arrays.
+                        let independentTagIdsString = event.independentTagIds.toString();
+                        let projectTagIdsString = event.projectTagIds.toString();
+                        let ignoredProjectTagIdsString = event.ignoredProjectTagIds.toString();
 
                         const response = await calendar.events.insert({
                                 auth: utils.oauth2Client,
@@ -312,6 +327,13 @@ const insertEventsToGoogleCalendar = async (req, events, project, calendarId) =>
                                                 private: {
                                                         fullCalendarEventId: eventId,
                                                         fullCalendarProjectId: projectId,
+                                                        
+                                                        [consts.gFieldName_IndTagIds]: independentTagIdsString,
+                                                        [consts.gFieldName_ProjTagIds]: projectTagIdsString,
+                                                        [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
+                                                        // // independentTagIdsString: independentTagIdsString,
+                                                        // // projectTagIdsString: projectTagIdsString,
+                                                        // // ignoredProjectTagIdsString: ignoredProjectTagIdsString,
                                                 },
                                         }
                                 }
@@ -400,8 +422,7 @@ const patchProject = async (req, res) => {
                 let [projectUpdates, eventUpdates] = getPatchFields(req);
                 let objForUpdate = { $set: projectUpdates }
 
-                patchEventsFromProjectPatch(projectId, eventUpdates, req);
-
+                await eventsUtils.patchEventsFromProjectPatch(projectId, eventUpdates, req);
                 dbProjects.updateOne({ id: projectId }, objForUpdate)
                         .then(doc => {
                                 if (doc.modifiedCount === 1) {
@@ -410,10 +431,9 @@ const patchProject = async (req, res) => {
                                         res.status(StatusCodes.BAD_REQUEST).send("Could not find document.");
                                 }
                         })
-
-
         }
         catch (err) {
+                console.error(`[patchProject] Error:\n${err}`);
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
         }
 }
@@ -439,7 +459,6 @@ function getPatchFields(req) {
         if (req.body.backgroundColor) {
                 projectUpdates.backgroundColor = req.body.backgroundColor;
                 eventUpdates.backgroundColor = req.body.backgroundColor;
-
         }
 
         if (req.body.maxEventsPerDay) projectUpdates.maxEventsPerDay = req.body.maxEventsPerDay;
@@ -455,63 +474,69 @@ function getPatchFields(req) {
         return [projectUpdates, eventUpdates];
 }
 
-async function patchEventsFromProjectPatch(projectId, eventUpdates, req) {
-        let project = await dbProjects.findOne({ id: projectId });
-        if (project.exportedToGoogle) {
-                // TODO: Update Google events
-                patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req);
-        } else {
-                dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates);
-        }
-}
+// // async function patchEventsFromProjectPatch(projectId, eventUpdates, req) {
+// //         let project = await dbProjects.findOne({ id: projectId });
+// //         if (project.exportedToGoogle) {
+// //                 // TODO: Update Google events
+// //                 return patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req);
+// //         } else {
+// //                 return dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates);
+// //         }
+// // }
 
-async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
-        /** 
-         * ! This code has a lot of code duplication with the patch event code from events.js. 
-         * ! Is there any way to combine the two? 
-         * ! In general this code, since dealing with events, feels like it should be in events.js.
-         */
-        const accessToken = utils.getAccessTokenFromRequest(req);
-        utils.oauth2Client.setCredentials({ access_token: accessToken });
-        const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-        let email = utils.getEmailFromReq(req);
-        let dbGEvents = await dbGoogleEvents.findByProject(email, projectId);
-        for (const dbGEvent of dbGEvents) {
-                // TODO: change this to batch
-                if (!utils.accessRoleAllowsWriting_GoogleDBEvent(dbGEvent)) {
-                        continue;
-                }
+// // async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
+// //         /** 
+// //          * ! This code has a lot of code duplication with the patch event code from events.js. 
+// //          * ! Is there any way to combine the two? 
+// //          * ! In general this code, since dealing with events, feels like it should be in events.js.
+// //          */
+// //         const accessToken = utils.getAccessTokenFromRequest(req);
+// //         utils.oauth2Client.setCredentials({ access_token: accessToken });
+// //         const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+// //         let email = utils.getEmailFromReq(req);
+// //         let dbGEvents = await dbGoogleEvents.findByProject(email, projectId);
+// //         for (const dbGEvent of dbGEvents) {
+// //                 // TODO: change this to batch
+// //                 if (!utils.accessRoleAllowsWriting_GoogleDBEvent(dbGEvent)) {
+// //                         continue;
+// //                 }
 
-                const googleEventId = dbGEvent.id;
-                const googleCalendarId = dbGEvent.calendarId;
-                const resource = getEventPatchFieldsGoogle(eventUpdates);
-                resource = utils.pullDeletedTagsFromIgnoredGEvent(dbGEvent, resource);
-                const params = {
-                        auth: utils.oauth2Client,
-                        calendarId: googleCalendarId,
-                        eventId: googleEventId,
-                        resource: resource,
-                }
-        
-                const response = await googleCalendarApi.events.patch(params);
-        }
-}
+// //                 const googleEventId = dbGEvent.id;
+// //                 const googleCalendarId = dbGEvent.calendarId;
+// //                 const resource = getEventPatchFieldsGoogle(eventUpdates);
+// //                 resource = utils.pullDeletedTagsFromIgnoredGEvent(dbGEvent, resource);
+// //                 const params = {
+// //                         auth: utils.oauth2Client,
+// //                         calendarId: googleCalendarId,
+// //                         eventId: googleEventId,
+// //                         resource: resource,
+// //                 }
 
-function getEventPatchFieldsGoogle(updateFields) {
-        // ! Almost identical to code in events.js! Figure how to either call the code in events.js, or move this to somewhere shared (like utils).
-        // ! Note that the code in events.js makes use of req, not an updateFields object. 
-        // ! Though it can just send req.body as the updateFields object.
-        let resource = {};
-    
-        if (updateFields.title) resource.summary = updateFields.title;
-        if (updateFields.start) resource.start = { dateTime: new Date(updateFields.start) };
-        if (updateFields.end) resource.end = { dateTime: new Date(updateFields.end) };
-        if (updateFields.tagIds) resource.extendedProperties = { private: { tagIds: updateFields.tagIds } };
-        if (updateFields.projectTagIds) resource.extendedProperties = { private: { projectTagIds: updateFields.projectTagIds } };
-        if (updateFields.ignoredProjectTagIds) resource.extendedProperties = { private: { ignoredProjectTagIds: updateFields.ignoredProjectTagIds } };
-    
-        return resource;
-    }
+// //                 const response = await googleCalendarApi.events.patch(params);
+// //         }
+// // }
+
+// // function getEventPatchFieldsGoogle(updateFields) {
+// //         // ! Almost identical to code in events.js! Figure how to either call the code in events.js, or move this to somewhere shared (like utils).
+// //         // ! Note that the code in events.js makes use of req, not an updateFields object. 
+// //         // ! Though it can just send req.body as the updateFields object.
+// //         let resource = {};
+
+// //         if (updateFields.title) resource.summary = updateFields.title;
+// //         if (updateFields.start) resource.start = { dateTime: new Date(updateFields.start) };
+// //         if (updateFields.end) resource.end = { dateTime: new Date(updateFields.end) };
+// //         // // if (updateFields.independentTagIds) resource.extendedProperties = { private: { independentTagIds: updateFields.independentTagIds } };
+// //         // // if (updateFields.projectTagIds) resource.extendedProperties = { private: { projectTagIds: updateFields.projectTagIds } };
+// //         // // if (updateFields.ignoredProjectTagIds) resource.extendedProperties = { private: { ignoredProjectTagIds: updateFields.ignoredProjectTagIds } };
+
+// //         resource.extendedProperties = { private: {} }
+
+// //         if (req.body.independentTagIds) resource.extendedProperties.private.independentTagIdsString = req.body.independentTagIds.toString();
+// //         if (req.body.projectTagIds) resource.extendedProperties.private.projectTagIdsString = req.body.projectTagIds.toString();
+// //         if (req.body.ignoredProjectTagIds) resource.extendedProperties.private.ignoredProjectTagIdsString = req.body.ignoredProjectTagIds.toString();
+
+// //         return resource;
+// // }
 
 /**
  * 
@@ -657,42 +682,5 @@ function isValidEmail(email) {
         return re.test(String(email).toLowerCase());
 }
 
-
-
-/* --------------------------------------------------------------
------------------------------------------------------------------
----------------------------- Tags -------------------------------
------------------------------------------------------------------
--------------------------------------------------------------- */
-async function removeTagsFromAllProjects(email, tagIds) {
-        if (!tagIds || tagIds.length === 0) {
-                return;
-        }
-
-        try {
-                const allProjects = await dbProjects.find({ 'email': email });
-                for (const project of allProjects) {
-                        removeTagsFromProject(project.id, tagIds);
-                }
-        } catch (err) {
-                console.error(err);
-        }
-}
-
-function removeTagsFromProject(projectId, tagIds) {
-        if (!projectId || !tagIds || tagIds.length === 0) {
-                return;
-        }
-
-        dbProjects.removeTags(project.id, tagIds);
-}
-
-async function addTagsToProject(projectId, tagIds) {
-        if (!projectId || !tagIds || tagIds.length === 0) {
-                return;
-        }
-
-        dbProjects.addTags(projectId, tagIds);
-}
 
 module.exports = router;

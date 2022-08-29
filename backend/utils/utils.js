@@ -92,12 +92,22 @@ const getEmailFromAccessToken = async (accessToken) => {
 }
 
 const getAvatarUrlFromAccessToken = async (accessToken) => {
-    const response = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
-        headers: {
-            'Authorization': `Bearer ${accessToken}`
-        }
-    });
-    return response.data.picture;
+    let res = null;
+
+    try {
+
+        const response = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        res= response.data.picture;
+    }
+    catch (err) {
+        console.error(err);
+    }
+
+    return res;
 }
 
 const generateId = () => {

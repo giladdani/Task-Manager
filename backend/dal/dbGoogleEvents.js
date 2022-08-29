@@ -9,7 +9,7 @@ async function find(query) {
 /**
  * https://www.mongodb.com/docs/manual/reference/method/db.collection.findOne/
  */
- async function findOne(query, projection) {
+async function findOne(query, projection) {
     const promise = Model.findOne(query, projection);
 
     return promise;
@@ -98,6 +98,37 @@ async function updateFetchStatus(email, fetchStatus) {
     return promise;
 }
 
+/**
+ * Finds all the events with reference to the provided tags.
+ * @param {*} arrTagIds An array of tag IDs.
+ * @param {*} email Optional.
+ */
+async function findByTags(arrTagIds, email) {
+    let filter = {
+        $or: [
+            {
+                "extendedProperties.private.independentTagIds": {
+                    $in: arrTagIds
+                }
+            },
+            {
+                "extendedProperties.private.projectTagIds": {
+                    $in: arrTagIds
+                }
+            },
+            {
+                "extendedProperties.private.ignoredProjectTagIds": {
+                    $in: arrTagIds
+                }
+            },
+        ]
+    }
+
+    if (email) filter.email = email;
+
+    return find(filter);
+}
+
 
 
 
@@ -119,4 +150,5 @@ module.exports = {
     findByProject: findByProject,
     findByCalendar: findByCalendar,
     updateFetchStatus: updateFetchStatus,
+    findByTags: findByTags,
 }

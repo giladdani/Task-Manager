@@ -87,24 +87,6 @@ async function addTags(eventId, tagIds) {
     return promise;
 }
 
-async function removeTags(eventId, tagIds) {
-    let promise = null;
-    if (tagIds.length > 0) {
-        promise = await Model.updateOne(
-            { projectId: eventId },
-            {
-                $pull: {
-                    tagIds: {
-                        $in: tagIds,
-                    }
-                }
-            }
-        )
-    }
-
-    return promise;
-}
-
 /**
  * When patching a project, certain fields also "trickle down" to the events.
  * This updates all events related to the updated project, with the new fields.
@@ -130,10 +112,15 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
             }
         }
 
-        objForUpdate = {
-            objForUpdate,
+        await Model.updateMany(
+            { projectId: projectId },
             pullUpdate,
-        }
+        );
+
+        // objForUpdate = {
+        //     objForUpdate,
+        //     pullUpdate,
+        // }
     }
 
 
@@ -144,6 +131,41 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
 
     return promise;
 }
+
+/**
+ * Removes tags from all events.
+ * @param {*} arrTagIds An array of tag IDs to remove.
+ * @param {*} email Optional.
+ * @returns 
+ */
+async function deleteTags(arrTagIds, email) {
+    let promise = null;
+
+    if (arrTagIds && arrTagIds.length > 0) {
+        let filter = {};
+        if (email) filter.email = email;
+        promise = Model.updateMany(
+            filter,
+            {
+                $pull: {
+                    independentTagIds: {
+                        $in: arrTagIds,
+                    },
+                    projectTagIds: {
+                        $in: arrTagIds,
+                    },
+                    ignoredProjectTagIds: {
+                        $in: arrTagIds,
+                    },
+                }
+            }
+        )
+    }
+
+    return promise;
+}
+
+
 
 
 
@@ -156,14 +178,12 @@ module.exports = {
     find: find,
     findOne: findOne,
     updateOne: updateOne,
-    updateMany: updateMany,
     insertMany: insertMany,
     deleteOne: deleteOne,
     deleteMany: deleteMany,
 
     // Custom Functions
     findByProject: findByProject,
-    addTags: addTags,
-    removeTags: removeTags,
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
+    deleteTags: deleteTags,
 }
