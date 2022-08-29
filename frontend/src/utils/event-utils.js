@@ -101,9 +101,9 @@ function fc_GetIgnoredProjectTagIds(fcEvent) {
  * @returns [independentTagIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
  */
 function g_GetAllTagsIds(gEvent) {
-    let independentTagIds = g_GetTagIdsByField(gEvent, 'independentTagIdsString');
-    let projectTagIds = g_GetTagIdsByField(gEvent, 'projectTagIdsString');
-    let ignoredProjectTagIds = g_GetTagIdsByField(gEvent, 'ignoredProjectTagIdsString');
+    let independentTagIds = g_GetTagIdsByField(gEvent, 'independentTagIds');
+    let projectTagIds = g_GetTagIdsByField(gEvent, 'projectTagIds');
+    let ignoredProjectTagIds = g_GetTagIdsByField(gEvent, 'ignoredProjectTagIds');
 
     return [independentTagIds, projectTagIds, ignoredProjectTagIds];
 }
@@ -112,11 +112,15 @@ function g_GetTagIdsByField(gEvent, fieldName) {
     if (!gEvent) return null;
     if (!gEvent.extendedProperties) return null;
     if (!gEvent.extendedProperties.private) return null;
-    if (!gEvent.extendedProperties.private[fieldName]) return null;
+    return gEvent.extendedProperties.private[fieldName];
 
-    let res = gEvent.extendedProperties.private[fieldName].split(",");
 
-    return res;
+    // ! DELETE if all works - old code from when we saved google events in our DB wtih String in extended properties, not arrayss (to match Google resource which accepts only strings)
+    // if (!gEvent.extendedProperties.private[fieldName]) return null;
+
+    // let res = gEvent.extendedProperties.private[fieldName].split(",");
+
+    // return res;
 }
 
 

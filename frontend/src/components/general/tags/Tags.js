@@ -1,0 +1,174 @@
+import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
+import Draggable from 'react-draggable';
+
+import { styled } from '@mui/material/styles';
+import Paper from '@mui/material/Paper';
+import Chip from '@mui/material/Chip';
+
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardMedia from '@mui/material/CardMedia';
+import Typography from '@mui/material/Typography';
+import { CardActionArea } from '@mui/material';
+import CardActions from '@mui/material/CardActions';
+
+import CardHeader from '@mui/material/CardHeader';
+
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import MultipleSelectChip from '../MultipleSelectChip';
+import Select from '@mui/material/Select';
+
+import TagDialog from './TagDialog.js';
+import TagManagement from './TagManagement';
+
+
+const TagsAPI = require('../../../apis/TagsAPI.js');
+const APIUtils = require('../../../apis/APIUtils.js')
+
+
+
+const ListItem = styled('li')(({ theme }) => ({
+    margin: theme.spacing(0.5),
+}));
+
+export default function Tags(props) {
+    const [selectedTagIds, setSeletedTagIds] = useState(props.selectedTagIds);
+    const [allUserTags, setAllUserTags] = useState();
+    const [selectedTags, setSelectedTags] = useState();
+
+    const [newTagTitle, setNewTagTitle] = useState("");
+
+    const [tagIdsToDelete, setTagIdsToDelete] = useState([]);
+
+
+    useEffect(() => {
+        fetchAndSetAllTags();
+    }, [])
+
+    const fetchAndSetAllTags = async () => {
+        return TagsAPI.fetchTagsData()
+            .then(tags => {
+                setAllUserTags(tags);
+            })
+            .catch(err => {
+                console.error(err);
+                props.setNotificationMsg('Failed to fetch tags');
+            })
+    }
+
+    useEffect(() => {
+        findAndSetSelectedTags();
+    }, [allUserTags])
+
+    const findAndSetSelectedTags = () => {
+        if (selectedTagIds && allUserTags) {
+            let selectedTags = [];
+            for (const selectedId of selectedTagIds) {
+                let tag = allUserTags.find(tag => tag.id === selectedId);
+                if (tag) selectedTags.push(tag);
+            }
+
+            setSelectedTags(selectedTags);
+        }
+    }
+
+    const handleTagsUpdated = (selectedIds) => {
+        setSeletedTagIds(selectedIds);
+        props.onTagsUpdate(selectedIds);
+    }
+
+    const handleSelectChange = (selected) => {
+        let selectedIds = [];
+
+        if (selected) {
+            for (const element of selected) {
+                if (element.id) selectedIds.push(element.id);
+            }
+        }
+
+        setSeletedTagIds(selectedIds);
+        props.onTagsUpdate(selectedIds);
+    }
+
+    const handleDeleteSelectChange = (selected) => {
+        let selectedIds = [];
+
+        if (selected) {
+            for (const element of selected) {
+                if (element.id) selectedIds.push(element.id);
+            }
+        }
+
+        setTagIdsToDelete(selectedIds);
+        // props.onTagsUpdate(selectedIds);
+    }
+
+    const handleCreate = () => {
+        if (!newTagTitle || newTagTitle.trim().length === 0) {
+            props.setNotificationMsg("Cannot enter empty name.");
+            return;
+        }
+
+        TagsAPI.createTag(newTagTitle)
+            .then(response => {
+                if (APIUtils.isValidStatus(response, TagsAPI.validStatusArr_createTag)) {
+                    fetchAndSetAllTags();
+                    // markSelectedTags();
+                    props.setNotificationMsg("Tag created");
+                } else {
+                    props.setNotificationMsg("Failed to create, name must be unique"); // TODO: get the server response?
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                props.setNotificationMsg("Failed to create"); // TODO: get the server response?
+            })
+    }
+
+    const handleDelete = () => {
+        // Confirmation dialog
+        // If ok => delete
+        for(const tagId of tagIdsToDelete) {   
+            TagsAPI.deleteTag(tagId)
+            .then(res => {
+                
+            })
+            .catch(err => {
+                console.error(err);
+            })
+        }
+
+        // If not => cancel
+    }
+
+
+
+    return (
+        <Card>
+            <CardContent>
+                <MultipleSelectChip
+                    label="Tags"
+                    items={allUserTags}
+                    selectedItems={selectedTags}
+                    onSelectChange={handleSelectChange}
+                    disabled={props.disabled}
+                ></MultipleSelectChip>
+                <TextField label="Tag name" value={newTagTitle} onChange={(newValue) => setNewTagTitle(newValue.target.value)} size="small" autoFocus />
+                <Button onClick={handleCreate} variant="contained" color="primary">Create New</Button>
+                <br></br>
+                <MultipleSelectChip
+                    label="Tags to Delete"
+                    items={allUserTags}
+                    onSelectChange={handleDeleteSelectChange}
+                    disabled={props.disabled}
+                ></MultipleSelectChip>
+                <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
+            </CardContent>
+        </Card>
+    )
+}

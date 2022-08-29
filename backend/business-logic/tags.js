@@ -11,6 +11,7 @@ router.get('/', (req, res) => { getTags(req, res) });
 router.get('/:ids', (req, res) => { getTagsByIds(req, res) });
 router.post('/', (req, res) => { createTag(req, res) });
 router.delete('/:id', (req, res) => { deleteTag(req, res) });
+router.delete('/many/:ids', (req, res) => { deleteTagsMany(req, res) });
 
 
 // Functions
@@ -58,7 +59,7 @@ const createTag = async (req, res) => {
             return;
         }
 
-        const dbTag = await dbTags.findOne({email: email, title: title});
+        const dbTag = await dbTags.findOne({ email: email, title: title });
         if (dbTag) {
             res.status(StatusCodes.CONFLICT).send("Tag by that name already exists.");
             return;
@@ -89,26 +90,53 @@ const createTag = async (req, res) => {
 
 const deleteTag = async (req, res) => {
     console.log(`[deleteTag]`)
+    const tagId = req.params.id;
+    let tagIds = [tagId];
+    let [statusCode, resMsg] = await delateTags(tagIds, req);
+    console.log(resMsg);
+    res.status(statusCode).send(resMsg);
+}
 
+const deleteTagsMany = async (req, res) => {
+    console.log(`[deleteTags]`)
+    const idsString = req.params.ids;
+    const tagIds = idsString.split(',');
+    let [statusCode, resMsg] = await delateTags(tagIds, req);
+    console.log(resMsg);
+    res.status(statusCode).send(resMsg);
+}
+
+/**
+ * 
+ * @param {*} arrTagIdsToRemove An array of tag IDs to remove.
+ * @returns [statusCode, msg]
+ */
+async function delateTags(arrTagIdsToRemove, req) {
+    if (!arrTagIdsToRemove || arrTagIdsToRemove.length === 0) {
+        return [StatusCodes.BAD_REQUEST, "Did not receive any tags to remove."]
+    }
+
+    let errorMsg = null;
     let statusCode = null;
     let resMsg = null;
-    let errorMsg = null;
-    const tagId = req.params.id;
+    let email = utils.getEmailFromReq(req);
     let docs;
     try {
-        docs = await dbTags.deleteOne({ 'id': tagId })
+        docs = await dbTags.deleteTags(arrTagIdsToRemove, email);
     } catch (err) {
         errorMsg = err;
     }
 
+    
     if (!errorMsg) {
-        eventsUtils.deleteTag(tagId);
-        dbProjects.deleteTag(tagId);
-        resMsg = "Deleted tag " + tagId;
+        let accessToken = await utils.getAccessTokenFromRequest(req);
+        eventsUtils.deleteTags(arrTagIdsToRemove, email, accessToken);
+        dbProjects.deleteTags(arrTagIdsToRemove, email);
+        resMsg = "Deleted tags.";
         statusCode = StatusCodes.OK;
     } else {
         if (docs.deletedCount === 0) {
-            resMsg = "Error: Found no tag matching that ID.";
+            resMsg = "Error: Found no tag matching the IDs.";
             statusCode = StatusCodes.BAD_REQUEST;
         } else {
             resMsg = "Internal server error";
@@ -116,8 +144,7 @@ const deleteTag = async (req, res) => {
         }
     }
 
-    console.log(resMsg);
-    res.status(statusCode).send(resMsg);
+    return [statusCode, resMsg];
 }
 
 module.exports = router;

@@ -107,6 +107,23 @@ async function deleteTag(tagId) {
     return responsePromise;
 }
 
+async function deleteTags(arrTagIds) {
+    console.log(`[TagsAPI - deleteTags] Deleting tags`);
+
+    if (!arrTagIds || arrTagIds.length === 0) {
+        return null;
+    }
+
+    let responsePromise = fetch(`${consts.fullRouteTags}/many/${arrTagIds}`, {
+        headers: consts.standardHeaders,
+        method: 'DELETE',
+    });
+
+    console.log(`[TagsAPI - deleteTags] After server call, returning promise.`);
+
+    return responsePromise;
+}
+
 module.exports = {
     validStatusArr_createTag: validStatusArr_createTag,
 
@@ -115,4 +132,5 @@ module.exports = {
     fetchTagsData: fetchTagsData,
     fetchTagsRes: fetchTagsRes,
     deleteTag: deleteTag,
+    deleteTags: deleteTags,
 }

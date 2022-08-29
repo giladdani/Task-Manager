@@ -14,7 +14,7 @@ import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsLis
 import eventUtils from '../../utils/event-utils';
 import TagsAPI from '../../apis/TagsAPI';
 import Select from '@mui/material/Select';
-import Tags from '../general/Tags';
+import Tags from '../general/tags/Tags';
 
 
 
@@ -50,7 +50,7 @@ export default function EventDialog(props) {
     }
 
     if (ignoredProjectTagIds) {
-      for(const ignoredId of ignoredProjectTagIds) {
+      for (const ignoredId of ignoredProjectTagIds) {
         activeTagIds.pop(ignoredId);
       }
     }
@@ -147,14 +147,27 @@ export default function EventDialog(props) {
 
   return (
     <>
-      <Dialog open={props.isOpen} aria-labelledby="draggable-dialog-title" PaperComponent={PaperComponent} BackdropProps={{ style: { backgroundColor: "transparent" } }} disableScrollLock disableRestoreFocus>
+      <Dialog
+        open={props.isOpen}
+        onClose={handleClose}
+        aria-labelledby="draggable-dialog-title"
+        PaperComponent={PaperComponent}
+        BackdropProps={{ style: { backgroundColor: "transparent" } }}
+        disableScrollLock
+        disableRestoreFocus
+      >
         <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">Edit event</DialogTitle>
         <DialogContent>
           <table id="editEventTable">
             <tbody>
               <tr>
                 <td>
-                  <TextField label="Event name" value={title} onChange={(newValue) => setEventName(newValue.target.value)} autoFocus />
+                  <TextField
+                    label="Event name"
+                    value={title}
+                    onChange={(newValue) => setEventName(newValue.target.value)}
+                    autoFocus
+                  />
                 </td>
               </tr>
               <tr>

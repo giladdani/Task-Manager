@@ -13,7 +13,7 @@ import Tooltip from "@material-ui/core/Tooltip";
 import { ButtonGroup } from '@mui/material';
 import { ThreeDots } from 'react-loader-spinner';
 import APIUtils from '../../apis/APIUtils.js';
-import Tags from '../general/Tags';
+import Tags from '../general/tags/Tags';
 const EventsAPI = require('../../apis/EventsAPI.js');
 const ProjectsAPI = require('../../apis/ProjectsAPI.js');
 

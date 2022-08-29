@@ -1,6 +1,7 @@
 
 const { google } = require('googleapis');
 const utils = require('./utils');
+const consts = require('./consts');
 const dbUsers = require('../dal/dbUsers');
 const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const dbProjects = require('../dal/dbProjects');
@@ -185,30 +186,11 @@ const getUnsyncedEventsAllCalendars = async (googleCalendarClient, email) => {
 
             for (const calendar of calendarList.data.items) {
                 const calendarSyncToken = getCalendarSyncToken(userData, calendar.id);
-                // const calendarACL = await getCalendarACL(googleCalendarClient, calendar); // TODO: cannot request ACL for calendars you are not owner of - add check or remove
                 let [unsyncedCalendarEvents, nextSyncToken] = await getUnsyncedEventsFromCalendar(googleCalendarClient, calendar.id, calendarSyncToken, email, calendar.summary);
                 calendarId2PrevSyncTokenMap.set(calendar.id, calendarSyncToken);
                 calendarId2NextSyncTokenMap.set(calendar.id, nextSyncToken);
-                let calendarEventsWithCalendarId = unsyncedCalendarEvents.map(event => {
-                    const [background, foreground] = getColorString(calendar, event, calendarColors, eventColors);
-                    // parseTags(event);
-                    let accessRole = getEventAccessRole(calendar, event, email);
-
-                    return (
-                        {
-                            ...event,
-                            calendarId: calendar.id,
-                            backgroundColor: background,
-                            foregroundColor: foreground,
-                            email: email,
-                            fetchedByUser: false,
-                            isGoogleEvent: true,
-                            accessRole: accessRole,
-                        })
-                }
-                );
-
-                allUnsyncedEvents = allUnsyncedEvents.concat(calendarEventsWithCalendarId);
+                let modifiedEvents = convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColors, eventColors);
+                allUnsyncedEvents = allUnsyncedEvents.concat(modifiedEvents);
             }
         })
 
@@ -356,7 +338,33 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
     return [events, nextSyncToken];
 }
 
+/**
+ * 
+ * @param {*} unsyncedCalendarEvents An array of google events.
+ * @returns An array of all the events adjusted to match the DB Model.
+ */
+function convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColors, eventColors) {
+    let modelEvents = unsyncedCalendarEvents.map(gEvent => {
+        const [background, foreground] = getColorString(calendar, gEvent, calendarColors, eventColors);
+        parseTags(gEvent);
+        let accessRole = getEventAccessRole(calendar, gEvent, email);
 
+        return (
+            {
+                ...gEvent,
+                calendarId: calendar.id,
+                backgroundColor: background,
+                foregroundColor: foreground,
+                email: email,
+                fetchedByUser: false,
+                isGoogleEvent: true,
+                accessRole: accessRole,
+            })
+    }
+    );
+
+    return modelEvents;
+}
 
 /**
  * The function DOES NOT update the sync token!
@@ -447,22 +455,35 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
  * We save them in our DB as arrays of strings for comfort.
  * So we need to perform some object modification when fetching the events.
  */
-function parseTags(event) {
-    if (!event) return;
-    if (!event.extendedProperties) return;
-    if (!event.extendedProperties.private) return;
+function parseTags(gEvent) {
+    if (!gEvent) return;
+    if (!gEvent.extendedProperties) return;
+    if (!gEvent.extendedProperties.private) return;
 
-    if (event.extendedProperties.private.independentTagIds) {
-        event.extendedProperties.private.independentTagIds = event.extendedProperties.private.independentTagIds.split(',');
+    if (gEvent.extendedProperties.private[consts.gFieldName_IndTagIds]) {
+        gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
     }
+    // // if (gEvent.extendedProperties.private.independentTagIds) {
+    // //     gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private.independentTagIds.split(',');
+    // // }
 
-    if (event.extendedProperties.private.projectTagIdsString) {
-        event.extendedProperties.private.projectTagIdsString = event.extendedProperties.private.projectTagIdsString.split(',');
+    if (gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds]) {
+        gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
     }
+    // // if (gEvent.extendedProperties.private.projectTagIdsString) {
+    // //     gEvent.extendedProperties.private.projectTagIdsString = gEvent.extendedProperties.private.projectTagIdsString.split(',');
+    // // }
 
-    if (event.extendedProperties.private.ignoredProjectTagIdsString) {
-        event.extendedProperties.private.ignoredProjectTagIdsString = event.extendedProperties.private.ignoredProjectTagIdsString.split(',');
+    if (gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds]) {
+        gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
     }
+    // // if (gEvent.extendedProperties.private.ignoredProjectTagIdsString) {
+    // //     gEvent.extendedProperties.private.ignoredProjectTagIdsString = gEvent.extendedProperties.private.ignoredProjectTagIdsString.split(',');
+    // // }
+
+    // independentTagIds: [String],
+    // projectTagIds: [String],
+    // ignoredProjectTagIds: [String],
 }
 
 const getEventAccessRole = (calendar, event, email) => {

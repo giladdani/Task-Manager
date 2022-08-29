@@ -3,6 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const dbGoogleEvents = require("../../dal/dbGoogleEvents");
 const dbProjects = require("../../dal/dbProjects");
 const dbUnexportedEvents = require('../../dal/dbUnexportedEvents');
+const consts = require('../../utils/consts');
 const utils = require("../../utils/utils");
 
 
@@ -44,7 +45,7 @@ async function patchUnexportedEvent(unexEvent, eventUpdates) {
     try {
         let update = getUnexEventUpdateObj(unexEvent, eventUpdates);
 
-        const docs = await dbUnexportedEvents.updateOne({ id: unexEvent.id }, update)
+        const docs = await dbUnexportedEvents.updateOne({ id: unexEvent.id }, update);
         if (docs.matchedCount === 1 && docs.modifiedCount === 1) {
             console.log(`[updateUnexportedEvent] Successfully updated unexported event ${unexEvent.title} (${unexEvent.id})`);
             return [StatusCodes.OK, null]
@@ -53,6 +54,7 @@ async function patchUnexportedEvent(unexEvent, eventUpdates) {
             return [StatusCodes.INTERNAL_SERVER_ERROR, null]
         }
     } catch (err) {
+        console.error(`[patchUnexportedEvent] Error:\n${err}`)
         return [StatusCodes.INTERNAL_SERVER_ERROR, err];
     }
 }
@@ -152,7 +154,7 @@ function unex_SortTags(updateObj, unexEvent, updateFields) {
         updateObj.ignoredProjectTagIds = ignoredProjectTagIds;
     }
 
-    return resource;
+    return updateObj;
 }
 
 /**
@@ -164,15 +166,15 @@ function g_SortTags(resource, dbGEvent, updateFields) {
         resource.extendedProperties = { private: {} }
 
         // Prepare fields to call the sortTags function.
-        let independentTagIds = updateFields.independentTagIds ? updateFields.independentTagIds : dbGEvent.extendedProperties.private.independentTagIdsString.split(',');
-        let projectTagIds = updateFields.projectTagIds ? updateFields.projectTagIds : dbGEvent.extendedProperties.private.projectTagIdsString.split(',');
-        let ignoredProjectTagIds = updateFields.ignoredProjectTagIds ? updateFields.ignoredProjectTagIds : dbGEvent.extendedProperties.private.ignoredProjectTagIdsString.split(',');
+        let independentTagIds = updateFields.independentTagIds ? updateFields.independentTagIds : dbGEvent.extendedProperties.private.independentTagIds;
+        let projectTagIds = updateFields.projectTagIds ? updateFields.projectTagIds : dbGEvent.extendedProperties.private.projectTagIds;
+        let ignoredProjectTagIds = updateFields.ignoredProjectTagIds ? updateFields.ignoredProjectTagIds : dbGEvent.extendedProperties.private.ignoredProjectTagIds;
 
         [independentTagIds, ignoredProjectTagIds] = sortTags(independentTagIds, projectTagIds, ignoredProjectTagIds);
 
-        resource.extendedProperties.private.independentTagIdsString = independentTagIds.toString();
-        if (updateFields.projectTagIds) resource.extendedProperties.private.projectTagIdsString = projectTagIds.toString();
-        resource.extendedProperties.private.ignoredProjectTagIdsString = ignoredProjectTagIds.toString();
+        resource.extendedProperties.private[consts.gFieldName_IndTagIds] = independentTagIds.toString();
+        if (updateFields.projectTagIds) resource.extendedProperties.private[consts.gFieldName_ProjTagIds] = projectTagIds.toString();
+        resource.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds] = ignoredProjectTagIds.toString();
     }
 
     return resource;
@@ -207,30 +209,42 @@ function sortTags(independentTagIds, projectTagIds, ignoredProjectTagIds) {
 
 /**
  * When a tag is deleted it needs to be removed from all events.
+ * @param {*} arrTagIds An array of tag IDs to remove.
+ * @param {*} email 
  */
-async function deleteTag(tagId, email) {
-    if (!tagId) {
+async function deleteTags(arrTagIds, email, accessToken) {
+    if (!arrTagIds) {
         return null;
     }
 
-    dbUnexportedEvents.deleteTag(tagId);
-    deleteTagFromGoogle(tagId);
+    dbUnexportedEvents.deleteTags(arrTagIds, email);
+    deleteTagFromGoogle(accessToken, email, arrTagIds);
 }
 
-async function deleteTagFromGoogle(tagId) {
-    // Fetch all Google events with this tag
-    // let gEvents = dbGoogleEvents.findWithTag(tagId);
+async function deleteTagFromGoogle(accessToken, email, arrTagIdsToRemove) {
+    const dbGEvents = await dbGoogleEvents.findByTags(arrTagIdsToRemove, email)
 
-    
-    // for each google event with this tag:
-    // remove tag from the appropriate arrays
-    // patch events to Google with new tag fields
+    dbGEvents.forEach(dbGEvent => {
+        dbGEvent.extendedProperties.private.independentTagIds = dbGEvent.extendedProperties.private.independentTagIds.filter(tagId => !arrTagIdsToRemove.includes(tagId));
+        dbGEvent.extendedProperties.private.projectTagIds = dbGEvent.extendedProperties.private.projectTagIds.filter(tagId => !arrTagIdsToRemove.includes(tagId));
+        dbGEvent.extendedProperties.private.ignoredProjectTagIds = dbGEvent.extendedProperties.private.ignoredProjectTagIds.filter(tagId => !arrTagIdsToRemove.includes(tagId));
+    });
+
+    // TODO: perform BATCH request
+    for (const dbGEvent of dbGEvents) {
+        let updateFields = {
+            independentTagIds: dbGEvent.extendedProperties.private.independentTagIds,
+            projectTagIds: dbGEvent.extendedProperties.private.projectTagIds,
+            ignoredProjectTagIds: dbGEvent.extendedProperties.private.ignoredProjectTagIds,
+        }
+
+        patchGoogleEvent(accessToken, dbGEvent, updateFields);
+    }
 }
-
 
 module.exports = {
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
     patchGoogleEvent: patchGoogleEvent,
     patchUnexportedEvent: patchUnexportedEvent,
-    deleteTag: deleteTag,
+    deleteTags: deleteTags,
 }

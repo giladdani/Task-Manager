@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const consts = require("../utils/consts");
 const Schema = mongoose.Schema;
 
 /**
@@ -25,11 +26,11 @@ const googleEventSchema = new Schema({
             fullCalendarEventId: String,
             fullCalendarProjectId: String,
 
-            // While these are meant to be arrays, Google accepts only Strings in these fields.
-            // So we stringify the arrays, and then must parse them.
-            independentTagIdsString: String,
-            projectTagIdsString: String,
-            ignoredProjectTagIdsString: String,
+            // // // While these are meant to be arrays, Google accepts only Strings in these fields.
+            // // // So we stringify the arrays, and then must parse them.
+            // // independentTagIdsString: String,
+            // // projectTagIdsString: String,
+            // // ignoredProjectTagIdsString: String,
 
 
             // ! ALT - saving as arrays
@@ -39,9 +40,9 @@ const googleEventSchema = new Schema({
              * we perform a one-time modification when first fetching and inserting the events.
              * We differ from the representation here for comfort and ease of use everywhere else in the application.
              */
-            // independentTagIds: [String],
-            // projectTagIds: [String],
-            // ignoredProjectTagIds: [String],
+            independentTagIds: [String],
+            projectTagIds: [String],
+            ignoredProjectTagIds: [String],
         }
     },
 
@@ -54,6 +55,26 @@ const googleEventSchema = new Schema({
     isGoogleEvent: Boolean,
     accessRole: String,
 })
+
+
+/**
+ * For reference, when we export our events to Google, we do so in this manner.
+ * This will help keep track in one place of how we choose to save the fields.
+ */
+const exportedEventToGoogle = {
+    extendedProperties: {
+        private: {
+            fullCalendarEventId: String,
+            fullCalendarProjectId: String,
+
+            // While these are meant to be arrays, Google accepts only Strings in these fields.
+            // So we stringify the arrays, and then must parse them.
+            [consts.gFieldName_ProjTagIds]: String,
+            [consts.gFieldName_IgnoredProjectTagIds]: String,
+            [consts.gFieldName_IndTagIds]: String,
+        }
+    },
+}
 
 const GoogleEvent = mongoose.model('GoogleEvent', googleEventSchema);
 module.exports = GoogleEvent;

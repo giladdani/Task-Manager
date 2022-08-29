@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Select from '@mui/material/Select';
 import Button from "@material-ui/core/Button";
 import TagDialog from './TagDialog.js';
-import TagsAPI from '../../apis/TagsAPI.js';
+import TagsAPI from '../../../apis/TagsAPI.js';
 
 
 /**

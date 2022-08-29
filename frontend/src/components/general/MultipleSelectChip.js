@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import Chip from '@mui/material/Chip';
 import Checkbox from '@mui/material/Checkbox';
@@ -50,7 +51,9 @@ export default function MultipleSelectChip(props) {
   return (
     <>
       <FormControl sx={{ m: 1, width: 300 }}>
+        <InputLabel id="demo-multiple-chip-label">{props.label}</InputLabel>
         <Select
+          label={props.label}
           labelId="demo-multiple-chip-label"
           id="demo-multiple-chip"
           multiple
@@ -63,7 +66,7 @@ export default function MultipleSelectChip(props) {
                 <Chip
                   key={value.title}
                   label={value.title}
-                  // color={value.color} // TODO: this doesn't work! Uncomment and we get a crash. Figure out how to add color.
+                // color={value.color} // TODO: this doesn't work! Uncomment and we get a crash. Figure out how to add color in Material UI
                 />
               ))}
             </Box>

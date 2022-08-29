@@ -7,10 +7,10 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import MultipleSelectChip from './MultipleSelectChip';
+import MultipleSelectChip from '../MultipleSelectChip';
 import Select from '@mui/material/Select';
-const TagsAPI = require('../../apis/TagsAPI.js');
-const APIUtils = require('../../apis/APIUtils.js')
+const TagsAPI = require('../../../apis/TagsAPI.js');
+const APIUtils = require('../../../apis/APIUtils.js')
 
 export default function TagDialog(props) {
     const [allUserTags, setAllUserTags] = useState([]);
@@ -76,10 +76,6 @@ export default function TagDialog(props) {
             })
     }
 
-    // const handleSave = () => {
-    //     handleUpdate();
-    // }
-
     const handleClose = () => {
         // TODO: change to X
         props.onClose();
@@ -95,12 +91,6 @@ export default function TagDialog(props) {
         }
 
         setSelectedTagsIds(selectedIds);
-        // handleUpdate();
-    }
-
-    // Moved this to useEffect, delete if all works well
-    function handleUpdate() {
-        props.onTagsUpdate(selectedTagIds);
     }
 
     return (

@@ -26,7 +26,7 @@ async function deleteOne(query) {
 
 async function updateOne(filter, update) {
     promise = Model.updateOne(filter, update);
-    
+
     return promise;
 }
 
@@ -90,13 +90,40 @@ async function removeTags(projectId, tagIds) {
  */
 async function deleteTag(tagId) {
     let promise = Model.updateMany(
-        { },
+        {},
         {
             $pull: {
                 tagIds: tagId,
+            }
+        }
+    )
+
+    return promise;
+}
+
+/**
+ * Removes all deleted tags from projects in the DB.
+ * @param {*} arrTagIdsToRemove 
+ * @param {*} email Optional.
+ */
+async function deleteTags(arrTagIdsToRemove, email) {
+    let promise = null;
+
+    if (arrTagIdsToRemove && arrTagIdsToRemove.length > 0) {
+        let filter = {};
+        if (email) filter.email = email;
+
+        promise = Model.updateMany(
+            filter,
+            {
+                $pull: {
+                    tagIds: {
+                        $in: arrTagIdsToRemove,
+                    }
                 }
             }
-    )
+        )
+    }
 
     return promise;
 }
@@ -120,4 +147,5 @@ module.exports = {
     addTags: addTags,
     removeTags: removeTags,
     deleteTag: deleteTag,
+    deleteTags: deleteTags,
 }

@@ -87,24 +87,6 @@ async function addTags(eventId, tagIds) {
     return promise;
 }
 
-async function removeTags(eventId, tagIds) {
-    let promise = null;
-    if (tagIds.length > 0) {
-        promise = await Model.updateOne(
-            { projectId: eventId },
-            {
-                $pull: {
-                    tagIds: {
-                        $in: tagIds,
-                    }
-                }
-            }
-        )
-    }
-
-    return promise;
-}
-
 /**
  * When patching a project, certain fields also "trickle down" to the events.
  * This updates all events related to the updated project, with the new fields.
@@ -151,22 +133,39 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
 }
 
 /**
- * When a tag is deleted, this removes it from all events.
+ * Removes tags from all events.
+ * @param {*} arrTagIds An array of tag IDs to remove.
+ * @param {*} email Optional.
+ * @returns 
  */
- async function deleteTag(tagId) {
-    let promise = Model.updateMany(
-        { },
-        {
-            $pull: {
-                independentTagIds: tagId,
-                projectTagIds: tagId,
-                ignoredProjectTagIds: tagId,
+async function deleteTags(arrTagIds, email) {
+    let promise = null;
+
+    if (arrTagIds && arrTagIds.length > 0) {
+        let filter = {};
+        if (email) filter.email = email;
+        promise = Model.updateMany(
+            filter,
+            {
+                $pull: {
+                    independentTagIds: {
+                        $in: arrTagIds,
+                    },
+                    projectTagIds: {
+                        $in: arrTagIds,
+                    },
+                    ignoredProjectTagIds: {
+                        $in: arrTagIds,
+                    },
                 }
             }
-    )
+        )
+    }
 
     return promise;
 }
+
+
 
 
 
@@ -186,5 +185,5 @@ module.exports = {
     // Custom Functions
     findByProject: findByProject,
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
-    deleteTag: deleteTag,
+    deleteTags: deleteTags,
 }

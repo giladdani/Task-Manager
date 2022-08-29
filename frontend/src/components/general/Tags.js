@@ -72,6 +72,15 @@ export default function Tags(props) {
                 disabled={props.disabled}
             ></MultipleSelectChip>
             {/* </form> */}
+
+            <MultipleSelectChip
+                label="Tags"
+                items={allUserTags}
+                selectedItems={selectedTags}
+                onSelectChange={handleSelectChange}
+                disabled={props.disabled}
+            ></MultipleSelectChip>
+
         </>
     )
 }

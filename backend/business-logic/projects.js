@@ -6,10 +6,12 @@ const dbProjects = require('../dal/dbProjects');
 const dbPendingProjects = require('../dal/dbPendingProjects');
 const algorithm = require('./algorithm');
 const utils = require('../utils/utils.js');
+const consts = require('../utils/consts.js');
 const googleSync = require('../utils/google-sync');
 const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const { events } = require('../models/unexported-event');
 const eventsUtils = require('./events/events-utils');
+
 
 const router = express.Router();
 
@@ -239,15 +241,15 @@ const exportProject = async (req, res) => {
                         return;
                 }
 
-                let allProjectEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
-                if (allProjectEvents.length == 0) {
+                let unexportedProjEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
+                if (unexportedProjEvents.length == 0) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it.`);
                         return;
                 }
 
                 const googleResJson = await createGoogleCalendar(req, project);
                 const googleCalendarId = googleResJson.data.id;
-                const errMsg = await insertEventsToGoogleCalendar(req, allProjectEvents, project, googleCalendarId);
+                const errMsg = await insertEventsToGoogleCalendar(req, unexportedProjEvents, project, googleCalendarId);
 
                 await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
                 await dbProjects.updateExportProject(projectId, googleCalendarId);
@@ -288,7 +290,7 @@ const createGoogleCalendar = async (req, project) => {
         return res;
 }
 
-const insertEventsToGoogleCalendar = async (req, events, project, calendarId) => {
+const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
         /**
          * Google Calendar API docuemntation for Event resource.
          * https://developers.google.com/calendar/api/v3/reference/events
@@ -301,7 +303,7 @@ const insertEventsToGoogleCalendar = async (req, events, project, calendarId) =>
 
         try {
                 // TODO: change this to batch
-                for (const event of events) {
+                for (const event of unexportedEvents) {
                         const eventId = event.id;
                         const projectId = project.id
                         
@@ -325,9 +327,13 @@ const insertEventsToGoogleCalendar = async (req, events, project, calendarId) =>
                                                 private: {
                                                         fullCalendarEventId: eventId,
                                                         fullCalendarProjectId: projectId,
-                                                        independentTagIdsString: independentTagIdsString,
-                                                        projectTagIdsString: projectTagIdsString,
-                                                        ignoredProjectTagIdsString: ignoredProjectTagIdsString,
+                                                        
+                                                        [consts.gFieldName_IndTagIds]: independentTagIdsString,
+                                                        [consts.gFieldName_ProjTagIds]: projectTagIdsString,
+                                                        [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
+                                                        // // independentTagIdsString: independentTagIdsString,
+                                                        // // projectTagIdsString: projectTagIdsString,
+                                                        // // ignoredProjectTagIdsString: ignoredProjectTagIdsString,
                                                 },
                                         }
                                 }

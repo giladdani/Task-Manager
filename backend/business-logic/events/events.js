@@ -141,7 +141,7 @@ const updateUnexportedEvent = async (req, res) => {
     try {
         let eventId = req.params.id;
         let unexEvent = await dbUnexportedEvents.findOne({id: eventId});
-        let [statusCode, msg] = eventsUtils.patchUnexportedEvent(unexEvent, req.body);
+        let [statusCode, msg] = await eventsUtils.patchUnexportedEvent(unexEvent, req.body);
         res.status(statusCode).send(msg);
     }
     catch (err) {

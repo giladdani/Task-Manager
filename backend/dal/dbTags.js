@@ -18,8 +18,14 @@ async function create(documents) {
     return promise;
 }
 
-async function deleteOne(query) {
-    let promise = Model.deleteOne(query);
+async function deleteOne(filter) {
+    let promise = Model.deleteOne(filter);
+
+    return promise;
+}
+
+async function deleteMany(filter) {
+    let promise = Model.deleteMany(filter);
 
     return promise;
 }
@@ -43,6 +49,28 @@ async function findByIds(ids) {
     return promise;
 }
 
+/**
+ * Removes all deleted tags from projects in the DB.
+ * @param {*} arrTagIdsToRemove 
+ * @param {*} email Optional.
+ */
+ async function deleteTags(arrTagIdsToRemove, email) {
+    let promise = null;
+
+    if (arrTagIdsToRemove && arrTagIdsToRemove.length > 0) {
+        let filter = {
+            id: {
+                $in: arrTagIdsToRemove,
+            }
+        }
+        if (email) filter.email = email;
+
+        promise = Model.deleteMany(filter);
+    }
+
+    return promise;
+}
+
 
 /* --------------------------------------------------------------
 -----------------------------------------------------------------
@@ -54,7 +82,9 @@ module.exports = {
     find: find,
     create: create,
     deleteOne: deleteOne,
+    deleteMany: deleteMany,
 
     // Custom Functions
     findByIds: findByIds,
+    deleteTags: deleteTags,
 }
