@@ -1,3 +1,5 @@
+const generalUtils = require("../utils/general-utils");
+
 function isValidStatus(response, validStatusArr) {
     if (!response) {
         return false;
@@ -8,6 +10,19 @@ function isValidStatus(response, validStatusArr) {
     }
 
     return validStatusArr.includes(response.status);
+}
+
+function verifyAuthorized(response) {
+    if (response.status === 401) {
+        // check if receive new access token
+        // if yes 
+            // reset access token in storage
+
+        // if not - perform logout
+        // Alert user that token has expired
+        alert("Must login again!")
+        generalUtils.handleLogout();
+    }
 }
 
 async function getResData(response) {
@@ -23,4 +38,5 @@ async function getResData(response) {
 module.exports = {
     isValidStatus: isValidStatus,
     getResData: getResData,
+    verifyAuthorized: verifyAuthorized,
 }

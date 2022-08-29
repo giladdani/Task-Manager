@@ -7,32 +7,32 @@ const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const dbProjects = require('../dal/dbProjects');
 const { googleAccessRole } = require('./utils');
 
-
+/**
+ * Wrap with try-catch in case there's a Google error.
+ * @param {*} accessToken 
+ * @param {*} email 
+ * @returns Unsynced Google events.
+ */
 const syncGoogleData = async (accessToken, email) => {
     let unsyncedEvents = [];
 
-    try {
-        utils.oauth2Client.setCredentials({ access_token: accessToken });
-        const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+    utils.oauth2Client.setCredentials({ access_token: accessToken });
+    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
 
-        const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
-        await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
-        let newCalendarId2Sync = await getNewCalendarsIds(unsyncedGoogleCalendars, email);
-        let deletedCalendarsId = getDeletedCalendarsIds(unsyncedGoogleCalendars);
-        addMissingCalendars(newCalendarId2Sync, email);
-        updateUserDeletedCalendars(deletedCalendarsId, email);
-        updateDeletedProjects(deletedCalendarsId, email);
-        let deletedCalendarEvents = await getDeletedCalendarsEventsDB(deletedCalendarsId, email);
-        removeDeletedCalendarsEvents(deletedCalendarsId, email);
-        let [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap] = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
-        updateEventCollectionSyncTokens(calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email);
-        updateDBWithUnsyncedEvents(allUnsyncedEvents, email)
-        deletedCalendarEvents.forEach(event => event.status = 'cancelled');
-        unsyncedEvents = allUnsyncedEvents.concat(deletedCalendarEvents);
-    }
-    catch (error) {
-        console.log(`[syncGoogleData] Error:\n\n${error}`);
-    }
+    const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
+    await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
+    let newCalendarId2Sync = await getNewCalendarsIds(unsyncedGoogleCalendars, email);
+    let deletedCalendarsId = getDeletedCalendarsIds(unsyncedGoogleCalendars);
+    addMissingCalendars(newCalendarId2Sync, email);
+    updateUserDeletedCalendars(deletedCalendarsId, email);
+    updateDeletedProjects(deletedCalendarsId, email);
+    let deletedCalendarEvents = await getDeletedCalendarsEventsDB(deletedCalendarsId, email);
+    removeDeletedCalendarsEvents(deletedCalendarsId, email);
+    let [allUnsyncedEvents, calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap] = await getUnsyncedEventsAllCalendars(googleCalendarClient, email, deletedCalendarsId);
+    updateEventCollectionSyncTokens(calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email);
+    updateDBWithUnsyncedEvents(allUnsyncedEvents, email)
+    deletedCalendarEvents.forEach(event => event.status = 'cancelled');
+    unsyncedEvents = allUnsyncedEvents.concat(deletedCalendarEvents);
 
     return unsyncedEvents;
 }

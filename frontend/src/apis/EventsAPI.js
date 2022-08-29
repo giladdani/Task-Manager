@@ -1,5 +1,6 @@
 const consts = require('./consts.js')
 const apiUtils = require('./APIUtils.js');
+const APIUtils = require('./APIUtils.js');
 
 const basicValidStatus = [200];
 const validStatusArr_fetchGoogleEvents = basicValidStatus;
@@ -32,6 +33,8 @@ async function fetchGoogleEventsRes() {
 async function fetchUnsyncedGoogleEventsData() {
     let dataPromise = fetchUnsyncedGoogleEventsRes()
         .then(response => {
+            APIUtils.verifyAuthorized(response);
+            console.log('I made it through authorization! :D');
             return apiUtils.getResData(response);
         })
 
@@ -45,7 +48,6 @@ async function fetchUnsyncedGoogleEventsRes() {
     });
 
     return responsePromise;
-
 }
 
 async function fetchAllUnexportedEventsData() {
