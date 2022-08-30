@@ -16,8 +16,10 @@ const { googleAccessRole } = require('./utils');
 const syncGoogleData = async (accessToken, email) => {
     let unsyncedEvents = [];
 
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+    const oauth2Client = utils.getOauth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    // utils.oauth2Client.setCredentials({ access_token: accessToken });
+    const googleCalendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
 
     const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
     await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);

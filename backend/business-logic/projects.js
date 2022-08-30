@@ -8,10 +8,7 @@ const algorithm = require('./algorithm');
 const utils = require('../utils/utils.js');
 const consts = require('../utils/consts.js');
 const googleSync = require('../utils/google-sync');
-const dbGoogleEvents = require('../dal/dbGoogleEvents');
-const { events } = require('../models/unexported-event');
 const eventsUtils = require('./events/events-utils');
-
 
 const router = express.Router();
 
@@ -236,28 +233,38 @@ const exportProject = async (req, res) => {
                         return;
                 }
 
-                if (project.exportedToGoogle) {
+                if (project.exportedToGoogle && !project.googleCalendarId) {
                         res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} is already exported to Google.`);
                         return;
                 }
 
-                let unexportedProjEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
-                if (unexportedProjEvents.length == 0) {
-                        res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it.`);
-                        return;
+                let googleCalendarId = null;
+                let accessToken = utils.getAccessTokenFromRequest(req);
+                if (project.googleCalendarId) {
+                        const googleResJson = await insertGoogleCalendar(accessToken, project.googleCalendarId);
+                        googleCalendarId = googleResJson.data.id;
+                } else {
+                        let unexportedProjEvents = await dbUnexportedEvents.find({ email: email, projectId: projectId })
+                        if (unexportedProjEvents.length == 0) {
+                                res.status(StatusCodes.BAD_REQUEST).send(`Project ${projectId} has no events connected to it.`);
+                                return;
+                        }
+
+                        const googleResJson = await createGoogleCalendar(req, project);
+                        googleCalendarId = googleResJson.data.id;
+                        const errMsg = await insertEventsToGoogleCalendar(req, unexportedProjEvents, project, googleCalendarId);
+                        if (project.participatingEmails.length > 1) { // Shared project
+                                await dbProjects.updateSharedCalendarId(project, googleCalendarId);
+                                addACLToSharedCalendar(accessToken, googleCalendarId, project, email);
+                        }
                 }
-
-                const googleResJson = await createGoogleCalendar(req, project);
-                const googleCalendarId = googleResJson.data.id;
-                const errMsg = await insertEventsToGoogleCalendar(req, unexportedProjEvents, project, googleCalendarId);
-
                 await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
                 await dbProjects.updateExportProject(projectId, googleCalendarId);
         } catch (err) {
                 errorMsg = err;
         }
 
-        if (errorMsg == null) {
+        if (!errorMsg) {
                 console.log(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
                 res.status(StatusCodes.OK).send(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
         } else {
@@ -266,11 +273,32 @@ const exportProject = async (req, res) => {
         }
 }
 
+async function insertGoogleCalendar(accessToken, calendarId) {
+        const googleCalendarApi = utils.getGAPIClientCalendar(accessToken);
+        let res;
+
+        try {
+                const googleRes = await googleCalendarApi.calendarList.insert({
+                        resource: {
+                                id: calendarId,
+                        }
+                })
+
+                res = googleRes;
+        }
+        catch (err) {
+                console.log(err);
+                res = err;
+        }
+
+        return res;
+}
+
 const createGoogleCalendar = async (req, project) => {
         const accessToken = utils.getAccessTokenFromRequest(req);
         utils.oauth2Client.setCredentials({ access_token: accessToken });
         const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-        let res = null;
+        let res;
 
         try {
                 const googleRes = await googleCalendarApi.calendars.insert({
@@ -290,6 +318,33 @@ const createGoogleCalendar = async (req, project) => {
         return res;
 }
 
+async function addACLToSharedCalendar(accessToken, calendarId, project, exportingUser) {
+        let gapi = utils.getGAPIClientCalendar(accessToken);
+
+        for (const email of project.participatingEmails) {
+                if (email === exportingUser) {
+                        continue;
+                }
+
+                try {
+                        const googleRes = await gapi.acl.insert({
+                                calendarId: calendarId,
+                                resource: {
+                                        role: "owner",
+                                        scope: {
+                                                type: "user",
+                                                value: email,
+                                        }
+                                }
+                        })
+                        console.log(`[addACLToSharedCalendar] Added ${email} as owner to project '${project.title}'`);
+                }
+                catch (err) {
+                        console.log(err);
+                }
+        }
+}
+
 const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
         /**
          * Google Calendar API docuemntation for Event resource.
@@ -306,7 +361,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                 for (const event of unexportedEvents) {
                         const eventId = event.id;
                         const projectId = project.id
-                        
+
                         // extendedProperties only accepts Strings as the value, not arrays.
                         let independentTagIdsString = event.independentTagIds.toString();
                         let projectTagIdsString = event.projectTagIds.toString();
@@ -327,7 +382,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                                                 private: {
                                                         fullCalendarEventId: eventId,
                                                         fullCalendarProjectId: projectId,
-                                                        
+
                                                         [consts.gFieldName_IndTagIds]: independentTagIdsString,
                                                         [consts.gFieldName_ProjTagIds]: projectTagIdsString,
                                                         [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
@@ -629,12 +684,8 @@ const createProjectObject = async (req) => {
         const projectId = utils.generateId();
         const userEmail = utils.getEmailFromReq(req);
         const backgroundColor = utils.getRandomColor();
-        let sharedProjectId = null;
         let participatingEmails = await getParticipatingEmails(req);
-
-        if (participatingEmails.length > 1) {
-                sharedProjectId = utils.generateId();
-        }
+        let sharedProjectId = participatingEmails.length > 1 ? utils.generateId() : null;
 
         const newProject = {
                 title: req.body.projectTitle,

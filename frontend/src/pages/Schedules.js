@@ -72,6 +72,7 @@ export class Schedules extends React.Component {
                 console.log(`[updateUnsyncedEvents] Requesting from the server unsynced events.`)
                 EventsAPI.fetchUnsyncedGoogleEventsData()
                     .then((unsyncedEvents) => {
+                        if (!unsyncedEvents) return;
                         try {
                             console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
                             let calendarApi = this.state.calendarRef.current.getApi();
