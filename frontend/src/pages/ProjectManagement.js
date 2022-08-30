@@ -17,7 +17,10 @@ export const ProjectManagement = (props) => {
                         </td>
                         <td>
                             <h2>Pending projects</h2>
-                            <PendingProjectsList allEvents={props.allEvents} />
+                            <PendingProjectsList
+                                allEvents={props.allEvents}
+                                setNotificationMsg={props.setNotificationMsg}
+                            />
                         </td>
                     </tr>
                 </tbody>

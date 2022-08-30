@@ -538,6 +538,13 @@ const isLaterOrEqualTime = (time1, time2) => {
     return isLaterOrEqual;
 }
 
+/**
+ * 
+ * @param {*} project 
+ * @param {*} currentDate 
+ * @param {*} eventsSoFarInDay 
+ * @returns 
+ */
 function getNextDate(project, currentDate, eventsSoFarInDay) {
     let nextDate = null;
     /*
@@ -673,6 +680,7 @@ const createEventFromStartTime = async (project, sessionLengthMinutes, startTime
         sharedId: sharedId,
         projectTitle: projectTitle,
         projectId: project.id,
+        projectSharedId: project.sharedId,
         start: startDate,
         end: endDate,
         backgroundColor: project.backgroundColor,

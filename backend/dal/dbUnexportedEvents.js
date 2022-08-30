@@ -25,9 +25,12 @@ async function updateOne(filter, update) {
 }
 
 /**
- * https://www.mongodb.com/docs/v5.0/reference/method/db.collection.updateMany/
+ * 
+ * @param {*} filter 
+ * @param {*} update 
+ * @returns 
  */
-async function updateOne(filter, update) {
+async function updateMany(filter, update) {
     const promise = Model.updateMany(filter, update);
 
     return promise;
@@ -178,6 +181,7 @@ module.exports = {
     find: find,
     findOne: findOne,
     updateOne: updateOne,
+    updateMany: updateMany,
     insertMany: insertMany,
     deleteOne: deleteOne,
     deleteMany: deleteMany,

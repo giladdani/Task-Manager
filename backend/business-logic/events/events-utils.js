@@ -44,14 +44,25 @@ async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
 async function patchUnexportedEvent(unexEvent, eventUpdates) {
     try {
         let update = getUnexEventUpdateObj(unexEvent, eventUpdates);
+        let docs;
 
-        const docs = await dbUnexportedEvents.updateOne({ id: unexEvent.id }, update);
-        if (docs.matchedCount === 1 && docs.modifiedCount === 1) {
-            console.log(`[updateUnexportedEvent] Successfully updated unexported event ${unexEvent.title} (${unexEvent.id})`);
-            return [StatusCodes.OK, null]
+        if (unexEvent.sharedId) {
+            docs = await dbUnexportedEvents.updateMany({ sharedId: unexEvent.sharedId }, update);
         } else {
+            docs = await dbUnexportedEvents.updateOne({ id: unexEvent.id }, update);
+        }
+
+        if (docs.matchedCount === 0 || docs.modifiedCount === 0) {
             console.log("ERROR: Failed to update unexported event.");
             return [StatusCodes.INTERNAL_SERVER_ERROR, null]
+        } else {
+            if (docs.modifiedCount > 1) {
+                console.log(`[updateUnexportedEvent] Successfully updated unexported event ${unexEvent.title} (${unexEvent.id})`);
+                return [StatusCodes.OK, null]
+            } else {
+                console.log(`[updateUnexportedEvent] Successfully updated shared event event ${unexEvent.title} (${unexEvent.id})`);
+                return [StatusCodes.OK, null]
+            }
         }
     } catch (err) {
         console.error(`[patchUnexportedEvent] Error:\n${err}`)
