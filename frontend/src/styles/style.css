@@ -10,10 +10,13 @@
   margin: 1.5%;
 }
 
-/** MUI **/
+.tagColor{
+  width: 15px;
+  height: 15px;
+  border-radius: 40%;
+}
 
-/* .MuiOutlinedInput-root fieldset  */
-/* .MuiOutlinedInput-root, */
+/** MUI **/
 
 .MuiChip-root,
 .MuiAccordion-root {
@@ -86,20 +89,24 @@ div svg {
   margin-right: 25%;
 }
 
-.nav-bar li {
+.nav-bar li,
+.sub-nav-bar li {
   padding: 8px;
   display: inline;
 }
 
-.nav-bar li a:hover {
-  background-color: #0b0b0b;
+.nav-bar li a:hover,
+.sub-nav-bar li a:hover {
+  color: #c5c5c5;
 }
 
-.nav-bar .active {
+.nav-bar .active,
+.sub-nav-bar .active {
   border-bottom: white 2px solid;
 }
 
-.nav-bar li a {
+.nav-bar li a,
+.sub-nav-bar li a {
   color: white;
   text-decoration: none;
 }
