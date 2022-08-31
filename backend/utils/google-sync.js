@@ -8,6 +8,7 @@ const dbProjects = require('../dal/dbProjects');
 const { googleAccessRole } = require('./utils');
 const eventsUtils = require('../business-logic/events/events-utils');
 const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
+const { addTags } = require('../dal/dbProjects');
 
 /**
  * Wrap with try-catch in case there's a Google error.
@@ -380,7 +381,7 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
 function convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColors, eventColors) {
     let modelEvents = unsyncedCalendarEvents.map(gEvent => {
         const [background, foreground] = getColorString(calendar, gEvent, calendarColors, eventColors);
-        parseTags(gEvent);
+        let tags = parseTags(gEvent);
         let accessRole = getEventAccessRole(calendar, gEvent, email);
 
         return (
@@ -393,6 +394,7 @@ function convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColor
                 fetchedByUser: false,
                 isGoogleEvent: true,
                 accessRole: accessRole,
+                tags: tags,
             })
     }
     );
@@ -488,28 +490,40 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
  * The tags within a Google event are saved as a String, not an array.
  * We save them in our DB as arrays of strings for comfort.
  * So we need to perform some object modification when fetching the events.
+ * @returns A tag object with the typical fields.
  */
 function parseTags(gEvent) {
-    if (!gEvent) return;
-    if (!gEvent.extendedProperties) return;
-    if (!gEvent.extendedProperties.private) return;
+    let tags = {
+        independentTagIds: [],
+        projectTagIds: [],
+        ignoredProjectTagIds: [],
+    }
+
+    if (!gEvent) return tags;
+    if (!gEvent.extendedProperties) return tags;
+    if (!gEvent.extendedProperties.private) return tags;
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IndTagIds]) {
-        gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+        // // gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+        tags.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+
     }
     // // if (gEvent.extendedProperties.private.independentTagIds) {
     // //     gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private.independentTagIds.split(',');
     // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds]) {
-        gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
+        // // gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
+        tags.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
     }
     // // if (gEvent.extendedProperties.private.projectTagIdsString) {
     // //     gEvent.extendedProperties.private.projectTagIdsString = gEvent.extendedProperties.private.projectTagIdsString.split(',');
     // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds]) {
-        gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+        // // gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+        tags.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+
     }
     // // if (gEvent.extendedProperties.private.ignoredProjectTagIdsString) {
     // //     gEvent.extendedProperties.private.ignoredProjectTagIdsString = gEvent.extendedProperties.private.ignoredProjectTagIdsString.split(',');
@@ -518,6 +532,8 @@ function parseTags(gEvent) {
     // independentTagIds: [String],
     // projectTagIds: [String],
     // ignoredProjectTagIds: [String],
+
+    return tags;
 }
 
 const getEventAccessRole = (calendar, event, email) => {

@@ -107,17 +107,17 @@ async function findByTags(arrTagIds, email) {
     let filter = {
         $or: [
             {
-                "extendedProperties.private.independentTagIds": {
+                "tags.independentTagIds": {
                     $in: arrTagIds
                 }
             },
             {
-                "extendedProperties.private.projectTagIds": {
+                "tags.projectTagIds": {
                     $in: arrTagIds
                 }
             },
             {
-                "extendedProperties.private.ignoredProjectTagIds": {
+                "tags.ignoredProjectTagIds": {
                     $in: arrTagIds
                 }
             },

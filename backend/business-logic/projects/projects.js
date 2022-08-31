@@ -10,7 +10,7 @@ const consts = require('../../utils/consts.js');
 const googleSync = require('../../utils/google-sync');
 const eventsUtils = require('../events/events-utils');
 const projectsUtils = require('./projects-utils');
-const googleUtils = require('../google/google-utils');
+const googleUtils = require('../google/google-utils.js');
 
 const router = express.Router();
 
@@ -263,7 +263,7 @@ const exportProject = async (req, res) => {
                         if (projectsUtils.isSharedProject(project)) {
                                 await dbProjects.updateSharedCalendarId(project, googleCalendarId);
                                 addACLToSharedCalendar(accessToken, googleCalendarId, project, email);
-                                await updateAllLocalProjectEvents();
+                                await updateAllLocalProjectEvents(accessToken, googleCalendarId);
                         }
                 }
                 await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
@@ -276,7 +276,7 @@ const exportProject = async (req, res) => {
                 console.log(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
                 res.status(StatusCodes.OK).send(`Exported project ${project.title} (ID: ${projectId}) to Google.`);
         } else {
-                console.log(`ERROR: Failed to export project ${project.title} (ID: ${projectId})`);
+                console.error(`ERROR: Failed to export project ${project.title} (ID: ${projectId}). Error:\n${errorMsg}`);
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send('Unknown server error: ' + errorMsg);
         }
 }
@@ -365,13 +365,80 @@ async function addACLToSharedCalendar(accessToken, calendarId, project, exportin
 async function updateAllLocalProjectEvents(accessToken, calendarId) {
         let calendarEvents = await googleUtils.getCalendarEvents(accessToken, calendarId, null);
 
-        for(const gEvent of calendarEvents) {
+        for (const gEvent of calendarEvents) {
                 let sharedId = eventsUtils.g_GetSharedEventId(gEvent);
                 if (!sharedId) continue;
                 let newId = gEvent.id;
-                dbUnexportedEvents.updateMany({sharedId: sharedId}, {$set: {gEventId: newId, calendarId: calendarId}})
+                dbUnexportedEvents.updateMany({ sharedId: sharedId }, { $set: { gEventId: newId, calendarId: calendarId } })
         }
 }
+
+// // const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
+// //         /**
+// //          * Google Calendar API docuemntation for Event resource.
+// //          * https://developers.google.com/calendar/api/v3/reference/events
+// //          */
+
+// //         const accessToken = utils.getAccessTokenFromRequest(req);
+// //         utils.oauth2Client.setCredentials({ access_token: accessToken });
+// //         const calendar = google.calendar('v3');
+// //         let errMsg = null;
+
+// //         try {
+// //                 let gapi = utils.getGAPIClientCalendar(accessToken);
+// //                 // TODO: change this to batch
+// //                 for (const event of unexportedEvents) {
+// //                         const eventId = event.id;
+// //                         const eventSharedId = event.sharedId;
+// //                         const projectId = project.id
+
+
+// //                         // extendedProperties only accepts Strings as the value, not arrays.
+// //                         let independentTagIdsString = event.tags.independentTagIds.toString();
+// //                         let projectTagIdsString = event.tags.projectTagIds.toString();
+// //                         let ignoredProjectTagIdsString = event.tags.ignoredProjectTagIds.toString();
+
+// //                         // extendedProperties only accepts Strings as the value, not arrays.
+// //                         // let independentTagIdsString = event.independentTagIds.toString();
+// //                         // let projectTagIdsString = event.projectTagIds.toString();
+// //                         // let ignoredProjectTagIdsString = event.ignoredProjectTagIds.toString();
+
+// //                         const response = await gapi.events.insert({
+// //                                 // const response = await calendar.events.insert({
+// //                                 // auth: utils.oauth2Client,
+// //                                 calendarId: calendarId,
+// //                                 requestBody: {
+// //                                         summary: event.title,
+// //                                         start: {
+// //                                                 dateTime: new Date(event.start)
+// //                                         },
+// //                                         end: {
+// //                                                 dateTime: new Date(event.end)
+// //                                         },
+// //                                         extendedProperties: {
+// //                                                 private: {
+// //                                                         fullCalendarEventId: eventId,
+// //                                                         fullCalendarEventSharedId: eventSharedId,
+// //                                                         fullCalendarProjectId: projectId,
+
+// //                                                         // [consts.gFieldName_IndTagIds]: independentTagIdsString,
+// //                                                         // [consts.gFieldName_ProjTagIds]: projectTagIdsString,
+// //                                                         // [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
+// //                                                         // // independentTagIdsString: independentTagIdsString,
+// //                                                         // // projectTagIdsString: projectTagIdsString,
+// //                                                         // // ignoredProjectTagIdsString: ignoredProjectTagIdsString,
+// //                                                 },
+// //                                         }
+// //                                 }
+// //                         })
+// //                 }
+// //         } catch (error) {
+// //                 console.log(`[insertGeneratedEventsToGoogleCalendar] ${error}`);
+// //                 errMsg = error;
+// //         }
+
+// //         return errMsg;
+// // }
 
 const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
         /**
@@ -379,49 +446,40 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
          * https://developers.google.com/calendar/api/v3/reference/events
          */
 
-        const accessToken = utils.getAccessTokenFromRequest(req);
-        utils.oauth2Client.setCredentials({ access_token: accessToken });
-        const calendar = google.calendar('v3');
         let errMsg = null;
 
         try {
+                const accessToken = utils.getAccessTokenFromRequest(req);
+                const gapi = utils.getGAPIClientCalendar(accessToken);
+
                 // TODO: change this to batch
                 for (const event of unexportedEvents) {
-                        const eventId = event.id;
-                        const eventSharedId = event.sharedId;
-                        const projectId = project.id
+                        let resource = {
+                                summary: event.title,
+                                start: {
+                                        dateTime: new Date(event.start)
+                                },
+                                end: {
+                                        dateTime: new Date(event.end)
+                                },
+                                extendedProperties: {
+                                        private: {
+                                                fullCalendarEventId: event.id,
+                                                fullCalendarProjectId: project.id,
 
-                        // extendedProperties only accepts Strings as the value, not arrays.
-                        let independentTagIdsString = event.independentTagIds.toString();
-                        let projectTagIdsString = event.projectTagIds.toString();
-                        let ignoredProjectTagIdsString = event.ignoredProjectTagIds.toString();
-
-                        const response = await calendar.events.insert({
-                                auth: utils.oauth2Client,
-                                calendarId: calendarId,
-                                requestBody: {
-                                        summary: event.title,
-                                        start: {
-                                                dateTime: new Date(event.start)
+                                                // extendedProperties only accepts Strings as the value, not arrays.
+                                                [consts.gFieldName_IndTagIds]: event.tags.independentTagIds.toString(),
+                                                [consts.gFieldName_ProjTagIds]: event.tags.projectTagIds.toString(),
+                                                [consts.gFieldName_IgnoredProjectTagIds]: event.tags.ignoredProjectTagIds.toString(),
                                         },
-                                        end: {
-                                                dateTime: new Date(event.end)
-                                        },
-                                        extendedProperties: {
-                                                private: {
-                                                        fullCalendarEventId: eventId,
-                                                        fullCalendarEventSharedId: eventSharedId,
-                                                        fullCalendarProjectId: projectId,
-
-                                                        [consts.gFieldName_IndTagIds]: independentTagIdsString,
-                                                        [consts.gFieldName_ProjTagIds]: projectTagIdsString,
-                                                        [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
-                                                        // // independentTagIdsString: independentTagIdsString,
-                                                        // // projectTagIdsString: projectTagIdsString,
-                                                        // // ignoredProjectTagIdsString: ignoredProjectTagIdsString,
-                                                },
-                                        }
                                 }
+                        }
+
+                        if (event.sharedId) resource.extendedProperties.private.fullCalendarEventSharedId = event.sharedId;
+
+                        const response = await gapi.events.insert({
+                                calendarId: calendarId,
+                                resource: resource,
                         })
                 }
         } catch (error) {
@@ -431,6 +489,22 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
 
         return errMsg;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const deleteProject = async (req, res) => {
         let errorMsg = null;

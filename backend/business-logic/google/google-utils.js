@@ -1,3 +1,5 @@
+const utils = require("../../utils/utils");
+
 /**
  * Returns all calendar events, without regard to sync tokens.
  * @param {*} accessToken 
@@ -12,15 +14,20 @@
     let events = [];
 
     do {
-        const response = await gapi.events.list({
+        let params = {
             calendarId: calendarId,
-            timeMin: (new Date(timeMinDate)).toISOString(),
-            // timeMax: (new Date(timeMaxDate)).toISOString(),
-            singleEvents: true,
-            syncToken: syncToken,
             pageToken: pageToken,
-        });
+            singleEvents: true,
+        }
 
+        if (syncToken) {
+            params.syncToken = syncToken;
+        } else {
+            params.timeMin = (new Date(timeMinDate)).toISOString();
+            // params.timeMax = (new Date(timeMaxDate)).toISOString();
+        }
+
+        const response = await gapi.events.list(params);
         events = events.concat(response.data.items);
         pageToken = response.data.nextPageToken;
     } while (pageToken);

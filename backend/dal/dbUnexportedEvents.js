@@ -72,24 +72,6 @@ async function findByProject(email, projectId) {
     return promise;
 }
 
-async function addTags(eventId, tagIds) {
-    let promise = null;
-    if (tagIds.length > 0) {
-        promise = await Model.updateOne(
-            { projectId: eventId },
-            {
-                $addToSet: {
-                    tagIds: {
-                        $each: tagIds,
-                    }
-                }
-            }
-        )
-    }
-
-    return promise;
-}
-
 /**
  * When patching a project, certain fields also "trickle down" to the events.
  * This updates all events related to the updated project, with the new fields.
@@ -109,7 +91,7 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
          */
         let pullUpdate = {
             $pull: {
-                ignoredProjectTagIds: {
+                "tags.ignoredProjectTagIds": {
                     $nin: eventUpdates.projectTagIds,
                 }
             }
@@ -151,13 +133,13 @@ async function deleteTags(arrTagIds, email) {
             filter,
             {
                 $pull: {
-                    independentTagIds: {
+                    "tags.independentTagIds": {
                         $in: arrTagIds,
                     },
-                    projectTagIds: {
+                    "tags.projectTagIds": {
                         $in: arrTagIds,
                     },
-                    ignoredProjectTagIds: {
+                    "tags.ignoredProjectTagIds": {
                         $in: arrTagIds,
                     },
                 }

@@ -686,6 +686,11 @@ const createEventFromStartTime = async (project, sessionLengthMinutes, startTime
         backgroundColor: project.backgroundColor,
         unexportedEvent: true,
         email: userEmail,
+        tags: {
+            independentTagIds: [],
+            projectTagIds: [],
+            ignoredProjectTagIds: [],
+        },
     }
 
     return event;
