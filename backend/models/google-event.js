@@ -24,7 +24,12 @@ const googleEventSchema = new Schema({
     extendedProperties: {
         private: {
             fullCalendarEventId: String,
+            [consts.gFieldName_SharedEventId]: String,
             fullCalendarProjectId: String,
+
+            tags: {
+                
+            },
 
             // // // While these are meant to be arrays, Google accepts only Strings in these fields.
             // // // So we stringify the arrays, and then must parse them.

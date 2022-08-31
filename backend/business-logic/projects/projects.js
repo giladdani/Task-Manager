@@ -1,14 +1,16 @@
 const express = require('express');
 const StatusCodes = require('http-status-codes').StatusCodes;
 const { google } = require('googleapis');
-const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
-const dbProjects = require('../dal/dbProjects');
-const dbPendingProjects = require('../dal/dbPendingProjects');
-const algorithm = require('./algorithm');
-const utils = require('../utils/utils.js');
-const consts = require('../utils/consts.js');
-const googleSync = require('../utils/google-sync');
-const eventsUtils = require('./events/events-utils');
+const dbUnexportedEvents = require('../../dal/dbUnexportedEvents');
+const dbProjects = require('../../dal/dbProjects');
+const dbPendingProjects = require('../../dal/dbPendingProjects');
+const algorithm = require('../algorithm');
+const utils = require('../../utils/utils.js');
+const consts = require('../../utils/consts.js');
+const googleSync = require('../../utils/google-sync');
+const eventsUtils = require('../events/events-utils');
+const projectsUtils = require('./projects-utils');
+const googleUtils = require('../google/google-utils');
 
 const router = express.Router();
 
@@ -241,6 +243,11 @@ const exportProject = async (req, res) => {
                 let googleCalendarId = null;
                 let accessToken = utils.getAccessTokenFromRequest(req);
                 if (project.googleCalendarId) {
+                        /**
+                         * If the project already has a google calendar ID, it means it has been exported by one of the users already.
+                         * In that case we don't need to create a new calendar and insert our events,
+                         * but rather just add the existing calendar to the user's calendar list.
+                         */
                         const googleResJson = await insertGoogleCalendar(accessToken, project.googleCalendarId);
                         googleCalendarId = googleResJson.data.id;
                 } else {
@@ -253,9 +260,10 @@ const exportProject = async (req, res) => {
                         const googleResJson = await createGoogleCalendar(req, project);
                         googleCalendarId = googleResJson.data.id;
                         const errMsg = await insertEventsToGoogleCalendar(req, unexportedProjEvents, project, googleCalendarId);
-                        if (project.participatingEmails.length > 1) { // Shared project
+                        if (projectsUtils.isSharedProject(project)) {
                                 await dbProjects.updateSharedCalendarId(project, googleCalendarId);
                                 addACLToSharedCalendar(accessToken, googleCalendarId, project, email);
+                                await updateAllLocalProjectEvents();
                         }
                 }
                 await dbUnexportedEvents.deleteMany({ email: email, 'projectId': projectId });
@@ -345,6 +353,26 @@ async function addACLToSharedCalendar(accessToken, calendarId, project, exportin
         }
 }
 
+/**
+ * When a shared project is exported for the first time, the project is represented both by Google events as well as local, unexported ones.
+ * To maintain sync, we need to form a connection between the local events and their Google counterparts.
+ * This function changes the ID of all the unexported events to match the Google event representation,
+ * so that when one user of the shared project updates one of the unexported events,
+ * the server knows which Google event to update.
+ * And vice versa - when a Google event is changed that also has representation here,
+ * we must change the local event accordingly.
+ */
+async function updateAllLocalProjectEvents(accessToken, calendarId) {
+        let calendarEvents = await googleUtils.getCalendarEvents(accessToken, calendarId, null);
+
+        for(const gEvent of calendarEvents) {
+                let sharedId = eventsUtils.g_GetSharedEventId(gEvent);
+                if (!sharedId) continue;
+                let newId = gEvent.id;
+                dbUnexportedEvents.updateMany({sharedId: sharedId}, {$set: {gEventId: newId, calendarId: calendarId}})
+        }
+}
+
 const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
         /**
          * Google Calendar API docuemntation for Event resource.
@@ -360,6 +388,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                 // TODO: change this to batch
                 for (const event of unexportedEvents) {
                         const eventId = event.id;
+                        const eventSharedId = event.sharedId;
                         const projectId = project.id
 
                         // extendedProperties only accepts Strings as the value, not arrays.
@@ -381,6 +410,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                                         extendedProperties: {
                                                 private: {
                                                         fullCalendarEventId: eventId,
+                                                        fullCalendarEventSharedId: eventSharedId,
                                                         fullCalendarProjectId: projectId,
 
                                                         [consts.gFieldName_IndTagIds]: independentTagIdsString,

@@ -6,6 +6,8 @@ const dbUsers = require('../dal/dbUsers');
 const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const dbProjects = require('../dal/dbProjects');
 const { googleAccessRole } = require('./utils');
+const eventsUtils = require('../business-logic/events/events-utils');
+const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
 
 /**
  * Wrap with try-catch in case there's a Google error.
@@ -104,13 +106,43 @@ const updateDBWithUnsyncedEvents = async (unsyncedEvents, email) => {
      */
 
     let eventsIds = [];
+    let sharedEvents = [];
     for (const event of unsyncedEvents) {
         eventsIds.push(event.id);
+        if (eventsUtils.g_IsSharedEvent(event)) sharedEvents.push(event);
     }
 
     await dbGoogleEvents.deleteByIds(email, eventsIds);  // I tried without await but I never saw the DB updated for some reason
     let undeletedEvents = unsyncedEvents.filter(event => event.status !== 'cancelled');
     dbGoogleEvents.insertMany(undeletedEvents);
+    await updateSharedEvents(sharedEvents);
+}
+
+/**
+ * This function receives an array of Google events,
+ * and updates all the shared events in our DB that they represent.
+ * @param {*} sharedGEvents An array of Google events, where each event represents a shared event on our application.
+ */
+async function updateSharedEvents(sharedGEvents) {
+    for(const gEvent of sharedGEvents) {
+        let sharedEventId = eventsUtils.g_GetSharedEventId(gEvent);
+        if (!sharedEventId) continue; 
+        
+        let title = gEvent.summary;
+        let start = new Date(gEvent.start.dateTime);
+        let end = new Date(gEvent.end.dateTime);
+        if (!start || !end) continue;
+
+        let updateObj = {
+            $set: {
+                title: title,
+                start: start,
+                end: end,
+            }
+        }
+
+        dbUnexportedEvents.updateMany({sharedId: sharedEventId}, updateObj);
+    }
 }
 
 const addMissingCalendars = async (missingCalendarId2Sync, email) => {

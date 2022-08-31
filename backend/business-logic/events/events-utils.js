@@ -20,9 +20,10 @@ async function patchUnexportedEventsFromProjectPatch(projectId, eventUpdates, re
     let email = utils.getEmailFromReq(req);
     let dbUnexEvents = await dbUnexportedEvents.findByProject(email, projectId);
 
+    let accessToken = utils.getAccessTokenFromRequest(req);
     for (const unexEvent of dbUnexEvents) {
         // TODO: change this to batch
-        let [statusCode, msg] = await patchUnexportedEvent(unexEvent, eventUpdates);
+        let [statusCode, msg] = await patchUnexportedEvent(unexEvent, eventUpdates, accessToken);
     }
 
     // return dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates); // ! OLD CODE, delete if new works
@@ -41,13 +42,16 @@ async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
 /**
  * @returns [statusCode, msg]
  */
-async function patchUnexportedEvent(unexEvent, eventUpdates) {
+async function patchUnexportedEvent(unexEvent, eventUpdates, accessToken) {
     try {
         let update = getUnexEventUpdateObj(unexEvent, eventUpdates);
         let docs;
 
         if (unexEvent.sharedId) {
             docs = await dbUnexportedEvents.updateMany({ sharedId: unexEvent.sharedId }, update);
+            if (await isPartOfExportedProject(unexEvent)) {
+                updateEquivalentGoogleEvent(unexEvent, accessToken, eventUpdates);
+            }
         } else {
             docs = await dbUnexportedEvents.updateOne({ id: unexEvent.id }, update);
         }
@@ -69,6 +73,53 @@ async function patchUnexportedEvent(unexEvent, eventUpdates) {
         return [StatusCodes.INTERNAL_SERVER_ERROR, err];
     }
 }
+
+/**
+ * When a shared project is partially exported, and parially kept local, updating locally requires updating at Google too.
+ * For example, consider user A and user B create a shared project. User A exported to Google, user B hasn't.
+ * When user B updates one of the project events on our application, we need to update the equivalent Google event.
+ * Before we do that, this function just checks if an event is part of a shared project that has been partially exported.
+ * @param {*} unexportedEvent 
+ * @returns Boolean determing if this unexported event is part of a project for which at least one user has exported to Google.
+ */
+async function isPartOfExportedProject(unexportedEvent) {
+    if (!unexportedEvent) return false;
+    if (!unexportedEvent.sharedId) return false;
+    if (!unexportedEvent.projectSharedId) return false;
+
+    const allProjects = await dbProjects.find({ sharedId: unexportedEvent.projectSharedId });
+
+    for (const project of allProjects) {
+        if (project.exportedToGoogle) return true;
+    }
+
+    return false;
+}
+
+/**
+ * When an unexported event that is part of a shared project which has been partially exported to Google is updated,
+ * we need to update all the Google events as well.
+ * @param {*} unexEvent 
+ */
+async function updateEquivalentGoogleEvent(unexEvent, accessToken, updateFields) {
+    let calendarId = unex_GetGCalendarId(unexEvent);
+    let googleEventId = unex_GetGEventId(unexEvent);
+    let gapi = utils.getGAPIClientCalendar(accessToken);
+
+    
+    let resource = getGEventPatchResource(dbGEvent, updateFields);
+    const params = {
+        calendarId: calendarId,
+        eventId: googleEventId,
+        resource: resource,
+    }
+
+    const gResponsePromise = await gapi.events.patch(params);
+}
+
+
+
+
 
 /**
  * MongoDB documentation for updateOne(): 
@@ -253,9 +304,72 @@ async function deleteTagFromGoogle(accessToken, email, arrTagIdsToRemove) {
     }
 }
 
+
+
+
+
+/* --------------------------------------------------------------
+-----------------------------------------------------------------
+---------------------- Queries and Getters ----------------------
+-----------------------------------------------------------------
+-------------------------------------------------------------- */
+/**
+ * Returns the shared event ID of a Google event as it is saved in our system, or null if none exists.
+ * @param {*} gEvent 
+ * @returns 
+ */
+function g_GetSharedEventId(gEvent) {
+    if (!gEvent) return false;
+    if (!gEvent.extendedProperties) return false;
+    if (!gEvent.extendedProperties.private) return false;
+    return gEvent.extendedProperties.private[consts.gFieldName_SharedEventId];
+}
+
+/**
+ * Receives a Google event resource and determines if it represents a shared event in our application.
+ * @param {*} gEvent A Google event.
+ */
+function g_IsSharedEvent(gEvent) {
+    if (!gEvent) return false;
+    if (!gEvent.extendedProperties) return false;
+    if (!gEvent.extendedProperties.private) return false;
+    if (!gEvent.extendedProperties.private[consts.gFieldName_SharedEventId]) return false;
+
+    return true;
+}
+
+async function unex_GetGCalendarId(unexportedEvent) {
+    if (!unexportedEvent) return null;
+
+    return unexportedEvent.calendarId;
+}
+
+/**
+ * @param {*} unexportedEvent 
+ * @returns The ID of the Google event this unexported event is tied to.
+ */
+async function unex_GetGEventId(unexportedEvent) {
+    return unexportedEvent.gEventId;
+}
+
+
+
+
+
+/* --------------------------------------------------------------
+-----------------------------------------------------------------
+---------------------------- Exports ----------------------------
+-----------------------------------------------------------------
+-------------------------------------------------------------- */
 module.exports = {
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
     patchGoogleEvent: patchGoogleEvent,
     patchUnexportedEvent: patchUnexportedEvent,
     deleteTags: deleteTags,
+
+    // Queries and Getters
+    g_IsSharedEvent: g_IsSharedEvent,
+    g_GetSharedEventId: g_GetSharedEventId,
+    unex_GetGCalendarId: unex_GetGCalendarId,
+    unex_GetGEventId: unex_GetGEventId,
 }
