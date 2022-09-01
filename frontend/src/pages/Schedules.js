@@ -22,6 +22,7 @@ export class Schedules extends React.Component {
             selectedEvent: { title: "" },
             requestingUnsyncedEvents: false,
             rerenderFlag: false,
+            latestUnexportedTimestamp: null,
         }
     }
 
@@ -45,6 +46,7 @@ export class Schedules extends React.Component {
 
         let projectPromise = EventsAPI.fetchAllProjectEventsData()
             .then(projectEvents => {
+                this.updateUnexportedTimestamp(projectEvents);
                 this.addEventsToScheduleFullCalendar(projectEvents);
             })
             .catch(err => console.error(err));
@@ -70,52 +72,145 @@ export class Schedules extends React.Component {
         if (this.state.requestingUnsyncedEvents === false) {
             this.setState({ requestingUnsyncedEvents: true }, () => {
                 console.log(`[updateUnsyncedEvents] Requesting from the server unsynced events.`)
-                EventsAPI.fetchUnsyncedGoogleEventsData()
-                    .then((unsyncedEvents) => {
-                        if (!unsyncedEvents) return;
-                        try {
-                            console.log(`Fetched ${unsyncedEvents.length} unsynced events.`)
-                            let calendarApi = this.state.calendarRef.current.getApi();
-                            for (const unsyncedEvent of unsyncedEvents) {
-                                let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
-                                if (!fullCalendarEvent) {
-                                    if (unsyncedEvent.status !== "cancelled") {
-                                        let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
-                                        if (fcEvent) {
-                                            calendarApi.addEvent(fcEvent);
-                                        }
-                                    }
-                                } else if (unsyncedEvent.status === "cancelled") {
-                                    if (unsyncedEvent.calendarId === fullCalendarEvent.extendedProperties.googleCalendarId) {
-                                        fullCalendarEvent.remove();
-                                    }
-                                } else {
-                                    this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
+                let googlePromise = this.handleGoogleSync();
+                let unexportedPromise = this.handleUnexportedSync();
 
-                                    let event = this.state.selectedEvent;
-                                    if (event && event.id && event.id === unsyncedEvent.id) {
-                                        this.setState({ rerenderFlag: !this.state.rerenderFlag });
-                                    }
-                                }
-                            }
-                        } catch (err) {
-                            console.log(`[updateUnsyncedEvents] Error in THEN part:\n${err}`)
-                        }
-                    })
-                    .catch(err => {
-                        console.error(`[updateUnsyncedEvents] Error:\n${err}`);
-                    })
-                    .finally(() => {
+                Promise.all([googlePromise, unexportedPromise])
+                    .then(responses => {
                         this.setState({ requestingUnsyncedEvents: false });
                     })
             })
         }
     }
 
-    updateGoogleEvent = (gEvent, fullCalendarEvent) => {
+    handleGoogleSync = async () => {
+        EventsAPI.fetchUnsyncedGoogleEventsData()
+            .then((unsyncedEvents) => {
+                if (!unsyncedEvents) return;
+                try {
+                    console.log(`Fetched ${unsyncedEvents.length} unsynced Google events.`)
+                    let calendarApi = this.state.calendarRef.current.getApi();
+                    for (const unsyncedEvent of unsyncedEvents) {
+                        let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
+                        if (!fullCalendarEvent) {
+                            if (unsyncedEvent.status !== "cancelled") {
+                                let fcEvent = this.createFCEventFromGoogleEvent(unsyncedEvent);
+                                if (fcEvent) {
+                                    calendarApi.addEvent(fcEvent);
+                                }
+                            }
+                        } else if (unsyncedEvent.status === "cancelled") {
+                            if (unsyncedEvent.calendarId === fullCalendarEvent.extendedProperties.googleCalendarId) {
+                                fullCalendarEvent.remove();
+                            }
+                        } else {
+                            this.updateGoogleEvent(unsyncedEvent, fullCalendarEvent);
+
+                            let event = this.state.selectedEvent;
+                            if (event && event.id && event.id === unsyncedEvent.id) {
+                                this.setState({ rerenderFlag: !this.state.rerenderFlag });
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log(`[handleGoogleSync] Error in THEN part:\n${err}`)
+                }
+            })
+            .catch(err => {
+                console.error(`[handleGoogleSync] Error:\n${err}`);
+            })
+    }
+
+    handleUnexportedSync = async () => {
+        EventsAPI.fetchUnsyncedUnexportedEventsData(this.state.latestUnexportedTimestamp)
+            .then((unsyncedEvents) => {
+                if (!unsyncedEvents) return;
+                try {
+                    console.log(`Fetched ${unsyncedEvents.length} unsynced unexported events.`)
+                    if (unsyncedEvents.length === 0) return;
+
+                    console.log(new Date(unsyncedEvents[0].updatedAt).getMilliseconds());
+
+                    let calendarApi = this.state.calendarRef.current.getApi();
+                    let eventsToAdd = [];
+                    for (const unsyncedEvent of unsyncedEvents) {
+                        let fullCalendarEvent = calendarApi.getEventById(unsyncedEvent.id);
+                        if (!fullCalendarEvent) {
+                            eventsToAdd.push(unsyncedEvent);
+                        } else if (unsyncedEvent.status === "cancelled") {
+                            fullCalendarEvent.remove();
+                        } else {
+                            this.updateUnsyncedUnexportedEvent(unsyncedEvent, fullCalendarEvent);
+
+                            let event = this.state.selectedEvent;
+                            if (event && event.id && event.id === unsyncedEvent.id) {
+                                this.setState({ rerenderFlag: !this.state.rerenderFlag });
+                            }
+                        }
+                    }
+
+                    this.updateUnexportedTimestamp(unsyncedEvents);
+                } catch (err) {
+                    console.log(`[handleUnexportedSync] Error in THEN part:\n${err}`)
+                }
+            })
+            .catch(err => {
+                console.error(`[handleUnexportedSync] Error:\n${err}`);
+            })
+    }
+
+    /**
+     * 
+     * @param {*} fcEvent A Full Calendar event to update.
+     * @param {*} start Optional: start date.
+     * @param {*} end Optional: end date.
+     * @param {*} regularProps Optional: an objet mapping a prop name to a new value. For example: { title: "New title" }.
+     */
+    updateEventFields = (fcEvent, start, end, regularProps, extendedProps) => {
+        let originalEditableSetting = fcEvent.editable;
+        fcEvent.setProp("editable", true);
+
+        if (start) fcEvent.setStart(start);
+        if (end) fcEvent.setEnd(end);
+
+        if (regularProps) {
+            for (const [key, value] of Object.entries(regularProps)) {
+                fcEvent.setProp(key, value);
+            }
+        }
+
+        if (extendedProps) {
+            for (const [key, value] of Object.entries(extendedProps)) {
+                fcEvent.setExtendedProp(key, value);
+            }
+        }
+
+        fcEvent.setProp("editable", originalEditableSetting);
+    }
+
+    updateUnsyncedUnexportedEvent = (unexEvent, fcEvent) => {
+        let start = unexEvent.start;
+        let end = unexEvent.end;
+        let regularProps = {
+            title: unexEvent.title,
+            backgroundColor: unexEvent.backgroundColor,
+        }
+
+        let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.unex_GetAllTagIds(unexEvent);
+        let extendedProps = {
+            tags: {
+                independentTagsIds: independentTagsIds,
+                projectTagIds: projectTagIds,
+                ignoredProjectTagIds: ignoredProjectTagIds,
+            }
+        }
+
+        this.updateEventFields(fcEvent, start, end, regularProps, extendedProps);
+    }
+
+    updateGoogleEvent = (gEvent, fcEvent) => {
         let start = gEvent.start.dateTime;
         let end = gEvent.end.dateTime;
-        let originalEditableSetting = fullCalendarEvent.editable;
 
         /**
          * TODO:
@@ -126,19 +221,51 @@ export class Schedules extends React.Component {
         if (!start || !end) {
             return;
         }
+        
+        let regularProps = {
+            title: gEvent.summary,
+            backgroundColor: gEvent.backgroundColor,
+            borderColor: gEvent.foregroundColor,
+        }
 
-        fullCalendarEvent.setProp("editable", true);
-        fullCalendarEvent.setDates(start, end);
-        fullCalendarEvent.setProp("title", gEvent.summary);
-        fullCalendarEvent.setProp("backgroundColor", gEvent.backgroundColor);
-        fullCalendarEvent.setProp("borderColor", gEvent.foregroundColor);
-        
         let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
-        fullCalendarEvent.setProp("extendedProps.independentTagsIds", independentTagsIds);
-        fullCalendarEvent.setProp("extendedProps.projectTagIds", projectTagIds);
-        fullCalendarEvent.setProp("extendedProps.ignoredProjectTagIds", ignoredProjectTagIds);
-        
-        fullCalendarEvent.setProp("editable", originalEditableSetting);
+        let extendedProps = {
+            tags: {
+                independentTagsIds: independentTagsIds,
+                projectTagIds: projectTagIds,
+                ignoredProjectTagIds: ignoredProjectTagIds,
+            }
+        }
+
+        this.updateEventFields(fcEvent, start, end, regularProps, extendedProps);
+
+        // ! DELETE old code: before there was a dedicated function
+        // // let start = gEvent.start.dateTime;
+        // // let end = gEvent.end.dateTime;
+        // // let originalEditableSetting = fullCalendarEvent.editable;
+
+        // // /**
+        // //  * TODO:
+        // //  * If a Google event is all day, I think the fields aren't "dateTime" but rather "date".
+        // //  * In which case our code so far doesn't detect it.
+        // //  * Our app in general doesn't handle full day events.
+        // //  */
+        // // if (!start || !end) {
+        // //     return;
+        // // }
+
+        // // fullCalendarEvent.setProp("editable", true);
+        // // fullCalendarEvent.setDates(start, end);
+        // // fullCalendarEvent.setProp("title", gEvent.summary);
+        // // fullCalendarEvent.setProp("backgroundColor", gEvent.backgroundColor);
+        // // fullCalendarEvent.setProp("borderColor", gEvent.foregroundColor);
+
+        // // let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
+        // // fullCalendarEvent.setProp("extendedProps.independentTagsIds", independentTagsIds);
+        // // fullCalendarEvent.setProp("extendedProps.projectTagIds", projectTagIds);
+        // // fullCalendarEvent.setProp("extendedProps.ignoredProjectTagIds", ignoredProjectTagIds);
+
+        // // fullCalendarEvent.setProp("editable", originalEditableSetting);
     }
 
     handleEventDragged = async (eventInfo) => {
@@ -203,6 +330,27 @@ export class Schedules extends React.Component {
             if (fieldsToUpdate.title) event.setProp("title", fieldsToUpdate.title);
             if (fieldsToUpdate.start) event.setStart(fieldsToUpdate.start);
             if (fieldsToUpdate.end) event.setEnd(fieldsToUpdate.end);
+        }
+    }
+
+    /**
+     * This function receives an array of unexported events, checks their highest updatedAt field,
+     * and updates the state's latest timestamp if it's bigger.
+     * @param {*} unexportedEvents 
+     */
+    updateUnexportedTimestamp = (unexportedEvents) => {
+        if (!unexportedEvents || unexportedEvents.length === 0) {
+            return;
+        }
+
+        let latestTimestamp = new Date(unexportedEvents[0].updatedAt);
+
+        unexportedEvents.forEach(unexEvent => {
+            if (new Date(unexEvent.updatedAt) > latestTimestamp) latestTimestamp = unexEvent.updatedAt;
+        })
+
+        if (this.state.latestUnexportedTimestamp === null || latestTimestamp > this.state.latestUnexportedTimestamp) {
+            this.setState({ latestUnexportedTimestamp: latestTimestamp });
         }
     }
 

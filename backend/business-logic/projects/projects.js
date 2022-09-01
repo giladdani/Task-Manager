@@ -475,6 +475,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                                 }
                         }
 
+                        // Google does not accept null values in the fields of extended properties, so we first check
                         if (event.sharedId) resource.extendedProperties.private.fullCalendarEventSharedId = event.sharedId;
 
                         const response = await gapi.events.insert({
