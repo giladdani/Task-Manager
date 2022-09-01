@@ -5,6 +5,7 @@ const APIUtils = require('./APIUtils.js');
 const basicValidStatus = [200];
 const validStatusArr_fetchGoogleEvents = basicValidStatus;
 const validStatusArr_fetchUnsyncedGoogleEvents = basicValidStatus;
+const validStatusArr_fetchUnsyncedUnexportedEvents = basicValidStatus;
 const validStatusArr_fetchAllProjectEvents = basicValidStatus;
 const validStatusArr_fetchProjectEvents = basicValidStatus;
 const validStatusArr_fetchAllEvents = basicValidStatus;
@@ -47,6 +48,32 @@ async function fetchUnsyncedGoogleEventsData() {
 
 async function fetchUnsyncedGoogleEventsRes() {
     const responsePromise = fetch(`${consts.fullRouteEvents}/google/unsynced`, {
+        headers: consts.standardHeaders,
+        method: 'GET',
+    });
+
+    return responsePromise;
+}
+
+async function fetchUnsyncedUnexportedEventsData(timeStamp) {
+    if (!timeStamp) return null;
+
+    let dataPromise = fetchUnsyncedUnexportedEventsRes(timeStamp)
+        .then(response => {
+            if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedUnexportedEvents)) {
+                return apiUtils.getResData(response);
+            } else {
+                return null;
+            }
+        })
+
+    return dataPromise;
+}
+
+async function fetchUnsyncedUnexportedEventsRes(timeStamp) {
+    if (!timeStamp) return null;
+
+    const responsePromise = fetch(`${consts.fullRouteEvents}/unexported/unsynced/${new Date(timeStamp).toISOString()}`, {
         headers: consts.standardHeaders,
         method: 'GET',
     });
@@ -133,6 +160,7 @@ module.exports = {
     fetchGoogleEventsData: fetchGoogleEventsData,
     fetchAllProjectEventsData: fetchAllUnexportedEventsData,
     fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
+    fetchUnsyncedUnexportedEventsData: fetchUnsyncedUnexportedEventsData,
     fetchProjectEventsData: fetchProjectEventsData,
     updateEvent: updateEvent,
     deleteEvent: deleteEvent,

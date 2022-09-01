@@ -73,6 +73,24 @@ async function findByProject(email, projectId) {
 }
 
 /**
+ * Returns all the user's unexported events whose timestamp is greater than the one given.
+ * @param {*} email 
+ * @param {*} timeStamp A timestamp by which to filter - only events with a timestamp greater than this one will be returned.
+ */
+async function findByTimestamp(email, timeStamp) {
+    let promise = await Model.find(
+        {
+            email: email,
+            updatedAt: {
+                $gt: new Date(timeStamp),
+            }
+        }
+    )
+
+    return promise;
+}
+
+/**
  * When patching a project, certain fields also "trickle down" to the events.
  * This updates all events related to the updated project, with the new fields.
  * @param {*} projectId The ID of the project that was patched.
@@ -170,6 +188,7 @@ module.exports = {
 
     // Custom Functions
     findByProject: findByProject,
+    findByTimestamp: findByTimestamp,
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
     deleteTags: deleteTags,
 }

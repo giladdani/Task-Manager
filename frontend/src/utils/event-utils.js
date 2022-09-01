@@ -98,6 +98,23 @@ function fc_GetIgnoredProjectTagIds(fcEvent) {
 }
 
 /**
+ * @returns [independentTagsIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
+ */
+ function unex_GetAllTagIds(unexEvent) {
+    let independentTagsIds = unex_GetTagsByField(unexEvent, 'independentTagIds');
+    let projectTagIds = unex_GetTagsByField(unexEvent, 'projectTagIds');
+    let ignoredProjectTagIds = unex_GetTagsByField(unexEvent, 'ignoredProjectTagIds');
+
+    return [independentTagsIds, projectTagIds, ignoredProjectTagIds];
+}
+
+function unex_GetTagsByField(unexEvent, fieldName) {
+    if (!unexEvent) return null;
+    if (!unexEvent.tags) return null;
+    return unexEvent.tags[fieldName];
+}
+
+/**
  * @returns [independentTagIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
  */
 function g_GetAllTagsIds(gEvent) {
@@ -110,9 +127,14 @@ function g_GetAllTagsIds(gEvent) {
 
 function g_GetTagIdsByField(gEvent, fieldName) {
     if (!gEvent) return null;
-    if (!gEvent.extendedProperties) return null;
-    if (!gEvent.extendedProperties.private) return null;
-    return gEvent.extendedProperties.private[fieldName];
+    if (!gEvent.tags) return null;
+    return gEvent.tags[fieldName];
+    
+    // ! DELETE if all works well Old version, where tags were saved in extended properties
+    // // if (!gEvent) return null;
+    // // if (!gEvent.extendedProperties) return null;
+    // // if (!gEvent.extendedProperties.private) return null;
+    // // return gEvent.extendedProperties.private[fieldName];
 
 
     // ! DELETE if all works - old code from when we saved google events in our DB wtih String in extended properties, not arrayss (to match Google resource which accepts only strings)
@@ -256,6 +278,7 @@ module.exports = {
 
     fc_isProjectEvent: fc_isProjectEvent,
 
+    unex_GetAllTagIds: unex_GetAllTagIds,
     g_GetAllTagsIds: g_GetAllTagsIds,
     fc_GetAllTagIds: fc_GetAllTagIds,
     fc_GetProjectTagIds: fc_GetProjectTagIds,

@@ -13,6 +13,7 @@ const router = express.Router();
 router.get('/unexported', (req, res) => { getAllUnexportedEvents(req, res) });
 router.get('/google', (req, res) => { getGoogleEvents(req, res) });
 router.get('/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
+router.get('/unexported/unsynced/:timeStamp', (req, res) => { getUnsyncedUnexportedEvents(req, res) });
 router.get('/project/:projectId', (req, res) => { getProjectEvents(req, res) }); // TODO: change route, this is confusing.
 router.post('/', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/', (req, res) => { deleteEvent(req, res) });
@@ -127,7 +128,7 @@ const updateGoogleEvent = async (req, res) => {
     try {
         const accessToken = utils.getAccessTokenFromRequest(req);
         let eventId = req.params.id;
-        let dbGEvent = await dbGoogleEvents.findOne({id: eventId});
+        let dbGEvent = await dbGoogleEvents.findOne({ id: eventId });
         let [statusCode, msg] = await eventsUtils.patchGoogleEvent(accessToken, dbGEvent, req.body);
         res.status(statusCode).send(msg);
     }
@@ -140,7 +141,7 @@ const updateGoogleEvent = async (req, res) => {
 const updateUnexportedEvent = async (req, res) => {
     try {
         let eventId = req.params.id;
-        let unexEvent = await dbUnexportedEvents.findOne({id: eventId});
+        let unexEvent = await dbUnexportedEvents.findOne({ id: eventId });
         let accessToken = utils.getAccessTokenFromRequest(req);
         let [statusCode, msg] = await eventsUtils.patchUnexportedEvent(unexEvent, req.body, accessToken);
 
@@ -246,6 +247,27 @@ const getGoogleEvents = async (req, res) => {
     res.status(StatusCodes.OK).send(allEvents);
 }
 
+async function getUnsyncedUnexportedEvents(req, res) {
+    try {
+        const email = utils.getEmailFromReq(req);
+        const timeStamp = new Date(req.params.timeStamp);
+
+        const timeStampMilli = timeStamp.getMilliseconds();
+
+        let unsyncedEvents = await dbUnexportedEvents.findByTimestamp(email, timeStamp);
+
+        console.log(`[getUnsyncedUnexportedEvents] Fetching for ${email}.`);
+        if (unsyncedEvents.length > 0) {
+            console.log(`Unsynced events: ${unsyncedEvents.length}.`);
+        }
+
+        res.status(StatusCodes.OK).send(unsyncedEvents);
+    } catch (err) {
+        console.log(`[getUnsyncedUnexportedEvents] Error:\n${err}`)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
+    }
+}
+
 const getUnsyncedGoogleEvents = async (req, res) => {
     let statusCode;
     let data;
@@ -268,8 +290,8 @@ const getUnsyncedGoogleEvents = async (req, res) => {
         data = dataRes;
 
         // if status code === 401, try to get new access token
-            // get refresh token for user
-            // get new access token from user
+        // get refresh token for user
+        // get new access token from user
     }
 
     res.status(statusCode).send(data);
