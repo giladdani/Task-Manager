@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PendingProject as PendingProject } from './PendingProject';
 import { isValidStatus } from '../../apis/APIUtils.js'
+import { generalErrorMsg } from '../../utils/consts';
 const ProjectsAPI = require('../../apis/ProjectsAPI.js')
 
 export const PendingProjectsList = (props) => {
@@ -38,11 +39,14 @@ export const PendingProjectsList = (props) => {
         .then(response => {
             if (isValidStatus(response, ProjectsAPI.approvePendingValidStatusArr)) {
                 fetchAndUpdateProjects();
-                // TODO: add success and error notifications
+                props.setNotificationMsg("Project approved");
+            } else {
+                props.setNotificationMsg("Failed to approve project");
             }
         })
         .catch(err => {
             console.error(err);
+            props.setNotificationMsg(generalErrorMsg);
         })
     }
 

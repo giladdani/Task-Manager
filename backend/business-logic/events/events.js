@@ -141,7 +141,9 @@ const updateUnexportedEvent = async (req, res) => {
     try {
         let eventId = req.params.id;
         let unexEvent = await dbUnexportedEvents.findOne({id: eventId});
-        let [statusCode, msg] = await eventsUtils.patchUnexportedEvent(unexEvent, req.body);
+        let accessToken = utils.getAccessTokenFromRequest(req);
+        let [statusCode, msg] = await eventsUtils.patchUnexportedEvent(unexEvent, req.body, accessToken);
+
         res.status(statusCode).send(msg);
     }
     catch (err) {

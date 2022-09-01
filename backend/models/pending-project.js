@@ -1,6 +1,7 @@
 const mongoose  = require("mongoose");
 const Schema = mongoose.Schema;
 
+// TODO: find out how to use inheritance with project schema, and then just add the few unique fields
 const pendingProjectSchema = new Schema({
     title: String,
     id: String,
@@ -20,6 +21,8 @@ const pendingProjectSchema = new Schema({
     dailyStartHour: Date,
     dailyEndHour: Date,
     ignoredConstraintsIds: [String],
+    tagIds: [String],
+    daysOfWeek: [Number],
     
     requestingUser: String,
     awaitingApproval: [String],

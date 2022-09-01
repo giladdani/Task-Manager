@@ -24,25 +24,8 @@ const googleEventSchema = new Schema({
     extendedProperties: {
         private: {
             fullCalendarEventId: String,
+            [consts.gFieldName_SharedEventId]: String,
             fullCalendarProjectId: String,
-
-            // // // While these are meant to be arrays, Google accepts only Strings in these fields.
-            // // // So we stringify the arrays, and then must parse them.
-            // // independentTagIdsString: String,
-            // // projectTagIdsString: String,
-            // // ignoredProjectTagIdsString: String,
-
-
-            // ! ALT - saving as arrays
-            /** The Google event resource demands that all fields in extendedProperties will be String only, and does not allow arrays.
-             * We differ here from the resource representation for our convenience.
-             * Instead of constantly splitting the strings back into arrays or searching them via regex, 
-             * we perform a one-time modification when first fetching and inserting the events.
-             * We differ from the representation here for comfort and ease of use everywhere else in the application.
-             */
-            independentTagIds: [String],
-            projectTagIds: [String],
-            ignoredProjectTagIds: [String],
         }
     },
 
@@ -54,6 +37,19 @@ const googleEventSchema = new Schema({
     fetchedByUser: Boolean,
     isGoogleEvent: Boolean,
     accessRole: String,
+    
+    /** 
+     * The Google event resource demands that all fields in extendedProperties will be String only, and does not allow arrays.
+     * We differ here from the resource representation for our convenience.
+     * Instead of constantly splitting the strings back into arrays or searching them via regex, 
+     * we perform a one-time modification when first fetching and inserting the events.
+     * We differ from the representation here for comfort and ease of use everywhere else in the application.
+     */
+    tags: {
+        independentTagIds: [String],
+        projectTagIds: [String],
+        ignoredProjectTagIds: [String],
+    },
 })
 
 

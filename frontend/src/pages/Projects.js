@@ -16,8 +16,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/general/DynamicInputList';
 import MultipleSelectChip from '../components/general/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
-import { getCheckedDays } from '../components/general/DaysCheckbox';
 import { isValidStatus } from '../apis/APIUtils';
+import consts from '../utils/consts';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 const ProjectsAPI = require('../apis/ProjectsAPI.js');
 
@@ -43,9 +43,7 @@ export const Projects = (props) => {
     const [ignoredConstraintIds, setIgnoredConstraintsIds] = useState([]);
     const [shareChecked, setShareChecked] = useState(false);
     const [emailList, setEmailList] = useState([]);
-    const [projectCreationMsg, setProjectCreationMsg] = useState("");
     const [daysOfWeek, setDaysOfWeek] = useState();
-    const componentMounted = useRef(true);
 
     useEffect(async () => {
         const tempConstraints = await ConstraintsAPI.fetchConstraintsData();
@@ -98,20 +96,18 @@ export const Projects = (props) => {
                 ignoredConstraintsIds: ignoredConstraintIds,
             };
 
-            let response;
-            let error;
             if (shareChecked) {
                 ProjectsAPI.createSharedProject(body)
                     .then(response => {
-                        // TODO: handle notifications
                         if (isValidStatus(response, ProjectsAPI.createSharedProjectValidStatusArr)) {
-
+                            props.setNotificationMsg("Sent request to other users, awaiting their approval");
                         } else {
-
+                            props.setNotificationMsg("Failed to create a shared project")
                         }
                     })
                     .catch(err => {
                         console.error(err);
+                        props.setNotificationMsg(consts.generalErrorMsg)
                     })
             } else {
                 toggleLoading(true);
@@ -128,7 +124,7 @@ export const Projects = (props) => {
                     })
                     .catch(err => {
                         console.error(err);
-                        msg = "Failed to create project";
+                        msg = consts.generalErrorMsg;
                     })
                     .finally(() => {
                         toggleLoading(false);
@@ -493,7 +489,7 @@ export const Projects = (props) => {
             <Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button>
 
             <Dialog open={isLoading}>
-                <DialogTitle>generating project schedule...</DialogTitle>
+                <DialogTitle>Generating project schedule...</DialogTitle>
                 <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
             </Dialog>
 

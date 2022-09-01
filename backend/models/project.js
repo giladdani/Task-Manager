@@ -21,6 +21,7 @@ const projectSchema = new Schema({
     dailyEndHour: Date,
     ignoredConstraintsIds: [String],
     tagIds: [String],
+    daysOfWeek: [Number],
 })
 
 const Project = mongoose.model('Project', projectSchema);

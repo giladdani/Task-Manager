@@ -11,6 +11,13 @@ const consts = require('./consts');
 
 const websiteMainColor = '#282c34';
 
+// TODO: figure out how to make proper use of OAuth 2 - right now we're creating an instance upon every usage and it seems weird
+function getOauth2Client() {
+    const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, `${process.env.FRONTEND_HOST}:${process.env.FRONTEND_PORT}`);
+
+    return oauth2Client;
+}
+
 const googleAccessRole = {
     none: 'none',
     freeBusyReader: 'freeBusyReader',
@@ -302,6 +309,14 @@ function parseError(error) {
     return [statusCode, data];
 }
 
+function getGAPIClientCalendar(accessToken) {
+    let oauth2Client = getOauth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const googleCalendarApi = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    return googleCalendarApi;
+}
+
 module.exports = {
     oauth2Client: oauth2Client,
     websiteMainColor: websiteMainColor,
@@ -326,4 +341,8 @@ module.exports = {
     getRandomColor: getRandomColor,
     pullDeletedTagsFromIgnoredGEvent: pullDeletedTagsFromIgnoredGEvent,
     parseError: parseError,
+
+
+    getOauth2Client: getOauth2Client,
+    getGAPIClientCalendar: getGAPIClientCalendar,
 }

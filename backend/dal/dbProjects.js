@@ -128,6 +128,26 @@ async function deleteTags(arrTagIdsToRemove, email) {
     return promise;
 }
 
+/**
+ * Updates all shared projects with the Google Calendar ID these projects are now associated with.
+ * @param {*} project One project instance that has the shared project ID of all the shared projects.
+ * @param {*} googleCalendarId The Google Calendar ID these projects are now associated with.
+ */
+async function updateSharedCalendarId(project, googleCalendarId) {
+    let promise = null;
+
+    if (project && project.participatingEmails.length > 1) {
+        promise = Model.updateMany(
+            {sharedId: project.sharedId},
+            {
+                googleCalendarId: googleCalendarId,
+            }
+        )
+    }
+
+    return promise;
+}
+
 
 
 /* --------------------------------------------------------------
@@ -148,4 +168,5 @@ module.exports = {
     removeTags: removeTags,
     deleteTag: deleteTag,
     deleteTags: deleteTags,
+    updateSharedCalendarId: updateSharedCalendarId,
 }

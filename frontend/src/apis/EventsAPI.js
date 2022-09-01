@@ -35,7 +35,11 @@ async function fetchUnsyncedGoogleEventsData() {
         .then(response => {
             APIUtils.verifyAuthorized(response);
             console.log('I made it through authorization! :D');
-            return apiUtils.getResData(response);
+            if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedGoogleEvents)) {
+                return apiUtils.getResData(response);
+            } else {
+                return null;
+            }
         })
 
     return dataPromise;

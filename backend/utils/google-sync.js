@@ -6,6 +6,9 @@ const dbUsers = require('../dal/dbUsers');
 const dbGoogleEvents = require('../dal/dbGoogleEvents');
 const dbProjects = require('../dal/dbProjects');
 const { googleAccessRole } = require('./utils');
+const eventsUtils = require('../business-logic/events/events-utils');
+const dbUnexportedEvents = require('../dal/dbUnexportedEvents');
+const { addTags } = require('../dal/dbProjects');
 
 /**
  * Wrap with try-catch in case there's a Google error.
@@ -16,8 +19,10 @@ const { googleAccessRole } = require('./utils');
 const syncGoogleData = async (accessToken, email) => {
     let unsyncedEvents = [];
 
-    utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: utils.oauth2Client });
+    const oauth2Client = utils.getOauth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    // utils.oauth2Client.setCredentials({ access_token: accessToken });
+    const googleCalendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
 
     const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
     await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
@@ -102,13 +107,43 @@ const updateDBWithUnsyncedEvents = async (unsyncedEvents, email) => {
      */
 
     let eventsIds = [];
+    let sharedEvents = [];
     for (const event of unsyncedEvents) {
         eventsIds.push(event.id);
+        if (eventsUtils.g_IsSharedEvent(event)) sharedEvents.push(event);
     }
 
     await dbGoogleEvents.deleteByIds(email, eventsIds);  // I tried without await but I never saw the DB updated for some reason
     let undeletedEvents = unsyncedEvents.filter(event => event.status !== 'cancelled');
     dbGoogleEvents.insertMany(undeletedEvents);
+    await updateSharedEvents(sharedEvents);
+}
+
+/**
+ * This function receives an array of Google events,
+ * and updates all the shared events in our DB that they represent.
+ * @param {*} sharedGEvents An array of Google events, where each event represents a shared event on our application.
+ */
+async function updateSharedEvents(sharedGEvents) {
+    for(const gEvent of sharedGEvents) {
+        let sharedEventId = eventsUtils.g_GetSharedEventId(gEvent);
+        if (!sharedEventId) continue; 
+        
+        let title = gEvent.summary;
+        let start = new Date(gEvent.start.dateTime);
+        let end = new Date(gEvent.end.dateTime);
+        if (!start || !end) continue;
+
+        let updateObj = {
+            $set: {
+                title: title,
+                start: start,
+                end: end,
+            }
+        }
+
+        dbUnexportedEvents.updateMany({sharedId: sharedEventId}, updateObj);
+    }
 }
 
 const addMissingCalendars = async (missingCalendarId2Sync, email) => {
@@ -346,7 +381,7 @@ const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, sync
 function convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColors, eventColors) {
     let modelEvents = unsyncedCalendarEvents.map(gEvent => {
         const [background, foreground] = getColorString(calendar, gEvent, calendarColors, eventColors);
-        parseTags(gEvent);
+        let tags = parseTags(gEvent);
         let accessRole = getEventAccessRole(calendar, gEvent, email);
 
         return (
@@ -359,6 +394,7 @@ function convertToDBModel(unsyncedCalendarEvents, email, calendar, calendarColor
                 fetchedByUser: false,
                 isGoogleEvent: true,
                 accessRole: accessRole,
+                tags: tags,
             })
     }
     );
@@ -454,28 +490,40 @@ const getColorString = (calendar, event, calendarColors, eventColors) => {
  * The tags within a Google event are saved as a String, not an array.
  * We save them in our DB as arrays of strings for comfort.
  * So we need to perform some object modification when fetching the events.
+ * @returns A tag object with the typical fields.
  */
 function parseTags(gEvent) {
-    if (!gEvent) return;
-    if (!gEvent.extendedProperties) return;
-    if (!gEvent.extendedProperties.private) return;
+    let tags = {
+        independentTagIds: [],
+        projectTagIds: [],
+        ignoredProjectTagIds: [],
+    }
+
+    if (!gEvent) return tags;
+    if (!gEvent.extendedProperties) return tags;
+    if (!gEvent.extendedProperties.private) return tags;
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IndTagIds]) {
-        gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+        // // gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+        tags.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
+
     }
     // // if (gEvent.extendedProperties.private.independentTagIds) {
     // //     gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private.independentTagIds.split(',');
     // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds]) {
-        gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
+        // // gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
+        tags.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
     }
     // // if (gEvent.extendedProperties.private.projectTagIdsString) {
     // //     gEvent.extendedProperties.private.projectTagIdsString = gEvent.extendedProperties.private.projectTagIdsString.split(',');
     // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds]) {
-        gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+        // // gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+        tags.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
+
     }
     // // if (gEvent.extendedProperties.private.ignoredProjectTagIdsString) {
     // //     gEvent.extendedProperties.private.ignoredProjectTagIdsString = gEvent.extendedProperties.private.ignoredProjectTagIdsString.split(',');
@@ -484,6 +532,8 @@ function parseTags(gEvent) {
     // independentTagIds: [String],
     // projectTagIds: [String],
     // ignoredProjectTagIds: [String],
+
+    return tags;
 }
 
 const getEventAccessRole = (calendar, event, email) => {

@@ -8,7 +8,7 @@ const createError = require('http-errors');
 const events = require('./business-logic/events/events');
 const users = require('./business-logic/users');
 const constraints = require('./business-logic/constraints');
-const projects = require('./business-logic/projects');
+const projects = require('./business-logic/projects/projects');
 const tags = require('./business-logic/tags.js');
 
 

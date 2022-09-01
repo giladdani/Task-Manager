@@ -35,7 +35,7 @@ async function addApprovingUser(projectSharedId, approverEmail) {
     // add user to approving users
     await Model.updateOne({ 'sharedId': projectSharedId },
         {
-            $push: {
+            $addToSet: {
                 approvingUsers: approverEmail,
             }
         });
