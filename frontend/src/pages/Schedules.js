@@ -7,10 +7,11 @@ import EventDialog from '../components/events/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
 import { isValidStatus } from '../apis/APIUtils'
 import ProjectsAPI from '../apis/ProjectsAPI'
+import MultipleSelectChip from '../components/general/MultipleSelectChip'
 const eventUtils = require('../utils/event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
-
+const TagsAPI = require('../apis/TagsAPI.js')
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -23,6 +24,7 @@ export class Schedules extends React.Component {
             requestingUnsyncedEvents: false,
             rerenderFlag: false,
             latestUnexportedTimestamp: null,
+            allUserTags: []
         }
     }
 
@@ -52,6 +54,12 @@ export class Schedules extends React.Component {
             .catch(err => console.error(err));
 
         Promise.all([googlePromise, constraintsPromise, projectPromise])
+        let tagsPromise = TagsAPI.fetchTagsData()
+            .then(allTags => {
+                this.setState({allUserTags: allTags});
+            })
+
+        Promise.all([googlePromise, constraintsPromise, projectPromise, tagsPromise])
             .then(responses => {
                 this.setState({ isLoading: false })
 
@@ -433,6 +441,21 @@ export class Schedules extends React.Component {
             })
         }
     }
+    // TODO: decide whether or not to implement this
+    // handleDateSelect = (selectInfo) => {
+    //     let title = prompt('Please enter a new title for your event')
+    //     let calendarApi = selectInfo.view.calendar;
+    //     calendarApi.unselect() // clear date selection
+    //     if (title) {
+    //         calendarApi.addEvent({
+    //             // id: ?,
+    //             title,
+    //             start: selectInfo.startStr,
+    //             end: selectInfo.endStr,
+    //             allDay: selectInfo.allDay
+    //         })
+    //     }
+    // }
 
     toggleDialog = (isOpen) => {
         this.setState({ isDialogOpen: isOpen });
@@ -449,8 +472,8 @@ export class Schedules extends React.Component {
     renderEventContent = (eventInfo) => {
         return (
             <div>
-                <b>{eventInfo.timeText}</b>
-                <i>{eventInfo.event.title}</i>
+                <div><b>{eventInfo.event.title}</b></div>
+                <div>{eventInfo.timeText}</div>
             </div>
         )
     }
@@ -548,6 +571,26 @@ export class Schedules extends React.Component {
         }
     }
 
+    handleSelectedTagsChange = (selectedTags) => {
+        const calendarApi = this.state.calendarRef.current.getApi();
+        const allEvents = calendarApi.getEvents();
+
+        if(selectedTags.length == 0) {
+            allEvents.forEach(event => {
+                event.setProp("display", "auto");
+            })
+        } else {
+            allEvents.forEach(event => {
+                event.setProp("display", "none");
+            })
+            const filteredEvents = allEvents.filter(event => selectedTags.some(tag => event.tags.include(tag)));
+            filteredEvents.forEach(event => {
+                event.setProp("display", "auto");
+            })
+            console.table(filteredEvents);
+        }
+    }
+
     render() {
         return (
             <div>
@@ -555,12 +598,14 @@ export class Schedules extends React.Component {
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
-                <div
-                    id="schedule-container"
-                >
+                <div id="schedule-container">
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
+                    </div>
+                    <div>
+                        <label>Filter by tag:</label>
+                        <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleSelectedTagsChange}></MultipleSelectChip>
                     </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
@@ -575,7 +620,7 @@ export class Schedules extends React.Component {
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}
-                        select={this.handleDateSelect}
+                        // select={this.handleDateSelect}   // TODO: decide whether or not to implement
                         eventClick={this.handleEventClick}
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}
