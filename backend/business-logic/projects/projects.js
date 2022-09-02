@@ -484,7 +484,7 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
                         })
                 }
         } catch (error) {
-                console.log(`[insertGeneratedEventsToGoogleCalendar] ${error}`);
+                console.error(`[insertGeneratedEventsToGoogleCalendar] ${error}`);
                 errMsg = error;
         }
 
