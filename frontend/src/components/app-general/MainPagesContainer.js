@@ -30,7 +30,7 @@ export const MainPagesContainer = (props) => {
       element: <Constraints setNotificationMsg={props.setMsg} />
     },{
       name: "Project Management",
-      relativePath: "/projectmanagement",
+      relativePath: "/projectmanagement/*",
       element: <ProjectManagement allEvents={allEvents} setNotificationMsg={props.setMsg} />
     }]
 

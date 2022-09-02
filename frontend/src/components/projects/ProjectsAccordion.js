@@ -38,7 +38,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ProjectsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
-  const [allProjects, setAllProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState();
   const componentMounted = useRef(true);
 
   useEffect(() => {
@@ -106,25 +106,34 @@ export const ProjectsAccordion = (props) => {
 
   return (
     <>
-      {allProjects.map((project, index) => {
-        return (
-          <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
-            <AccordionSummary>
-              <div><b>{project.title}</b></div>
-            </AccordionSummary>
-            <AccordionDetails>
-              <div>
-                <Project
-                  project={project}
-                  deleteProject={deleteProject}
-                  exportProject={exportProject}
-                  setNotificationMsg={props.setNotificationMsg}
-                ></Project>
-              </div>
-            </AccordionDetails>
-          </Accordion>
-        )
-      })}
+      {!allProjects &&
+        <ThreeDots color="#00BFFF" height={80} width={80} />
+      }
+      {
+        allProjects && allProjects.length === 0 &&
+        <p>You have no projects</p>
+      }
+      {allProjects &&
+        allProjects.map((project, index) => {
+          return (
+            <Accordion expanded={expanded === project.title} onChange={handleChange(project.title)} key={index}>
+              <AccordionSummary>
+                <div><b>{project.title}</b></div>
+              </AccordionSummary>
+              <AccordionDetails>
+                <div>
+                  <Project
+                    project={project}
+                    deleteProject={deleteProject}
+                    exportProject={exportProject}
+                    setNotificationMsg={props.setNotificationMsg}
+                  ></Project>
+                </div>
+              </AccordionDetails>
+            </Accordion>
+          )
+        })
+      }
     </>
   );
 }
