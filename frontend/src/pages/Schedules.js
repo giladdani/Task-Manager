@@ -53,7 +53,6 @@ export class Schedules extends React.Component {
             })
             .catch(err => console.error(err));
 
-        Promise.all([googlePromise, constraintsPromise, projectPromise])
         let tagsPromise = TagsAPI.fetchTagsData()
             .then(allTags => {
                 this.setState({allUserTags: allTags});
@@ -427,20 +426,6 @@ export class Schedules extends React.Component {
         return fcEvent;
     }
 
-    handleDateSelect = (selectInfo) => {
-        let title = prompt('Please enter a new title for your event')
-        let calendarApi = selectInfo.view.calendar;
-        calendarApi.unselect() // clear date selection
-        if (title) {
-            calendarApi.addEvent({
-                // id: ?,
-                title,
-                start: selectInfo.startStr,
-                end: selectInfo.endStr,
-                allDay: selectInfo.allDay
-            })
-        }
-    }
     // TODO: decide whether or not to implement this
     // handleDateSelect = (selectInfo) => {
     //     let title = prompt('Please enter a new title for your event')
