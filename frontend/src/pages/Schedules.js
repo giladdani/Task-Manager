@@ -7,10 +7,12 @@ import EventDialog from '../components/events/EventDialog'
 import Checkbox from '@mui/material/Checkbox'
 import { isValidStatus } from '../apis/APIUtils'
 import ProjectsAPI from '../apis/ProjectsAPI'
+import MultipleSelectChip from '../components/general/MultipleSelectChip'
+import { useTabsList } from '@mui/base'
 const eventUtils = require('../utils/event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
-
+const TagsAPI = require('../apis/TagsAPI.js')
 
 export class Schedules extends React.Component {
     constructor(props) {
@@ -23,6 +25,7 @@ export class Schedules extends React.Component {
             requestingUnsyncedEvents: false,
             rerenderFlag: false,
             latestUnexportedTimestamp: null,
+            allUserTags: []
         }
     }
 
@@ -51,7 +54,12 @@ export class Schedules extends React.Component {
             })
             .catch(err => console.error(err));
 
-        Promise.all([googlePromise, constraintsPromise, projectPromise])
+        let tagsPromise = TagsAPI.fetchTagsData()
+            .then(allTags => {
+                this.setState({allUserTags: allTags});
+            })
+
+        Promise.all([googlePromise, constraintsPromise, projectPromise, tagsPromise])
             .then(responses => {
                 this.setState({ isLoading: false })
 
@@ -419,20 +427,21 @@ export class Schedules extends React.Component {
         return fcEvent;
     }
 
-    handleDateSelect = (selectInfo) => {
-        let title = prompt('Please enter a new title for your event')
-        let calendarApi = selectInfo.view.calendar;
-        calendarApi.unselect() // clear date selection
-        if (title) {
-            calendarApi.addEvent({
-                // id: ?,
-                title,
-                start: selectInfo.startStr,
-                end: selectInfo.endStr,
-                allDay: selectInfo.allDay
-            })
-        }
-    }
+    // TODO: decide whether or not to implement this
+    // handleDateSelect = (selectInfo) => {
+    //     let title = prompt('Please enter a new title for your event')
+    //     let calendarApi = selectInfo.view.calendar;
+    //     calendarApi.unselect() // clear date selection
+    //     if (title) {
+    //         calendarApi.addEvent({
+    //             // id: ?,
+    //             title,
+    //             start: selectInfo.startStr,
+    //             end: selectInfo.endStr,
+    //             allDay: selectInfo.allDay
+    //         })
+    //     }
+    // }
 
     toggleDialog = (isOpen) => {
         this.setState({ isDialogOpen: isOpen });
@@ -449,8 +458,8 @@ export class Schedules extends React.Component {
     renderEventContent = (eventInfo) => {
         return (
             <div>
-                <b>{eventInfo.timeText}</b>
-                <i>{eventInfo.event.title}</i>
+                <div><b>{eventInfo.event.title}</b></div>
+                <div>{eventInfo.timeText}</div>
             </div>
         )
     }
@@ -548,6 +557,39 @@ export class Schedules extends React.Component {
         }
     }
 
+    handleFilterTagsChange = (selectedTags) => {
+        const calendarApi = this.state.calendarRef.current.getApi();
+        const allEvents = calendarApi.getEvents();
+        const nonConstraintEvents = allEvents.filter(event => event.extendedProps.isConstraint == undefined || event.extendedProps.isConstraint != true);
+        let filteredEvents = [];
+        let eventTagIds = [];
+
+        // if no tag was selected- show all events
+        if(selectedTags.length == 0) {
+            nonConstraintEvents.forEach(event => {
+                event.setProp("display", "auto");
+            })
+        } else {
+            // hide all events
+            nonConstraintEvents.forEach(event => {
+                event.setProp("display", "none");
+            })
+            // filter events according to selectedTags
+            filteredEvents = nonConstraintEvents.filter(event => {
+                eventTagIds = eventUtils.fc_GetActiveTagIds(event);
+                if(eventTagIds.length > 0) {
+                    return selectedTags.some(tag => {
+                        return eventTagIds.includes(tag.id); 
+                    })
+                }
+            })
+            // show filtered events
+            filteredEvents.forEach(event => {
+                event.setProp("display", "auto");
+            })
+        }
+    }
+
     render() {
         return (
             <div>
@@ -555,12 +597,14 @@ export class Schedules extends React.Component {
                     <h3>Loading your schedule</h3>
                     <ThreeDots color="#00BFFF" height={80} width={80} />
                 </div>
-                <div
-                    id="schedule-container"
-                >
+                <div id="schedule-container">
                     <div>
                         <label>Show Constraints</label>
                         <Checkbox onChange={(newValue) => { this.setShowConstraintsValue(newValue.target.checked); }}></Checkbox>
+                    </div>
+                    <div>
+                        <label>Filter by tag:</label>
+                        <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleFilterTagsChange}></MultipleSelectChip>
                     </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
@@ -575,7 +619,7 @@ export class Schedules extends React.Component {
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}
-                        select={this.handleDateSelect}
+                        // select={this.handleDateSelect}   // TODO: decide whether or not to implement
                         eventClick={this.handleEventClick}
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}

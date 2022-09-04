@@ -75,6 +75,17 @@ function fc_GetAllTagIds(fcEvent) {
     return [independentTagsIds, projectTagIds, ignoredProjectTagIds];
 }
 
+function fc_GetActiveTagIds(fcEvent) {
+    let allTagIds = [];
+    let independentTagsIds = fc_GetTagByField(fcEvent, "independentTagIds");
+    let projectTagIds = fc_GetTagByField(fcEvent, "projectTagIds");
+    if(independentTagsIds != null){
+        allTagIds = independentTagsIds.concat(projectTagIds);
+    }
+
+    return allTagIds;
+}
+
 function fc_GetTagByField(fcEvent, fieldName) {
     if (!fcEvent) return null;
     if (!fcEvent.extendedProps) return null;
@@ -291,6 +302,7 @@ module.exports = {
     g_GetAllTagsIds: g_GetAllTagsIds,
     fc_GetAllTagIds: fc_GetAllTagIds,
     fc_GetProjectTagIds: fc_GetProjectTagIds,
+    fc_GetActiveTagIds: fc_GetActiveTagIds,
 
     g_getProjectId: g_getProjectId,
     g_getAppEventId: g_getAppEventId,
