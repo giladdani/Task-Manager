@@ -576,7 +576,7 @@ export class Schedules extends React.Component {
             })
             // filter events according to selectedTags
             filteredEvents = nonConstraintEvents.filter(event => {
-                eventTagIds = eventUtils.fc_GetAllTagIds(event)[0];
+                eventTagIds = eventUtils.fc_GetActiveTagIds(event);
                 if(eventTagIds.length > 0) {
                     return selectedTags.some(tag => {
                         return eventTagIds.includes(tag.id); 
