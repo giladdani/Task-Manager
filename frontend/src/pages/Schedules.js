@@ -8,6 +8,7 @@ import Checkbox from '@mui/material/Checkbox'
 import { isValidStatus } from '../apis/APIUtils'
 import ProjectsAPI from '../apis/ProjectsAPI'
 import MultipleSelectChip from '../components/general/MultipleSelectChip'
+import { useTabsList } from '@mui/base'
 const eventUtils = require('../utils/event-utils.js')
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js')
 const EventsAPI = require('../apis/EventsAPI.js')
@@ -556,23 +557,36 @@ export class Schedules extends React.Component {
         }
     }
 
-    handleSelectedTagsChange = (selectedTags) => {
+    handleFilterTagsChange = (selectedTags) => {
         const calendarApi = this.state.calendarRef.current.getApi();
         const allEvents = calendarApi.getEvents();
+        const nonConstraintEvents = allEvents.filter(event => event.extendedProps.isConstraint == undefined || event.extendedProps.isConstraint != true);
+        let filteredEvents = [];
+        let eventTagIds = [];
 
+        // if no tag was selected- show all events
         if(selectedTags.length == 0) {
-            allEvents.forEach(event => {
+            nonConstraintEvents.forEach(event => {
                 event.setProp("display", "auto");
             })
         } else {
-            allEvents.forEach(event => {
+            // hide all events
+            nonConstraintEvents.forEach(event => {
                 event.setProp("display", "none");
             })
-            const filteredEvents = allEvents.filter(event => selectedTags.some(tag => event.tags.include(tag)));
+            // filter events according to selectedTags
+            filteredEvents = nonConstraintEvents.filter(event => {
+                eventTagIds = eventUtils.fc_GetAllTagIds(event)[0];
+                if(eventTagIds.length > 0) {
+                    return selectedTags.some(tag => {
+                        return eventTagIds.includes(tag.id); 
+                    })
+                }
+            })
+            // show filtered events
             filteredEvents.forEach(event => {
                 event.setProp("display", "auto");
             })
-            console.table(filteredEvents);
         }
     }
 
@@ -590,7 +604,7 @@ export class Schedules extends React.Component {
                     </div>
                     <div>
                         <label>Filter by tag:</label>
-                        <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleSelectedTagsChange}></MultipleSelectChip>
+                        <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleFilterTagsChange}></MultipleSelectChip>
                     </div>
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}

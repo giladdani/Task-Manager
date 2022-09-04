@@ -68,11 +68,15 @@ function isGoogleEvent(event) {
  * @returns [independentTagsIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
  */
 function fc_GetAllTagIds(fcEvent) {
+    let allTagIds = [];
     let independentTagsIds = fc_GetTagByField(fcEvent, "independentTagIds");
     let projectTagIds = fc_GetTagByField(fcEvent, "projectTagIds");
     let ignoredProjectTagIds = fc_GetTagByField(fcEvent, "ignoredProjectTagIds");
+    if(independentTagsIds != null){
+        allTagIds = independentTagsIds.concat(projectTagIds);
+    }
 
-    return [independentTagsIds, projectTagIds, ignoredProjectTagIds];
+    return [allTagIds, independentTagsIds, projectTagIds, ignoredProjectTagIds];
 }
 
 function fc_GetTagByField(fcEvent, fieldName) {
