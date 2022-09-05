@@ -42,7 +42,7 @@ const rescheduleProjectEvent = async (req, res) => {
 
                 res.status(StatusCodes.OK).send(resBody);
         } catch (err) {
-                console.log(`[rescheduleProjectEvent] Error!\n${err}`);
+                console.error(`[rescheduleProjectEvent] Error!\n${err}`);
                 res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
         }
 }
@@ -131,14 +131,11 @@ async function saveProjectAndEvents(project, events) {
 const duplicateProject = (project) => {
         let ignoredConstraints = []
         let participatingEmails = []
+        let daysOfWeek = [];
 
-        for (const id of project.ignoredConstraintsIds) {
-                ignoredConstraints.push(id);
-        }
-
-        for (const email of project.participatingEmails) {
-                participatingEmails.push(email);
-        }
+        for (const id of project.ignoredConstraintsIds) ignoredConstraints.push(id);
+        for (const email of project.participatingEmails) participatingEmails.push(email);
+        for (const day of project.daysOfWeek) daysOfWeek.push(day);
 
         const newProject = {
                 title: project.title,
@@ -158,6 +155,7 @@ const duplicateProject = (project) => {
                 dailyStartHour: project.dailyStartHour,
                 dailyEndHour: project.dailyEndHour,
                 ignoredConstraintsIds: ignoredConstraints,
+                daysOfWeek: daysOfWeek,
         }
 
         return newProject;
@@ -295,7 +293,7 @@ async function insertGoogleCalendar(accessToken, calendarId) {
                 res = googleRes;
         }
         catch (err) {
-                console.log(err);
+                console.error(err);
                 res = err;
         }
 
@@ -319,7 +317,7 @@ const createGoogleCalendar = async (req, project) => {
                 res = googleRes;
         }
         catch (err) {
-                console.log(err);
+                console.error(err);
                 res = err;
         }
 
@@ -348,7 +346,7 @@ async function addACLToSharedCalendar(accessToken, calendarId, project, exportin
                         console.log(`[addACLToSharedCalendar] Added ${email} as owner to project '${project.title}'`);
                 }
                 catch (err) {
-                        console.log(err);
+                        console.error(err);
                 }
         }
 }
@@ -372,73 +370,6 @@ async function updateAllLocalProjectEvents(accessToken, calendarId) {
                 dbUnexportedEvents.updateMany({ sharedId: sharedId }, { $set: { gEventId: newId, calendarId: calendarId } })
         }
 }
-
-// // const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
-// //         /**
-// //          * Google Calendar API docuemntation for Event resource.
-// //          * https://developers.google.com/calendar/api/v3/reference/events
-// //          */
-
-// //         const accessToken = utils.getAccessTokenFromRequest(req);
-// //         utils.oauth2Client.setCredentials({ access_token: accessToken });
-// //         const calendar = google.calendar('v3');
-// //         let errMsg = null;
-
-// //         try {
-// //                 let gapi = utils.getGAPIClientCalendar(accessToken);
-// //                 // TODO: change this to batch
-// //                 for (const event of unexportedEvents) {
-// //                         const eventId = event.id;
-// //                         const eventSharedId = event.sharedId;
-// //                         const projectId = project.id
-
-
-// //                         // extendedProperties only accepts Strings as the value, not arrays.
-// //                         let independentTagIdsString = event.tags.independentTagIds.toString();
-// //                         let projectTagIdsString = event.tags.projectTagIds.toString();
-// //                         let ignoredProjectTagIdsString = event.tags.ignoredProjectTagIds.toString();
-
-// //                         // extendedProperties only accepts Strings as the value, not arrays.
-// //                         // let independentTagIdsString = event.independentTagIds.toString();
-// //                         // let projectTagIdsString = event.projectTagIds.toString();
-// //                         // let ignoredProjectTagIdsString = event.ignoredProjectTagIds.toString();
-
-// //                         const response = await gapi.events.insert({
-// //                                 // const response = await calendar.events.insert({
-// //                                 // auth: utils.oauth2Client,
-// //                                 calendarId: calendarId,
-// //                                 requestBody: {
-// //                                         summary: event.title,
-// //                                         start: {
-// //                                                 dateTime: new Date(event.start)
-// //                                         },
-// //                                         end: {
-// //                                                 dateTime: new Date(event.end)
-// //                                         },
-// //                                         extendedProperties: {
-// //                                                 private: {
-// //                                                         fullCalendarEventId: eventId,
-// //                                                         fullCalendarEventSharedId: eventSharedId,
-// //                                                         fullCalendarProjectId: projectId,
-
-// //                                                         // [consts.gFieldName_IndTagIds]: independentTagIdsString,
-// //                                                         // [consts.gFieldName_ProjTagIds]: projectTagIdsString,
-// //                                                         // [consts.gFieldName_IgnoredProjectTagIds]: ignoredProjectTagIdsString,
-// //                                                         // // independentTagIdsString: independentTagIdsString,
-// //                                                         // // projectTagIdsString: projectTagIdsString,
-// //                                                         // // ignoredProjectTagIdsString: ignoredProjectTagIdsString,
-// //                                                 },
-// //                                         }
-// //                                 }
-// //                         })
-// //                 }
-// //         } catch (error) {
-// //                 console.log(`[insertGeneratedEventsToGoogleCalendar] ${error}`);
-// //                 errMsg = error;
-// //         }
-
-// //         return errMsg;
-// // }
 
 const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, calendarId) => {
         /**

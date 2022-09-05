@@ -98,9 +98,11 @@ export default function EventDialog(props) {
   }
 
   const handleReschedule = async () => {
-    let rescheduledEventsRes = await props.onEventReschedule(props.event);
+    let rescheduledEventsResponse = await props.onEventReschedule(props.event);
     // let rescheduledEvents = await fetchRescheduledEvents(props.event);
-    setSuggestedEvents(rescheduledEventsRes.events);
+    if (rescheduledEventsResponse && rescheduledEventsResponse.events) {
+      setSuggestedEvents(rescheduledEventsResponse.events);
+    }
   }
 
   const handleSave = () => {

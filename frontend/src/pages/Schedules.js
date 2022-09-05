@@ -108,7 +108,7 @@ export class Schedules extends React.Component {
                                 }
                             }
                         } else if (unsyncedEvent.status === "cancelled") {
-                            if (unsyncedEvent.calendarId === fullCalendarEvent.extendedProperties.googleCalendarId) {
+                            if (unsyncedEvent.calendarId === fullCalendarEvent.extendedProps.googleCalendarId) {
                                 fullCalendarEvent.remove();
                             }
                         } else {
@@ -121,7 +121,7 @@ export class Schedules extends React.Component {
                         }
                     }
                 } catch (err) {
-                    console.log(`[handleGoogleSync] Error in THEN part:\n${err}`)
+                    console.error(`[handleGoogleSync] Error in THEN part:\n${err}`)
                 }
             })
             .catch(err => {
@@ -136,9 +136,6 @@ export class Schedules extends React.Component {
                 try {
                     console.log(`Fetched ${unsyncedEvents.length} unsynced unexported events.`)
                     if (unsyncedEvents.length === 0) return;
-
-                    console.log(new Date(unsyncedEvents[0].updatedAt).getMilliseconds());
-
                     let calendarApi = this.state.calendarRef.current.getApi();
                     let eventsToAdd = [];
                     for (const unsyncedEvent of unsyncedEvents) {
@@ -157,6 +154,7 @@ export class Schedules extends React.Component {
                         }
                     }
 
+                    this.addEventsToScheduleFullCalendar(eventsToAdd);
                     this.updateUnexportedTimestamp(unsyncedEvents);
                 } catch (err) {
                     console.log(`[handleUnexportedSync] Error in THEN part:\n${err}`)
@@ -354,7 +352,7 @@ export class Schedules extends React.Component {
         let latestTimestamp = new Date(unexportedEvents[0].updatedAt);
 
         unexportedEvents.forEach(unexEvent => {
-            if (new Date(unexEvent.updatedAt) > latestTimestamp) latestTimestamp = unexEvent.updatedAt;
+            if (new Date(unexEvent.updatedAt) > latestTimestamp) latestTimestamp = new Date(unexEvent.updatedAt);
         })
 
         if (this.state.latestUnexportedTimestamp === null || latestTimestamp > this.state.latestUnexportedTimestamp) {
@@ -528,7 +526,7 @@ export class Schedules extends React.Component {
 
         // // return rescheduledEvents;
 
-        ProjectsAPI.getRescheduledProjectEventsData(event)
+        return ProjectsAPI.getRescheduledProjectEventsData(event)
             .then(data => {
                 return data;
             })

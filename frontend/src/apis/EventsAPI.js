@@ -35,7 +35,6 @@ async function fetchUnsyncedGoogleEventsData() {
     let dataPromise = fetchUnsyncedGoogleEventsRes()
         .then(response => {
             APIUtils.verifyAuthorized(response);
-            console.log('I made it through authorization! :D');
             if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedGoogleEvents)) {
                 return apiUtils.getResData(response);
             } else {
@@ -55,10 +54,17 @@ async function fetchUnsyncedGoogleEventsRes() {
     return responsePromise;
 }
 
+/**
+ * 
+ * @param {*} timeStamp Optional: if not given, the function returns all unexported events.
+ * @returns 
+ */
 async function fetchUnsyncedUnexportedEventsData(timeStamp) {
-    if (!timeStamp) return null;
+    // if (!timeStamp) return null;
+    let dataPromise;
 
-    let dataPromise = fetchUnsyncedUnexportedEventsRes(timeStamp)
+    if (timeStamp) {
+        dataPromise = fetchUnsyncedUnexportedEventsRes(timeStamp)
         .then(response => {
             if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedUnexportedEvents)) {
                 return apiUtils.getResData(response);
@@ -66,6 +72,9 @@ async function fetchUnsyncedUnexportedEventsData(timeStamp) {
                 return null;
             }
         })
+    } else {
+        dataPromise = fetchAllUnexportedEventsData();
+    }
 
     return dataPromise;
 }
