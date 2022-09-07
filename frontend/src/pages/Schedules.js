@@ -427,22 +427,6 @@ export class Schedules extends React.Component {
         return fcEvent;
     }
 
-    // TODO: decide whether or not to implement this
-    // handleDateSelect = (selectInfo) => {
-    //     let title = prompt('Please enter a new title for your event')
-    //     let calendarApi = selectInfo.view.calendar;
-    //     calendarApi.unselect() // clear date selection
-    //     if (title) {
-    //         calendarApi.addEvent({
-    //             // id: ?,
-    //             title,
-    //             start: selectInfo.startStr,
-    //             end: selectInfo.endStr,
-    //             allDay: selectInfo.allDay
-    //         })
-    //     }
-    // }
-
     toggleDialog = (isOpen) => {
         this.setState({ isDialogOpen: isOpen });
     }
@@ -606,6 +590,7 @@ export class Schedules extends React.Component {
                         <label>Filter by tag:</label>
                         <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleFilterTagsChange}></MultipleSelectChip>
                     </div>
+                    
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
                         headerToolbar={{
@@ -619,7 +604,6 @@ export class Schedules extends React.Component {
                         selectable={true}
                         editable={true}
                         eventContent={this.renderEventContent}
-                        // select={this.handleDateSelect}   // TODO: decide whether or not to implement
                         eventClick={this.handleEventClick}
                         eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
                         eventDrop={this.handleEventDragged}

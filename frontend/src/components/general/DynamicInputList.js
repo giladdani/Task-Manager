@@ -34,7 +34,7 @@ export const DynamicInputList = (props) => {
                                 value={item.value} 
                                 name="value" 
                                 disabled={props.disabled}
-                                placeholder="User email..."
+                                placeholder={props.placeholder}
                                 variant="outlined"
                                 size="small"
                             />
@@ -55,7 +55,7 @@ export const DynamicInputList = (props) => {
                                 onClick={handleAdd}
                                 variant="contained"
                                 size="small">
-                                    <span>Add a user</span>
+                                    <span>Add</span>
                                 </Button>
                             )}
                         </div>

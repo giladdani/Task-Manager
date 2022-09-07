@@ -16,6 +16,15 @@
   border-radius: 40%;
 }
 
+/** DynamicInputList **/
+.first-division {
+  margin-bottom: 10px;
+}
+
+.first-division button {
+  margin-left: 10px;
+}
+
 /** MUI **/
 
 .MuiChip-root,
@@ -26,9 +35,15 @@
 .whiteFont .MuiOutlinedInput-root,
 .whiteFont .MuiOutlinedInput-root fieldset,
 .whiteFont .MuiOutlinedInput-root:hover fieldset,
-.whiteFont .Mui-focused fieldset{
+.whiteFont .Mui-focused fieldset,
+.whiteFont .MuiSvgIcon-root,
+.whiteFont .MuiFormLabel-root {
   color: white !important;
   border-color:white!important
+}
+
+.MuiTextField-root {
+  width: 225px;
 }
 
 .MuiOutlinedInput-root fieldset {
@@ -68,14 +83,13 @@ div svg {
 
 /**/
 
-.border {
+/* .border {
   border: 1px solid white;
   padding: 10px;
-}
+} */
 
-.horizontalAlign {
-  float: left;
-  clear: none;
+.spaced-table {
+  border-spacing: 15px;
 }
 
 /** NavBar **/

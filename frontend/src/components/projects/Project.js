@@ -260,7 +260,7 @@ export const Project = (props) => {
 
     return (
         <>
-            <table>
+            <table className="whiteFont">
                 <tbody>
                     <tr>
                         <td><label>Name:</label></td>

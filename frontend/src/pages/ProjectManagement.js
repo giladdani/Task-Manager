@@ -1,7 +1,7 @@
 import { ProjectsAccordion } from '../components/projects/ProjectsAccordion'
 import { TagsAccordion } from '../components/general/tags/TagsAccordion';
 import { PendingProjectsList } from '../components/projects/PendingProjectList';
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 
 export const ProjectManagement = (props) => {
@@ -34,6 +34,7 @@ export const ProjectManagement = (props) => {
         </ul>
         <Routes>
           {routes}
+          <Route path="*" element={<Navigate to="myprojects" />} />
         </Routes>
       </>
       )
