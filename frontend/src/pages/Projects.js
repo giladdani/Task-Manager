@@ -13,13 +13,13 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 import FormLabel from '@mui/material/FormLabel';
+import { FormGroup } from '@mui/material';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/general/DynamicInputList';
 import MultipleSelectChip from '../components/general/MultipleSelectChip';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 import { isValidStatus } from '../apis/APIUtils';
 import consts from '../utils/consts';
-import { FormGroup } from '@mui/material';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 const ProjectsAPI = require('../apis/ProjectsAPI.js');
 
@@ -327,7 +327,7 @@ export const Projects = (props) => {
                                     <tr>
                                         {/* <td><label>Project Name:</label></td> */}
                                         <td>
-                                            <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" label="Project name" />
+                                            <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" label="Project name" focused/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -340,6 +340,7 @@ export const Projects = (props) => {
                                                 value={estimatedTime}
                                                 size="small"
                                                 label="Estimated time (hours)"
+                                                focused
                                             />
                                         </td>
                                     </tr>
@@ -353,6 +354,7 @@ export const Projects = (props) => {
                                                 value={sessionLengthMinutes}
                                                 size="small"
                                                 label="Session length (minutes)"
+                                                focused
                                             />
                                         </td>
                                     </tr>
@@ -369,6 +371,7 @@ export const Projects = (props) => {
                                                 value={spacingLengthMinutes}
                                                 size="small"
                                                 label="Break between sessions (minutes):"
+                                                focused
                                                 />
                                             </Tooltip>
                                         </td>
@@ -408,7 +411,7 @@ export const Projects = (props) => {
                             </table>
                         </td>
 
-                        {/* SECOND COLUMN */}
+                        {/* RIGHT COLUMN */}
 
                         <td>
                             <table className="spaced-table">
@@ -423,16 +426,15 @@ export const Projects = (props) => {
                                     <tr>
                                         {/* <td><label>Start time:</label></td> */}
                                         <td>
-                                            
-                                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                                    <TimePicker
-                                                        value={dailyStartHour}
-                                                        onChange={(newValue) => { setDailyStartHour(newValue) }}
-                                                        renderInput={(params) => <TextField {...params} />}
-                                                        ampm={false}
-                                                        label="Start time"
-                                                    />
-                                                </LocalizationProvider>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <TimePicker
+                                                    value={dailyStartHour}
+                                                    onChange={(newValue) => { setDailyStartHour(newValue) }}
+                                                    renderInput={(params) => <TextField {...params} />}
+                                                    ampm={false}
+                                                    label="Start time"
+                                                />
+                                            </LocalizationProvider>
                                         </td>
                                     </tr>
                                     <tr>
@@ -461,6 +463,7 @@ export const Projects = (props) => {
                                                     InputProps={{ inputProps: { min: 1 } }}
                                                     value={maxEventsPerDay}
                                                     label="Max sessions per day:"
+                                                    focused
                                                 />
                                             </Tooltip>
                                         </td>
@@ -496,7 +499,7 @@ export const Projects = (props) => {
                     </tr>
                     <tr>
                         <td className="center_text" colSpan={"2"}>
-                            <Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button>
+                            <Button variant='contained' onClick={handleGenerateClick} color="primary" disabled={isLoading}>Generate</Button>
                             <Dialog open={isLoading}>
                                 <DialogTitle>Generating project schedule...</DialogTitle>
                                 <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>

@@ -42,6 +42,18 @@
   border-color:white!important
 }
 
+.MuiFormControl-root {
+  width: 225px!important;
+}
+
+.MuiFormControlLabel-root { /* fix checkbox group placement */
+  margin-left: 0px!important;
+}
+
+.MuiFormControl-root { /* fix tags MultipleSelectChip placement */
+  margin: 0px!important;
+}
+
 .MuiTextField-root {
   width: 225px;
 }
@@ -61,6 +73,16 @@
 .MuiMenuItem-root {
   display: flex !important;
 }
+
+.MuiButton-root {
+  margin: 3px!important;
+}
+
+/* tags col ProjectsAccordion */
+/* td .MuiPaper-root {
+  background-color: transparent!important;
+  box-shadow: none!important;
+} */
 
 .MuiPaper-root {
   min-width: 0px !important;
@@ -88,8 +110,8 @@ div svg {
   padding: 10px;
 } */
 
-.spaced-table {
-  border-spacing: 15px;
+.spaced-table td {
+  padding-bottom: 15px;
 }
 
 /** NavBar **/

@@ -1,10 +1,12 @@
+import React, { useState } from 'react';
 import Button from "@material-ui/core/Button";
 import TextField from '@mui/material/TextField';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import React, { useState } from 'react';
 import { DaysCheckbox } from '../general/DaysCheckbox';
+import FormLabel from '@mui/material/FormLabel';
+import { FormGroup } from '@mui/material';
 
 export const Constraint = (props) => {
     const startDate = new Date();
@@ -43,24 +45,25 @@ export const Constraint = (props) => {
     }
 
     return (
-        <table>
+        <table className="spaced-table">
             <tbody>
                 <tr>
-                    <td><label>Name: </label></td>
+                    {/* <td><label>Name: </label></td> */}
                     <td>
-                        <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" />
+                        <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" size="small" label="Name" focused />
                     </td>
                 </tr>
                 <tr>
-                    <td><label>Days of Week: </label></td>
-
+                    {/* <td><label>Days of Week: </label></td> */}
                     <td>
-                        <DaysCheckbox startingDays={props.constraint.daysOfWeek} setDays={handleSetDays}></DaysCheckbox>
-
-                    </td>
+                        <FormLabel>Day repetition:</FormLabel>
+                        <FormGroup>
+                            <DaysCheckbox startingDays={props.constraint.daysOfWeek} setDays={handleSetDays}></DaysCheckbox>
+                        </FormGroup>
+                        </td>
                 </tr>
                 <tr>
-                    <td><label>Start Time: </label></td>
+                    {/* <td><label>Start Time: </label></td> */}
                     <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                             <TimePicker
@@ -68,12 +71,13 @@ export const Constraint = (props) => {
                                 onChange={(newValue) => { setConstraintStartTime(newValue) }}
                                 renderInput={(params) => <TextField {...params} />}
                                 ampm={false}
+                                label="Start time"
                             />
                         </LocalizationProvider>
                     </td>
                 </tr>
                 <tr>
-                    <td><label>End Time: </label></td>
+                    {/* <td><label>End Time: </label></td> */}
                     <td>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
                             <TimePicker
@@ -81,6 +85,7 @@ export const Constraint = (props) => {
                                 onChange={(newValue) => { setConstraintEndTime(newValue) }}
                                 renderInput={(params) => <TextField {...params} />}
                                 ampm={false}
+                                label="End time"
                             />
                         </LocalizationProvider>
                     </td>
