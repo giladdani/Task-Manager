@@ -161,33 +161,40 @@ export default function Tags(props) {
     }
 
     return (
-        <Card>
-            <CardContent>
-                <MultipleSelectChip
-                    label="Tags"
-                    items={allUserTags}
-                    selectedItems={selectedTags}
-                    onSelectChange={handleSelectChange}
-                    disabled={props.disabled}
-                ></MultipleSelectChip>
-                <TextField label="Tag name" value={newTagTitle} onChange={(newValue) => setNewTagTitle(newValue.target.value)} size="small" autoFocus />
-                <Button onClick={handleCreate} variant="contained" color="primary">Create New</Button>
-                <br></br>
-                <MultipleSelectChip
-                    label="Tags to Delete"
-                    items={allUserTags}
-                    onSelectChange={handleDeleteSelectChange}
-                    disabled={props.disabled}
-                ></MultipleSelectChip>
-                <Button onClick={handleDelete} variant="contained" color="error">Delete</Button>
-                <AlertConfirmDialog
-                    open={deleteConfirmDialogOpen}
-                    title="Delete tags?"
-                    text="This will delete all selected tags from all your projects and events."
-                    setOpen={handleDeleteDialogOpen}
-                    onConfirm={handleConfirmDelete}
-                ></AlertConfirmDialog>
-            </CardContent>
-        </Card>
+        <>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            <MultipleSelectChip label="Tags" items={allUserTags} selectedItems={selectedTags} onSelectChange={handleSelectChange} disabled={props.disabled} />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <MultipleSelectChip label="Tags to Delete" items={allUserTags} onSelectChange={handleDeleteSelectChange} disabled={props.disabled} />
+                        </td>
+                        <td>
+                            <Button onClick={handleDelete} variant="contained" color="secondary" size="small">Delete selected</Button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <TextField label="New tag name" value={newTagTitle} onChange={(newValue) => setNewTagTitle(newValue.target.value)} size="small" focused />
+                        </td>
+                        <td>
+                            <Button onClick={handleCreate} variant="contained" color="primary" size="small">Create New</Button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <AlertConfirmDialog
+                open={deleteConfirmDialogOpen}
+                title="Delete tags?"
+                text="This will delete all selected tags from all your projects and events."
+                setOpen={handleDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+            ></AlertConfirmDialog>
+        </>
     )
 }

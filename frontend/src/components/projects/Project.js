@@ -260,39 +260,44 @@ export const Project = (props) => {
 
     return (
         <>
-            <table>
+            <table className="whiteFont spaced-table">
                 <tbody>
                     <tr>
-                        <td><label>Name:</label></td>
+                        {/* <td><label>Name:</label></td> */}
                         <td>
-                            <TextField value={projectTitle} disabled={!isBeingEdited} onChange={(newValue) => { setProjectTitle(newValue.target.value) }} variant="outlined" />
+                            <TextField value={projectTitle} onChange={(newValue) => { setProjectTitle(newValue.target.value) }} variant="outlined" size="small" label="Name" focused />
                         </td>
                     </tr>
                     <tr>
-                        <td><label>Time Estimate:</label></td>
-                        <td>{props.project.timeEstimate}</td>
+                        {/* <td><label>Time Estimate:</label></td> */}
+                        {/* <td>{props.project.timeEstimate}</td> */}
+                        <td disabled><TextField label="Time estimate" value={props.project.timeEstimate} focused></TextField></td>
                     </tr>
                     <tr>
-                        <td><label>Events finished:</label></td>
-                        <td>{oldEvents.length}</td>
+                        {/* <td><label>Events finished:</label></td>
+                        <td>{oldEvents.length}</td> */}
+                        <td disabled><TextField label="Events finished" value={oldEvents.length} focused></TextField></td>
                     </tr>
                     <tr>
-                        <td><label>Hours done:</label></td>
-                        <td>{totalHoursPast}</td>
+                        {/* <td><label>Hours done:</label></td>
+                        <td>{totalHoursPast}</td> */}
+                        <td disabled><TextField label="Hours done" value={totalHoursPast} focused></TextField></td>
                     </tr>
                     <tr>
-                        <td><label>Events left:</label></td>
-                        <td>{futureEvents.length}</td>
+                        {/* <td><label>Events left:</label></td>
+                        <td>{futureEvents.length}</td> */}
+                        <td disabled><TextField label="Events left" value={futureEvents.length} focused></TextField></td>
                     </tr>
                     <tr>
-                        <td><label>Hours left:</label></td>
-                        <td>{totalHoursFuture}</td>
+                        {/* <td><label>Hours left:</label></td>
+                        <td>{totalHoursFuture}</td> */}
+                        <td disabled><TextField label="Hours left" value={totalHoursFuture} focused></TextField></td>
                     </tr>
                     <tr>
                         <td>On track to perform {totalHoursExpected} out of estimated {props.project.timeEstimate} hours.</td>
                     </tr>
                     <tr>
-                        <td><label>Start date:</label></td>
+                        {/* <td><label>Start date:</label></td> */}
                         <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
@@ -300,14 +305,14 @@ export const Project = (props) => {
                                     inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setStartDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
-                                    disabled={!isBeingEdited}
                                     ampm={false}
+                                    label="Start date"
                                 />
                             </LocalizationProvider>
                         </td>
                     </tr>
                     <tr>
-                        <td><label>End date:</label></td>
+                        {/* <td><label>End date:</label></td> */}
                         <td className="whiteTimeFont">
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <DateTimePicker
@@ -315,34 +320,31 @@ export const Project = (props) => {
                                     inputFormat="dd/MM/yyyy HH:mm"
                                     onChange={(newValue) => { setEndDate(newValue) }}
                                     renderInput={(props) => <TextField {...props} />}
-                                    disabled={!isBeingEdited}
                                     ampm={false}
+                                    label="End date"
                                 />
                             </LocalizationProvider>
                         </td>
                     </tr>
                     <tr>
-                        <td colSpan={"2"}>
+                        <td>
                             <Tags
                                 setNotificationMsg={props.setNotificationMsg}
                                 selectedTagIds={tagIds}
                                 onTagsUpdate={handleTagsUpdated}
-                                disabled={!isBeingEdited}
                             ></Tags>
                         </td>
                     </tr>
                 </tbody>
             </table>
             <ButtonGroup variant='contained'>
-                <Button variant='contained' onClick={handleOnEditClick} disabled={isBeingEdited || isProcessing} size="small">Edit</Button>
-                <Button variant='contained' onClick={handleOnCancel} disabled={!isBeingEdited || isProcessing} size="small">Cancel</Button>
-                <Button variant='contained' onClick={handleOnSave} disabled={!isBeingEdited || isProcessing} size="small">Save</Button>
+                <Button onClick={handleOnSave} size="small" variant="contained" color="primary">Save changes</Button>
                 <Tooltip title="Deletes the project and all its events. If the project is already exported, it deletes the calendar from Google Calendar.">
-                    <Button variant='contained' onClick={handleOnDeleteClick} disabled={isProcessing} size="small">Delete</Button>
+                    <Button onClick={handleOnDeleteClick} size="small" variant="contained" color="secondary">Delete</Button>
                 </Tooltip>
                 {!props.project.exportedToGoogle &&
                     <Tooltip title="Export all the project's events to your Google calendar. This creates a new Calendar for the events.">
-                        <Button variant='contained' onClick={handleOnExportClick} disabled={isProcessing} size="small">Export</Button>
+                        <Button onClick={handleOnExportClick} size="small" variant="contained">Export</Button>
                     </Tooltip>
                 }
             </ButtonGroup>
@@ -366,10 +368,8 @@ export const Project = (props) => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCancelDelete}>Cancel</Button>
-                    <Button onClick={handleConfirmDelete} autoFocus>
-                        Delete
-                    </Button>
+                    <Button onClick={handleCancelDelete} variant="contained" color="primary">Cancel</Button>
+                    <Button onClick={handleConfirmDelete} variant="contained" color="secondary">Delete</Button>
                 </DialogActions>
             </Dialog>
         </>

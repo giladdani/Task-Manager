@@ -5,6 +5,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { ConstraintsAccordion } from '../components/constraints/ConstraintsAccordion'
 import Button from "@material-ui/core/Button";
+import FormLabel from '@mui/material/FormLabel';
+import { FormGroup } from '@mui/material';
 import { DaysCheckbox } from '../components/general/DaysCheckbox';
 const ConstraintsAPI = require('../apis/ConstraintsAPI.js');
 
@@ -65,24 +67,27 @@ export const Constraints = () => {
                                 key={rerenderFlag}
                             ></ConstraintsAccordion>
                         </td>
-                        <td className="center_elem">
+                        <td className="center_elem spaced-table">
                             <h2>Create constraint</h2>
-                            <table>
+                            <table className="spaced-table">
                                 <tbody>
                                     <tr>
-                                        <td><label>Name:</label></td>
+                                        {/* <td><label>Name:</label></td> */}
                                         <td>
-                                            <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" />
+                                            <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" size="small" label="Name" focused/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><label>Days:</label></td>
+                                        {/* <td><label>Days:</label></td> */}
                                         <td>
-                                            <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
+                                            <FormLabel>Day repetition:</FormLabel>
+                                            <FormGroup>
+                                                <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
+                                            </FormGroup>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><label>Start time:</label></td>
+                                        {/* <td><label>Start time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
@@ -90,12 +95,13 @@ export const Constraints = () => {
                                                     onChange={(newValue) => { setConstraintStartTime(newValue) }}
                                                     renderInput={(params) => <TextField {...params} />}
                                                     ampm={false}
+                                                    label="Start time"
                                                 />
                                             </LocalizationProvider>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><label>End time:</label></td>
+                                        {/* <td><label>End time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
@@ -103,12 +109,13 @@ export const Constraints = () => {
                                                     onChange={(newValue) => { setConstraintEndTime(newValue) }}
                                                     renderInput={(params) => <TextField {...params} />}
                                                     ampm={false}
+                                                    label="End time"
                                                 />
                                             </LocalizationProvider>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><Button variant='contained' onClick={handleCreateClick}>Create</Button></td>
+                                        <td><Button variant='contained' onClick={handleCreateClick} color="primary">Create</Button></td>
                                     </tr>
                                 </tbody>
                             </table>

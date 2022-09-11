@@ -16,6 +16,15 @@
   border-radius: 40%;
 }
 
+/** DynamicInputList **/
+.first-division {
+  margin-bottom: 10px;
+}
+
+.first-division button {
+  margin-left: 10px;
+}
+
 /** MUI **/
 
 .MuiChip-root,
@@ -26,9 +35,27 @@
 .whiteFont .MuiOutlinedInput-root,
 .whiteFont .MuiOutlinedInput-root fieldset,
 .whiteFont .MuiOutlinedInput-root:hover fieldset,
-.whiteFont .Mui-focused fieldset{
+.whiteFont .Mui-focused fieldset,
+.whiteFont .MuiSvgIcon-root,
+.whiteFont .MuiFormLabel-root {
   color: white !important;
   border-color:white!important
+}
+
+.MuiFormControl-root {
+  width: 225px!important;
+}
+
+.MuiFormControlLabel-root { /* fix checkbox group placement */
+  margin-left: 0px!important;
+}
+
+.MuiFormControl-root { /* fix tags MultipleSelectChip placement */
+  margin: 0px!important;
+}
+
+.MuiTextField-root {
+  width: 225px;
 }
 
 .MuiOutlinedInput-root fieldset {
@@ -46,6 +73,16 @@
 .MuiMenuItem-root {
   display: flex !important;
 }
+
+.MuiButton-root {
+  margin: 3px!important;
+}
+
+/* tags col ProjectsAccordion */
+/* td .MuiPaper-root {
+  background-color: transparent!important;
+  box-shadow: none!important;
+} */
 
 .MuiPaper-root {
   min-width: 0px !important;
@@ -68,14 +105,13 @@ div svg {
 
 /**/
 
-.border {
+/* .border {
   border: 1px solid white;
   padding: 10px;
-}
+} */
 
-.horizontalAlign {
-  float: left;
-  clear: none;
+.spaced-table td {
+  padding-bottom: 15px;
 }
 
 /** NavBar **/

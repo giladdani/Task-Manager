@@ -12,6 +12,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
+import FormLabel from '@mui/material/FormLabel';
+import { FormGroup } from '@mui/material';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { DynamicInputList } from '../components/general/DynamicInputList';
 import MultipleSelectChip from '../components/general/MultipleSelectChip';
@@ -299,207 +301,221 @@ export const Projects = (props) => {
 
     return (
         <>
-            {/* <Snackbar msg={snackbarMsg} key={renderFlag}></Snackbar> */}
             <h1>Create project schedule</h1>
-            <table className="whiteFont">
+            <table className="whiteFont full_width">
                 <tbody>
                     <tr>
                         <td>
-                            <label>Shared project? </label>
+                            <table className="spaced-table center_elem center_text">
+                                <tbody>
+                                    <tr>
+                                        {/* <td><label>Shared project? </label></td> */}
+                                        <td>
+                                            <FormControlLabel control={<Checkbox checked={shareChecked} onChange={handleShareCheckboxChange} />} label="Shared project?"/>
+                                        </td>
+                                    </tr>
+                                    <tr hidden={!shareChecked}>
+                                        {/* <td><label>Users to share with:</label></td> */}
+                                        <td>
+                                            <DynamicInputList
+                                                disabled={!shareChecked}
+                                                updateList={updateEmailList}
+                                                placeholder="User email..."
+                                            />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>Project Name:</label></td> */}
+                                        <td>
+                                            <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" label="Project name" focused/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>Estimated Time (Hours):</label></td> */}
+                                        <td>
+                                            <TextField
+                                                type="number"
+                                                onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}
+                                                InputProps={{ inputProps: { min: 0 } }}
+                                                value={estimatedTime}
+                                                size="small"
+                                                label="Estimated time (hours)"
+                                                focused
+                                            />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>Session Length (Minutes):</label></td> */}
+                                        <td>
+                                            <TextField
+                                                type="number"
+                                                onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}
+                                                InputProps={{ inputProps: { min: 0 } }}
+                                                value={sessionLengthMinutes}
+                                                size="small"
+                                                label="Session length (minutes)"
+                                                focused
+                                            />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td>
+                                                <label>Break Between Sessions (Minutes):</label>
+                                        </td> */}
+                                        <td>
+                                            <Tooltip title="How long of a break\spacing would you like between your sessions?">
+                                                <TextField
+                                                type="number"
+                                                onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}
+                                                InputProps={{ inputProps: { min: 0 } }}
+                                                value={spacingLengthMinutes}
+                                                size="small"
+                                                label="Break between sessions (minutes):"
+                                                focused
+                                                />
+                                            </Tooltip>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>Start Date:</label></td> */}
+                                        <td>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <DateTimePicker
+                                                    value={startDate}
+                                                    inputFormat="dd/MM/yyyy HH:mm"
+                                                    onChange={(newValue) => { setStartDate(newValue) }}
+                                                    renderInput={(props) => <TextField {...props} />}
+                                                    ampm={false}
+                                                    label="Start date"
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>End Date:</label></td> */}
+                                        <td>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <DateTimePicker
+                                                    value={endDate}
+                                                    inputFormat="dd/MM/yyyy HH:mm"
+                                                    onChange={(newValue) => { setEndDate(newValue) }}
+                                                    renderInput={(props) => <TextField {...props} />}
+                                                    ampm={false}
+                                                    minDateTime={new Date()}
+                                                    label="End date"
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </td>
+
+                        {/* RIGHT COLUMN */}
+
                         <td>
-                            <FormControlLabel
-                                control={<Checkbox
-                                    checked={shareChecked}
-                                    onChange={handleShareCheckboxChange}
-                                />}
-                                label="Yes"
-                            />
-                        </td>
-                    </tr>
-                    <tr hidden={!shareChecked}>
-                        <td><label>Users to share with:</label></td>
-                        <td>
-                            <DynamicInputList
-                                disabled={!shareChecked}
-                                updateList={updateEmailList}
-                            />
+                            <table className="spaced-table">
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
+                                                <span>Daily time frame</span>
+                                            </Tooltip>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>Start time:</label></td> */}
+                                        <td>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <TimePicker
+                                                    value={dailyStartHour}
+                                                    onChange={(newValue) => { setDailyStartHour(newValue) }}
+                                                    renderInput={(params) => <TextField {...params} />}
+                                                    ampm={false}
+                                                    label="Start time"
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td><label>End time:</label></td> */}
+                                        <td>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <TimePicker
+                                                    value={dailyEndHour}
+                                                    onChange={(newValue) => { setDailyEndHour(newValue) }}
+                                                    renderInput={(params) => <TextField {...params} />}
+                                                    ampm={false}
+                                                    label="End time:"
+                                                />
+                                            </LocalizationProvider>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td>
+                                                <label>Max sessions per day: </label>
+                                        </td> */}
+                                        <td>
+                                            <Tooltip title="How many sessions at maximum per day. Leave undefined for unlimited (as much as possible).">
+                                                <TextField
+                                                    type="number"
+                                                    onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}
+                                                    InputProps={{ inputProps: { min: 1 } }}
+                                                    value={maxEventsPerDay}
+                                                    label="Max sessions per day:"
+                                                    focused
+                                                />
+                                            </Tooltip>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td>
+                                            <label>
+                                                Day repetition:
+                                            </label>
+                                        </td> */}
+                                        <td>
+                                            <Tooltip title="Determine which days you would like to work on the project." placement="right">
+                                                <FormLabel>Day repetition:</FormLabel>
+                                            </Tooltip>
+                                                <FormGroup>
+                                                    <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
+                                                </FormGroup>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        {/* <td>
+                                            <label>Constraints to ignore: </label>
+                                        </td> */}
+                                        <td>
+                                            <form>
+                                                <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange} label="Constraints to ignore:"></MultipleSelectChip>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                     <tr>
-                        <td>
-                            <label>Project Name:</label>
-                        </td>
-                        <td>
-                            {/* <input type="text" onChange={(newValue) => { setProjectName(newValue.target.value) }}></input> */}
-                            <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label>Estimated Time (Hours):</label>
-                        </td>
-                        <td>
-                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}></input> */}
-                            <TextField
-                                type="number"
-                                onChange={(newValue) => { setEstimatedTime(newValue.target.value) }}
-                                InputProps={{ inputProps: { min: 0 } }}
-                                value={estimatedTime}
-                                size="small"
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label>Session Length (Minutes):</label>
-                        </td>
-                        <td>
-                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}></input> */}
-                            <TextField
-                                type="number"
-                                onChange={(newValue) => { setSessionLengthMinutes(newValue.target.value) }}
-                                InputProps={{ inputProps: { min: 0 } }}
-                                value={sessionLengthMinutes}
-                                size="small"
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <Tooltip title="How long of a break\spacing would you like between your sessions?">
-                                <label>Break Between Sessions (Minutes):</label>
-                            </Tooltip>
-                        </td>
-                        <td>
-                            {/* <input type="number" min="1" step="1" onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}></input> */}
-                            <TextField
-                                type="number"
-                                onChange={(newValue) => { setSpacingLengthMinutes(newValue.target.value) }}
-                                InputProps={{ inputProps: { min: 0 } }}
-                                size="small"
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>Start Date:</label></td>
-                        <td>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <DateTimePicker
-                                    value={startDate}
-                                    inputFormat="dd/MM/yyyy HH:mm"
-                                    onChange={(newValue) => { setStartDate(newValue) }}
-                                    renderInput={(props) => <TextField {...props} />}
-                                    ampm={false}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>End Date:</label></td>
-                        <td>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <DateTimePicker
-                                    value={endDate}
-                                    inputFormat="dd/MM/yyyy HH:mm"
-                                    onChange={(newValue) => { setEndDate(newValue) }}
-                                    renderInput={(props) => <TextField {...props} />}
-                                    ampm={false}
-                                    minDateTime={new Date()}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                    </tr>
-                    <tr>
-                        <td>
-                            <Tooltip title="These determine what is the daily time frame you would like for the project's events. For example, setting 15:00-19:00 means the application will only fit your sessions within those hours.">
-                                <p>Daily time frame</p>
-                            </Tooltip>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>Start time:</label></td>
-                        <td>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={dailyStartHour}
-                                    onChange={(newValue) => { setDailyStartHour(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                    ampm={false}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label>End time:</label></td>
-                        <td>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <TimePicker
-                                    value={dailyEndHour}
-                                    onChange={(newValue) => { setDailyEndHour(newValue) }}
-                                    renderInput={(params) => <TextField {...params} />}
-                                    ampm={false}
-                                />
-                            </LocalizationProvider>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <Tooltip title="How many sessions at maximum per day. Leave undefined for unlimited (as much as possible).">
-                                <label>Max sessions per day: </label>
-                            </Tooltip>
-                        </td>
-                        <td>
-                            {/* <input type="number" onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}></input> */}
-                            <TextField
-                                type="number"
-                                onChange={(newValue) => { setMaxEventsPerDay(newValue.target.value) }}
-                                InputProps={{ inputProps: { min: 1 } }}
-                                value={maxEventsPerDay}
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <Tooltip title="Determine which days you would like to work on the project.">
-                                <label>
-                                    Day repetition:
-                                </label>
-                            </Tooltip>
-                        </td>
-                        <td>
-                            <DaysCheckbox startChecked={true} setDays={handleSetDays}></DaysCheckbox>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label>Constraints to ignore: </label>
-                        </td>
-                        <td>
-                            <form >
-                                <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange}></MultipleSelectChip>
-                            </form>
+                        <td className="center_text" colSpan={"2"}>
+                            <Button variant='contained' onClick={handleGenerateClick} color="primary" disabled={isLoading}>Generate</Button>
+                            <Dialog open={isLoading}>
+                                <DialogTitle>Generating project schedule...</DialogTitle>
+                                <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
+                            </Dialog>
+
+                            <Dialog open={successDialogOpen}>
+                                <DialogTitle>Success!</DialogTitle>
+                                <DialogContent>Project created successfully.</DialogContent>
+                                <DialogActions>
+                                    <Button onClick={handleDialogClose}>Close</Button>
+                                </DialogActions>
+                            </Dialog>
                         </td>
                     </tr>
                 </tbody>
             </table>
-
-            <Button variant='contained' onClick={handleGenerateClick} disabled={isLoading}>Generate</Button>
-
-            <Dialog open={isLoading}>
-                <DialogTitle>Generating project schedule...</DialogTitle>
-                <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
-            </Dialog>
-
-            <Dialog open={successDialogOpen}>
-                <DialogTitle>Success!</DialogTitle>
-                <DialogContent>Project created successfully.</DialogContent>
-                <DialogActions>
-                    <Button onClick={handleDialogClose}>Close</Button>
-                </DialogActions>
-            </Dialog>
         </>
     )
 }
