@@ -861,7 +861,9 @@ const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
 
 function getStartDate(project) {
     let startDate = new Date(project.start);
-    startDate = getNextDate(project, startDate, 0);
+    if (project.daysOfWeek && !project.daysOfWeek.includes(startDate.getDay())) {
+        startDate = getNextDate(project, startDate, 0);
+    }
 
     return startDate;
 }

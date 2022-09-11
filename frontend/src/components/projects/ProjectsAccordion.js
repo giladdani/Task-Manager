@@ -3,6 +3,8 @@ import { styled } from '@mui/material/styles';
 import { ThreeDots } from 'react-loader-spinner'
 import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp';
 import MuiAccordion from '@mui/material/Accordion';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import MuiAccordionDetails from '@mui/material/AccordionDetails';
 import { Project } from './Project';
@@ -38,6 +40,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 
 export const ProjectsAccordion = (props) => {
   const [expanded, setExpanded] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [allProjects, setAllProjects] = useState();
   const componentMounted = useRef(true);
 
@@ -84,7 +87,7 @@ export const ProjectsAccordion = (props) => {
   }
 
   const exportProject = async (project) => {
-
+    setIsProcessing(true);
     ProjectsAPI.exportProject(project)
       .then(response => {
         if (isValidStatus(response, ProjectsAPI.exportProjectValidStatusArr)) {
@@ -98,6 +101,7 @@ export const ProjectsAccordion = (props) => {
         console.error(err);
         props.setNotificationMsg("Failed to export");
       })
+      .finally(() => setIsProcessing(false));
   }
 
   const handleChange = (panel) => (event, newExpanded) => {
@@ -134,6 +138,16 @@ export const ProjectsAccordion = (props) => {
           )
         })
       }
+
+      <Dialog open={isProcessing}>
+        {/* <DialogTitle>Generating project schedule...</DialogTitle> */}
+        <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
+      </Dialog>
+
+      {/* <div hidden={!isProcessing} className="center_text">
+        <h5>Working on it</h5>
+        <ThreeDots color="#00BFFF" height={80} width={80} />
+      </div> */}
     </>
   );
 }

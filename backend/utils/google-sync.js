@@ -22,8 +22,9 @@ const syncGoogleData = async (accessToken, email) => {
     const oauth2Client = utils.getOauth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     // utils.oauth2Client.setCredentials({ access_token: accessToken });
-    const googleCalendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
-
+    // const googleCalendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
+    
+    const googleCalendarClient = utils.getGAPIClientCalendar(accessToken);
     const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
     await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
     let newCalendarId2Sync = await getNewCalendarsIds(unsyncedGoogleCalendars, email);
