@@ -91,6 +91,46 @@ async function findByTimestamp(email, timeStamp) {
 }
 
 /**
+ * Finds all the events with reference to the provided tags, in their active fields only (meaning not in the ignored tags array)
+ * @param {*} arrTagIds An array of tag IDs.
+ * @param {*} email Optional.
+ */
+ async function findByActiveTags(arrTagIds, email) {
+    let filter = {
+        $or: [
+            {
+                "tags.independentTagIds": {
+                    $in: arrTagIds
+                }
+            },
+            {
+                "tags.projectTagIds": {
+                    $in: arrTagIds
+                }
+            },
+        ]
+    }
+
+    if (email) filter.email = email;
+
+    return find(filter);
+}
+
+async function findByTag(email, tagId) {
+    let promise = await Model.find(
+        {
+            email: email,
+            $or: [
+                { "tags.independentTagIds": tagId },
+                { "tags.projectTagIds": tagId },
+            ]
+        }
+    )
+
+    return promise;
+}
+
+/**
  * When patching a project, certain fields also "trickle down" to the events.
  * This updates all events related to the updated project, with the new fields.
  * @param {*} projectId The ID of the project that was patched.
@@ -189,6 +229,8 @@ module.exports = {
     // Custom Functions
     findByProject: findByProject,
     findByTimestamp: findByTimestamp,
+    findByTag: findByTag,
+    findByActiveTags: findByActiveTags,
     patchEventsFromProjectPatch: patchEventsFromProjectPatch,
     deleteTags: deleteTags,
 }

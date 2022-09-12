@@ -79,7 +79,7 @@ function fc_GetActiveTagIds(fcEvent) {
     let allTagIds = [];
     let independentTagsIds = fc_GetTagByField(fcEvent, "independentTagIds");
     let projectTagIds = fc_GetTagByField(fcEvent, "projectTagIds");
-    if(independentTagsIds != null){
+    if (independentTagsIds != null) {
         allTagIds = independentTagsIds.concat(projectTagIds);
     }
 
@@ -120,7 +120,7 @@ function fc_GetIgnoredProjectTagIds(fcEvent) {
 /**
  * @returns [independentTagsIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
  */
- function unex_GetAllTagIds(unexEvent) {
+function unex_GetAllTagIds(unexEvent) {
     let independentTagsIds = unex_GetTagsByField(unexEvent, 'independentTagIds');
     let projectTagIds = unex_GetTagsByField(unexEvent, 'projectTagIds');
     let ignoredProjectTagIds = unex_GetTagsByField(unexEvent, 'ignoredProjectTagIds');
@@ -135,21 +135,27 @@ function unex_GetTagsByField(unexEvent, fieldName) {
 }
 
 /**
- * @returns [independentTagIds, projectTagIds, ignoredProjectTagIds], null if they don't exist.
+ * @returns tag object with the fields: {independentTagIds, projectTagIds, ignoredProjectTagIds}
  */
 function g_GetAllTagsIds(gEvent) {
     let independentTagIds = g_GetTagIdsByField(gEvent, 'independentTagIds');
     let projectTagIds = g_GetTagIdsByField(gEvent, 'projectTagIds');
     let ignoredProjectTagIds = g_GetTagIdsByField(gEvent, 'ignoredProjectTagIds');
 
-    return [independentTagIds, projectTagIds, ignoredProjectTagIds];
+    let tags = {
+        independentTagIds: independentTagIds,
+        projectTagIds: projectTagIds,
+        ignoredProjectTagIds: ignoredProjectTagIds,
+    }
+
+    return tags;
 }
 
 function g_GetTagIdsByField(gEvent, fieldName) {
     if (!gEvent) return null;
     if (!gEvent.tags) return null;
     return gEvent.tags[fieldName];
-    
+
     // ! DELETE if all works well Old version, where tags were saved in extended properties
     // // if (!gEvent) return null;
     // // if (!gEvent.extendedProperties) return null;
@@ -282,6 +288,59 @@ function g_getAppEventId(gEvent) {
 }
 
 /**
+ * Returns the end date of a database event, whether Google or Unexported.
+ * @param {*} event 
+ */
+const db_GetEventEndDate = (event) => {
+    let date = null;
+
+    /**
+    * We need to perform this check because Google's event resource is different than FullCalendar's when it comes to saving the time.
+    * Google saves under "end" and "start" two fields "date" and "dateTime".
+    * FullCalendar just uses "end" and "start".
+     */
+    if (event.isGoogleEvent) {
+        date = new Date(event.end.dateTime)
+    } else {
+        date = new Date(event.end);
+    }
+
+    return date;
+}
+
+/**
+ * Returns the start date of a database event, whether Google or Unexported.
+ * @param {*} event 
+ */
+ const db_GetEventStartDate = (event) => {
+    let date = null;
+
+    /**
+    * We need to perform this check because Google's event resource is different than FullCalendar's when it comes to saving the time.
+    * Google saves under "end" and "start" two fields "date" and "dateTime".
+    * FullCalendar just uses "end" and "start".
+     */
+    if (event.isGoogleEvent) {
+        date = new Date(event.start.dateTime)
+    } else {
+        date = new Date(event.start);
+    }
+
+    return date;
+}
+
+/**
+ * Returns true if the event is a Google event.
+ * @param {*} dbEvent An event from the server's database.
+ * @returns 
+ */
+const db_IsGoogleEvent = (dbEvent) => {
+    return dbEvent.isGoogleEvent;
+}
+
+
+
+/**
  * Google objects and unexported objects are structured differently in our DB.
  * We use prefixes with functions to determine what sort of object they deal with:
  * * "g_" for Google event
@@ -306,4 +365,8 @@ module.exports = {
 
     g_getProjectId: g_getProjectId,
     g_getAppEventId: g_getAppEventId,
+
+    db_GetEventEndDate: db_GetEventEndDate,
+    db_GetEventStartDate: db_GetEventStartDate,
+    db_IsGoogleEvent: db_IsGoogleEvent,
 }
