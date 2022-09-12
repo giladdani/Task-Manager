@@ -129,6 +129,32 @@ async function findByTags(arrTagIds, email) {
     return find(filter);
 }
 
+/**
+ * Finds all the events with reference to the provided tags, in their active fields only (meaning not in the ignored tags array)
+ * @param {*} arrTagIds An array of tag IDs.
+ * @param {*} email Optional.
+ */
+ async function findByActiveTags(arrTagIds, email) {
+    let filter = {
+        $or: [
+            {
+                "tags.independentTagIds": {
+                    $in: arrTagIds
+                }
+            },
+            {
+                "tags.projectTagIds": {
+                    $in: arrTagIds
+                }
+            },
+        ]
+    }
+
+    if (email) filter.email = email;
+
+    return find(filter);
+}
+
 
 
 
@@ -151,4 +177,6 @@ module.exports = {
     findByCalendar: findByCalendar,
     updateFetchStatus: updateFetchStatus,
     findByTags: findByTags,
+    findByActiveTags: findByActiveTags,
+
 }

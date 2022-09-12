@@ -65,13 +65,13 @@ async function fetchUnsyncedUnexportedEventsData(timeStamp) {
 
     if (timeStamp) {
         dataPromise = fetchUnsyncedUnexportedEventsRes(timeStamp)
-        .then(response => {
-            if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedUnexportedEvents)) {
-                return apiUtils.getResData(response);
-            } else {
-                return null;
-            }
-        })
+            .then(response => {
+                if (APIUtils.isValidStatus(response, validStatusArr_fetchUnsyncedUnexportedEvents)) {
+                    return apiUtils.getResData(response);
+                } else {
+                    return null;
+                }
+            })
     } else {
         dataPromise = fetchAllUnexportedEventsData();
     }
@@ -101,6 +101,24 @@ async function fetchAllUnexportedEventsData() {
 
 async function fetchAllUnexportedEventsRes() {
     const responsePromise = fetch(`${consts.fullRouteEvents}/unexported`, {
+        headers: consts.standardHeaders,
+        method: 'GET'
+    });
+
+    return responsePromise;
+}
+
+async function fetchTagEventsData(tagId) {
+    let dataPromise = fetchTagEventsRes(tagId)
+        .then(response => {
+            return apiUtils.getResData(response);
+        })
+
+    return dataPromise;
+}
+
+async function fetchTagEventsRes(tagId) {
+    const responsePromise = fetch(`${consts.fullRouteEvents}/tag/${tagId}`, {
         headers: consts.standardHeaders,
         method: 'GET'
     });
@@ -171,6 +189,7 @@ module.exports = {
     fetchUnsyncedGoogleEventsData: fetchUnsyncedGoogleEventsData,
     fetchUnsyncedUnexportedEventsData: fetchUnsyncedUnexportedEventsData,
     fetchProjectEventsData: fetchProjectEventsData,
+    fetchTagEventsData: fetchTagEventsData,
     updateEvent: updateEvent,
     deleteEvent: deleteEvent,
 }

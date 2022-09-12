@@ -234,44 +234,21 @@ export class Schedules extends React.Component {
             borderColor: gEvent.foregroundColor,
         }
 
-        let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
+        let tags = eventUtils.g_GetAllTagsIds(gEvent);
         let extendedProps = {
-            tags: {
-                independentTagsIds: independentTagsIds,
-                projectTagIds: projectTagIds,
-                ignoredProjectTagIds: ignoredProjectTagIds,
-            }
+            tags: tags,
         }
 
-        this.updateEventFields(fcEvent, start, end, regularProps, extendedProps);
-
-        // ! DELETE old code: before there was a dedicated function
-        // // let start = gEvent.start.dateTime;
-        // // let end = gEvent.end.dateTime;
-        // // let originalEditableSetting = fullCalendarEvent.editable;
-
-        // // /**
-        // //  * TODO:
-        // //  * If a Google event is all day, I think the fields aren't "dateTime" but rather "date".
-        // //  * In which case our code so far doesn't detect it.
-        // //  * Our app in general doesn't handle full day events.
-        // //  */
-        // // if (!start || !end) {
-        // //     return;
+        // // let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
+        // // let extendedProps = {
+        // //     tags: {
+        // //         independentTagsIds: independentTagsIds,
+        // //         projectTagIds: projectTagIds,
+        // //         ignoredProjectTagIds: ignoredProjectTagIds,
+        // //     }
         // // }
 
-        // // fullCalendarEvent.setProp("editable", true);
-        // // fullCalendarEvent.setDates(start, end);
-        // // fullCalendarEvent.setProp("title", gEvent.summary);
-        // // fullCalendarEvent.setProp("backgroundColor", gEvent.backgroundColor);
-        // // fullCalendarEvent.setProp("borderColor", gEvent.foregroundColor);
-
-        // // let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
-        // // fullCalendarEvent.setProp("extendedProps.independentTagsIds", independentTagsIds);
-        // // fullCalendarEvent.setProp("extendedProps.projectTagIds", projectTagIds);
-        // // fullCalendarEvent.setProp("extendedProps.ignoredProjectTagIds", ignoredProjectTagIds);
-
-        // // fullCalendarEvent.setProp("editable", originalEditableSetting);
+        this.updateEventFields(fcEvent, start, end, regularProps, extendedProps);
     }
 
     handleEventDragged = async (eventInfo) => {
@@ -402,7 +379,9 @@ export class Schedules extends React.Component {
         const localEventId = eventUtils.g_getAppEventId(event);
         const googleEventId = event.id;
         const editable = eventUtils.g_accessRoleAllowsWriting(event);
-        const [independentTagIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(event);
+        const tags = eventUtils.g_GetAllTagsIds(event);
+        // const [independentTagIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(event);
+
 
         fcEvent = {
             id: localEventId,
@@ -417,9 +396,10 @@ export class Schedules extends React.Component {
             borderColor: event.foregroundColor,
             backgroundColor: event.backgroundColor,
             accessRole: event.accessRole,
-            independentTagIds: independentTagIds,
-            projectTagIds: projectTagIds,
-            ignoredProjectTagIds: ignoredProjectTagIds,
+            tags: tags,
+            // independentTagIds: independentTagIds,
+            // projectTagIds: projectTagIds,
+            // ignoredProjectTagIds: ignoredProjectTagIds,
         }
 
         return fcEvent;

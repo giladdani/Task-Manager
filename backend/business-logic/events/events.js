@@ -15,6 +15,7 @@ router.get('/google', (req, res) => { getGoogleEvents(req, res) });
 router.get('/google/unsynced', (req, res) => { getUnsyncedGoogleEvents(req, res) });
 router.get('/unexported/unsynced/:timeStamp', (req, res) => { getUnsyncedUnexportedEvents(req, res) });
 router.get('/project/:projectId', (req, res) => { getProjectEvents(req, res) }); // TODO: change route, this is confusing.
+router.get('/tag/:tagId', (req, res) => { getTagEvents(req, res) }); 
 router.post('/', (req, res) => { insertEventToCalendar(req, res) });
 router.delete('/', (req, res) => { deleteEvent(req, res) });
 router.patch('/:id', (req, res) => { updateEvent(req, res) });
@@ -36,6 +37,39 @@ const getAllUnexportedEvents = async (req, res) => {
     } catch (err) {
         console.log(`[getAllUnexportedEvents] Error!\n${err}`);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
+    }
+}
+
+/**
+ * Returns the events with a specific tag
+ * @param {*} req 
+ * @param {*} res 
+ */
+ const getTagEvents = async (req, res) => {
+    let tagEvents = [];
+    let error = null;
+
+    try {
+        let tagId = req.params.tagId
+        console.log(`[getTagEvents] Start. Tag ID: ${tagId}`)
+        let email = utils.getEmailFromReq(req);
+
+        let tagIdsArr = [tagId];
+        let googleEvents = await dbGoogleEvents.findByActiveTags(tagIdsArr, email);
+        let unexportedEvents = await dbUnexportedEvents.findByActiveTags(tagIdsArr, email);
+
+        if (googleEvents) {
+            tagEvents = googleEvents.concat(unexportedEvents);
+        }
+    } catch (err) {
+        console.error(`[getTagEvents] ERROR:\n${err}`);
+        error = err;
+    }
+
+    if (!error) {
+        res.status(StatusCodes.OK).send(tagEvents);
+    } else {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
 }
 
