@@ -56,7 +56,7 @@ export class Schedules extends React.Component {
 
         let tagsPromise = TagsAPI.fetchTagsData()
             .then(allTags => {
-                this.setState({allUserTags: allTags});
+                this.setState({ allUserTags: allTags });
             })
 
         Promise.all([googlePromise, constraintsPromise, projectPromise, tagsPromise])
@@ -227,7 +227,7 @@ export class Schedules extends React.Component {
         if (!start || !end) {
             return;
         }
-        
+
         let regularProps = {
             title: gEvent.summary,
             backgroundColor: gEvent.backgroundColor,
@@ -342,8 +342,11 @@ export class Schedules extends React.Component {
             let calendarApi = this.state.calendarRef.current.getApi();
 
             events.forEach(event => {
-                event.borderColor = 'black';
-                calendarApi.addEvent(event)
+                
+                if (!event.status || event.status !== 'cancelled') {
+                    event.borderColor = 'black';
+                    calendarApi.addEvent(event)
+                }
             });
         } catch (err) {
             console.log(`[addEventsToScheduleFullCalendar] Error:\n${err}`);
@@ -527,7 +530,7 @@ export class Schedules extends React.Component {
         let eventTagIds = [];
 
         // if no tag was selected- show all events
-        if(selectedTags.length == 0) {
+        if (selectedTags.length == 0) {
             nonConstraintEvents.forEach(event => {
                 event.setProp("display", "auto");
             })
@@ -539,9 +542,9 @@ export class Schedules extends React.Component {
             // filter events according to selectedTags
             filteredEvents = nonConstraintEvents.filter(event => {
                 eventTagIds = eventUtils.fc_GetActiveTagIds(event);
-                if(eventTagIds.length > 0) {
+                if (eventTagIds.length > 0) {
                     return selectedTags.some(tag => {
-                        return eventTagIds.includes(tag.id); 
+                        return eventTagIds.includes(tag.id);
                     })
                 }
             })
@@ -568,7 +571,7 @@ export class Schedules extends React.Component {
                         <label>Filter by tag:</label>
                         <MultipleSelectChip items={this.state.allUserTags} onSelectChange={this.handleFilterTagsChange}></MultipleSelectChip>
                     </div>
-                    
+
                     <FullCalendar
                         plugins={[timeGridPlugin, interactionPlugin]}
                         headerToolbar={{
