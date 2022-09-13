@@ -465,10 +465,15 @@ const deleteProject = async (req, res) => {
                                 calendarId: googleCalendarId,
                         })
                 } else {
-                        await dbUnexportedEvents.deleteMany({ 'projectId': projectId });
+                        // await dbUnexportedEvents.deleteMany({ 'projectId': projectId });
+                        // await dbUnexportedEvents.deleteMany({ 'projectSharedId': project.sharedId });
+
+                        let docs = await dbUnexportedEvents.updateOne({ 'projectId': projectId }, { $set: { status: 'cancelled' } });
+                        let docsShared = await dbUnexportedEvents.updateMany({ projectSharedId: project.sharedId }, { $set: { status: 'cancelled' } });
                 }
 
                 await dbProjects.deleteOne({ 'id': projectId });
+                await dbProjects.deleteMany({ 'sharedId': project.sharedId });
         } catch (err) {
                 errorMsg = err;
                 console.error(err);

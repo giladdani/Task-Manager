@@ -16,6 +16,7 @@ const unexportedEventSchema = new Schema(
         backgroundColor: String,
         unexportedEvent: Boolean,
         email: String,
+        status: String,
         tags: {
             independentTagIds: [String],
             projectTagIds: [String],
