@@ -400,6 +400,10 @@ const filterEvents = (allEvents, startDateOriginal, endDate) => {
             return false;
         }
 
+        if (event.status === 'cancelled') {
+            return false;
+        }
+
         return (eventEndDate >= startDate
             && eventStartDate <= endDate);
     })

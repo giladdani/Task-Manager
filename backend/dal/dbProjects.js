@@ -24,6 +24,12 @@ async function deleteOne(query) {
     return promise;
 }
 
+async function deleteMany(query) {
+    const promise = Model.deleteMany(query);
+
+    return promise;
+}
+
 async function updateOne(filter, update) {
     promise = Model.updateOne(filter, update);
 
@@ -160,6 +166,7 @@ module.exports = {
     find: find,
     create: create,
     deleteOne: deleteOne,
+    deleteMany: deleteMany,
     updateOne: updateOne,
 
     // Custom Functions
