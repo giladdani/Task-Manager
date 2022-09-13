@@ -107,7 +107,7 @@ export const ConstraintsAccordion = (props) => {
       }
       {
         allConstraints && allConstraints.length === 0 &&
-        <p>You have no constraints</p>
+        <p className="center_text">You have no constraints</p>
       }
       {allConstraints &&
         allConstraints.map((constraint, index) => {
