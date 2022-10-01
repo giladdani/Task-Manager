@@ -19,24 +19,9 @@ export default function TagManagement(props) {
     const [newTagTitle, setNewTagTitle] = useState("");
 
     const handleCreate = () => {
-        // TagsAPI.createTag(newTagTitle)
-        //     .then(response => {
-        //         if (APIUtils.isValidStatus(response, TagsAPI.validStatusArr_createTag)) {
-        //             fetchAndSetAllTags();
-        //             markSelectedTags();
-        //             props.setNotificationMsg("Tag created");
-        //         } else {
-        //             props.setNotificationMsg("Failed to create, name must be unique"); // TODO: get the server response?
-        //         }
-        //     })
-        //     .catch(err => {
-        //         console.error(err);
-        //         props.setNotificationMsg("Failed to create"); // TODO: get the server response?
-        //     })
     }
 
     const handleClose = () => {
-        // TODO: change to X
         props.onClose();
     }
 
@@ -48,9 +33,6 @@ export default function TagManagement(props) {
                 if (element.id) selectedIds.push(element.id);
             }
         }
-
-        // setSeletedTagIds(selectedIds);
-        // props.onTagsUpdate(selectedIds);
     }
 
     return (

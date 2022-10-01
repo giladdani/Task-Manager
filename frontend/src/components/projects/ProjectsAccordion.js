@@ -140,14 +140,8 @@ export const ProjectsAccordion = (props) => {
       }
 
       <Dialog open={isProcessing}>
-        {/* <DialogTitle>Generating project schedule...</DialogTitle> */}
         <DialogContent><ThreeDots color="#00BFFF" height={80} width={80} /></DialogContent>
       </Dialog>
-
-      {/* <div hidden={!isProcessing} className="center_text">
-        <h5>Working on it</h5>
-        <ThreeDots color="#00BFFF" height={80} width={80} />
-      </div> */}
     </>
   );
 }

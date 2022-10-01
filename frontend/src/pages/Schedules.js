@@ -76,7 +76,6 @@ export class Schedules extends React.Component {
     }
 
     updateUnsyncedEvents = async () => {
-        // TODO: add check if unmounted like in ProjectsAccordion. Problem: this is class, accordion is function. Can't use same code.
         if (this.state.requestingUnsyncedEvents === false) {
             this.setState({ requestingUnsyncedEvents: true }, () => {
                 console.log(`[updateUnsyncedEvents] Requesting from the server unsynced events.`)
@@ -218,12 +217,6 @@ export class Schedules extends React.Component {
         let start = gEvent.start.dateTime;
         let end = gEvent.end.dateTime;
 
-        /**
-         * TODO:
-         * If a Google event is all day, I think the fields aren't "dateTime" but rather "date".
-         * In which case our code so far doesn't detect it.
-         * Our app in general doesn't handle full day events.
-         */
         if (!start || !end) {
             return;
         }
@@ -238,15 +231,6 @@ export class Schedules extends React.Component {
         let extendedProps = {
             tags: tags,
         }
-
-        // // let [independentTagsIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(gEvent);
-        // // let extendedProps = {
-        // //     tags: {
-        // //         independentTagsIds: independentTagsIds,
-        // //         projectTagIds: projectTagIds,
-        // //         ignoredProjectTagIds: ignoredProjectTagIds,
-        // //     }
-        // // }
 
         this.updateEventFields(fcEvent, start, end, regularProps, extendedProps);
     }
@@ -373,7 +357,6 @@ export class Schedules extends React.Component {
     createFCEventFromGoogleEvent = (event) => {
         let fcEvent = null;
 
-        // TODO: some google events are full days, so they don't have hours. The code doesn't yet consider full-day events
         if (!event || !event.start || !event.end) {
             return fcEvent;
         }
@@ -383,8 +366,6 @@ export class Schedules extends React.Component {
         const googleEventId = event.id;
         const editable = eventUtils.g_accessRoleAllowsWriting(event);
         const tags = eventUtils.g_GetAllTagsIds(event);
-        // const [independentTagIds, projectTagIds, ignoredProjectTagIds] = eventUtils.g_GetAllTagsIds(event);
-
 
         fcEvent = {
             id: localEventId,
@@ -400,9 +381,6 @@ export class Schedules extends React.Component {
             backgroundColor: event.backgroundColor,
             accessRole: event.accessRole,
             tags: tags,
-            // independentTagIds: independentTagIds,
-            // projectTagIds: projectTagIds,
-            // ignoredProjectTagIds: ignoredProjectTagIds,
         }
 
         return fcEvent;
@@ -488,11 +466,6 @@ export class Schedules extends React.Component {
     }
 
     handleEventReschedule = async (event) => {
-        // ! DELETE after checking that promise code works well with returning the data
-        // // let rescheduledEvents = await ProjectsAPI.getRescheduledProjectEventsData(event);
-
-        // // return rescheduledEvents;
-
         return ProjectsAPI.getRescheduledProjectEventsData(event)
             .then(data => {
                 return data;

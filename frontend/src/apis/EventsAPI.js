@@ -60,7 +60,6 @@ async function fetchUnsyncedGoogleEventsRes() {
  * @returns 
  */
 async function fetchUnsyncedUnexportedEventsData(timeStamp) {
-    // if (!timeStamp) return null;
     let dataPromise;
 
     if (timeStamp) {

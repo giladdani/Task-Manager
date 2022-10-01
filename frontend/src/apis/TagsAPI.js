@@ -74,27 +74,6 @@ const fetchTagsRes = async () => {
     return response;
 }
 
-// // async function updateConstraint(partialConstraintEvent) {
-// //     console.log(`[TagsAPI - updateConstraint] Updating constraint ${partialConstraintEvent.title}`);
-
-// //     const body = {
-// //         days: partialConstraintEvent.days,
-// //         forbiddenStartDate: partialConstraintEvent.forbiddenStartDate,
-// //         forbiddenEndDate: partialConstraintEvent.forbiddenEndDate,
-// //         title: partialConstraintEvent.title,
-// //     };
-
-// //     let responsePromise = fetch(`http://localhost:3001/api/tags/${partialConstraintEvent.id}`, {
-// //         headers: consts.standardHeaders,
-// //         method: 'PUT',
-// //         body: JSON.stringify(body),
-// //     });
-
-// //     console.log(`[TagsAPI - updateConstraint] After server call, returning promise.`);
-
-// //     return responsePromise;
-// // }
-
 async function deleteTag(tagId) {
     console.log(`[TagsAPI - deleteTag] Deleting tag (ID: ${tagId})`);
 

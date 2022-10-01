@@ -14,12 +14,6 @@ function isValidStatus(response, validStatusArr) {
 
 function verifyAuthorized(response) {
     if (response.status === 401) {
-        // check if receive new access token
-        // if yes 
-            // reset access token in storage
-
-        // if not - perform logout
-        // Alert user that token has expired
         alert("Must login again!")
         generalUtils.handleLogout();
     }

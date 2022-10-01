@@ -209,21 +209,18 @@ const deleteUnexportedEvent = async (req, res) => {
     try {
         let event = await dbUnexportedEvents.findOne({id: eventId})
 
-        // let docs = await dbUnexportedEvents.deleteOne({ 'id': eventId })
+        /**
+         * Like Google we don't actually delete the data, we just change its status.
+         * This allows us to sync things live on the front, knowing if we need to remove an event or not
+         * based on its status.
+         */
         let docs = await dbUnexportedEvents.updateOne({'id': eventId}, {$set: {status: 'cancelled'}});
 
         if (event.sharedId) {
-            // let docShared = await dbUnexportedEvents.deleteMany({sharedId: event.sharedId});
             let docsShared = await dbUnexportedEvents.updateMany({sharedId: event.sharedId}, {$set: {status: 'cancelled'}});
         }
 
         res.status(StatusCodes.OK).send();
-
-        // if (docs.deletedCount == 1) {
-        //     res.status(StatusCodes.OK).send();
-        // } else {
-        //     res.status(StatusCodes.BAD_REQUEST).send("Could not find event ID.");
-        // }
     } catch (err) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(`Error with deleting unexported event: ${err}`);
     }

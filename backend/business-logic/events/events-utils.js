@@ -1,4 +1,3 @@
-const { google } = require('googleapis');
 const { StatusCodes } = require('http-status-codes');
 const dbGoogleEvents = require("../../dal/dbGoogleEvents");
 const dbProjects = require("../../dal/dbProjects");
@@ -25,8 +24,6 @@ async function patchUnexportedEventsFromProjectPatch(projectId, eventUpdates, re
         // TODO: change this to batch
         let [statusCode, msg] = await patchUnexportedEvent(unexEvent, eventUpdates, accessToken);
     }
-
-    // return dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates); // ! OLD CODE, delete if new works
 }
 
 async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
@@ -122,10 +119,6 @@ async function updateEquivalentGoogleEvent(unexEvent, accessToken, updateFields)
     }
 }
 
-
-
-
-
 /**
  * MongoDB documentation for updateOne(): 
  * https://www.mongodb.com/docs/manual/reference/method/db.collection.updateOne/
@@ -196,7 +189,6 @@ function getGEventPatchResource(updateFields, currEventTags) {
     if (updateFields.start) resource.start = { dateTime: new Date(updateFields.start) };
     if (updateFields.end) resource.end = { dateTime: new Date(updateFields.end) };
 
-    // resource = g_SortTags(resource, dbGEvent, updateFields);
     let updatedTags = sortUpdatedTags(currEventTags, updateFields);
     resource.extendedProperties = { private: {} };
     resource.extendedProperties.private[consts.gFieldName_IndTagIds] = updatedTags.independentTagIds.toString();
@@ -231,50 +223,6 @@ function sortUpdatedTags(currEventTags, updateFields) {
 
     return updatedTags;
 }
-
-// // /**
-// //  * @returns The update object with the relevant tag fields, if necessary, after sorting them and filtering per the sortTags function.
-// //  */
-// // function unex_SortTags(updateObj, unexEvent, updateFields) {
-// //     if (updateFields.independentTagIds || updateFields.projectTagIds || updateFields.ignoredProjectTagIds) {
-
-// //         // Prepare fields to call the sortTags function.
-// //         let independentTagIds = updateFields.independentTagIds ? updateFields.independentTagIds : unexEvent.independentTagIds;
-// //         let projectTagIds = updateFields.projectTagIds ? updateFields.projectTagIds : unexEvent.projectTagIds;
-// //         let ignoredProjectTagIds = updateFields.ignoredProjectTagIds ? updateFields.ignoredProjectTagIds : unexEvent.ignoredProjectTagIds;
-
-// //         [independentTagIds, ignoredProjectTagIds] = sortTags(independentTagIds, projectTagIds, ignoredProjectTagIds);
-
-// //         updateObj.independentTagIds = independentTagIds;
-// //         if (updateFields.projectTagIds) updateObj.projectTagIds = projectTagIds;
-// //         updateObj.ignoredProjectTagIds = ignoredProjectTagIds;
-// //     }
-
-// //     return updateObj;
-// // }
-
-// // /**
-// //  * Returns the update resource with all the tag fields filtered accordingly.
-// //  * @returns The resource with the relevant tag fields added.
-// //  */
-// // function g_SortTags(resource, dbGEvent, updateFields) {
-// //     if (updateFields.independentTagIds || updateFields.projectTagIds || updateFields.ignoredProjectTagIds) {
-// //         resource.extendedProperties = { private: {} }
-
-// //         // Prepare fields to call the sortTags function.
-// //         let independentTagIds = updateFields.independentTagIds ? updateFields.independentTagIds : g_GetIndependentTags(dbGEvent);
-// //         let projectTagIds = updateFields.projectTagIds ? updateFields.projectTagIds : g_GetProjectTags(dbGEvent);
-// //         let ignoredProjectTagIds = updateFields.ignoredProjectTagIds ? updateFields.ignoredProjectTagIds : g_GetIgnoredProjectTags(dbGEvent);
-
-// //         [independentTagIds, ignoredProjectTagIds] = sortTags(independentTagIds, projectTagIds, ignoredProjectTagIds);
-
-// //         resource.extendedProperties.private[consts.gFieldName_IndTagIds] = independentTagIds.toString();
-// //         if (updateFields.projectTagIds) resource.extendedProperties.private[consts.gFieldName_ProjTagIds] = projectTagIds.toString();
-// //         resource.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds] = ignoredProjectTagIds.toString();
-// //     }
-
-// //     return resource;
-// // }
 
 /**
  * When updating tags, some checks need to be performed.

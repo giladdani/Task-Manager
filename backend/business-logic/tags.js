@@ -78,8 +78,6 @@ const createTag = async (req, res) => {
         }
 
         const docs = await dbTags.create(tag);
-
-        // TODO: check docs response?
         console.log("[createTag] Added tag");
         res.status(StatusCodes.OK).send();
     } catch (err) {

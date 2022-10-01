@@ -1,17 +1,5 @@
-
-const DAY_SUNDAY = "Sunday";
-const DAY_MONDAY = "Monday";
-const DAY_TUESDAY = "Tuesday";
-const DAY_WEDNESDAY = "Wednesday";
-const DAY_THURSDAY = "Thursday";
-const DAY_FRIDAY = "Friday";
-const DAY_SATURDAY = "Saturday";
-
 class Time {
     constructor(hour, minute) {
-        // TODO:
-        // Check if parameters are valid ranges (both int, and hour [0,23], minute [0,59])
-
         this.hour = hour;
         this.minute = minute;
     }
@@ -19,7 +7,6 @@ class Time {
 
 class TimeWindow {
     constructor(startTime, endTime) {
-        // TODO: check end hour is after starthour
         this.startTime = startTime;
         this.endTime = endTime;
     }
@@ -30,8 +17,6 @@ class DayConstraint {
         this.day = day;
         this.forbiddenTimeWindows = [];
 	}
-
-    // TODO: method to add TimeWindow ?
 }
 
 module.exports = {

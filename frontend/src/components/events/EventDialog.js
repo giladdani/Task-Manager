@@ -12,11 +12,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { SuggestedEventsList as SuggestedEventsList } from './SuggestedEventsList';
 import eventUtils from '../../utils/event-utils';
-import TagsAPI from '../../apis/TagsAPI';
-import Select from '@mui/material/Select';
 import Tags from '../general/tags/Tags';
-
-
 
 export default function EventDialog(props) {
   const [title, setEventName] = useState("");
@@ -35,10 +31,6 @@ export default function EventDialog(props) {
 
   const manageTags = async () => {
     const [independentTagIds, projectTagIds, ignoredProjectTagIds] = eventUtils.fc_GetAllTagIds(props.event);
-    // setIndependentTagIds(independentTagIds);
-    // setProjectTagIds(projectTagIds);
-    // setIgnoredProjectTagIds(ignoredProjectTagIds);
-
     let activeTagIds = [];
 
     if (independentTagIds) {
@@ -56,37 +48,6 @@ export default function EventDialog(props) {
     }
 
     setSelectedTagIds(activeTagIds);
-
-    // TagsAPI.getTagsDataByIds(activeTagIds)
-    // .then(data => {
-    //   setTags(data);
-    // })
-    // .catch(err => {
-    //   console.error(err);
-    //   // TODO: error notification
-    // })
-
-
-
-
-    // let independentTagsPromise = TagsAPI.getTagsDataByIds(independentTagIds);
-    // let projectTagsPromise = TagsAPI.getTagsDataByIds(projectTagIds);
-    // let ignoredTagsPromise = TagsAPI.getTagsDataByIds(ignoredProjectTagIds);
-
-    // Promise.all([independentTagsPromise, projectTagsPromise, ignoredTagsPromise])
-    //   .then(responses => {
-    //     let activeTags = [];
-    //     if (responses[0]) {
-    //       activeTags = activeTags.concat(responses[0]);
-    //     }
-
-    //     if (responses[1]) {
-    //       activeTags = activeTags.concat(responses[1]);
-    //     }
-
-    //     setActiveTags(activeTags)
-    //   })
-
   }
 
   const handleClose = () => {
@@ -99,7 +60,6 @@ export default function EventDialog(props) {
 
   const handleReschedule = async () => {
     let rescheduledEventsResponse = await props.onEventReschedule(props.event);
-    // let rescheduledEvents = await fetchRescheduledEvents(props.event);
     if (rescheduledEventsResponse && rescheduledEventsResponse.events) {
       setSuggestedEvents(rescheduledEventsResponse.events);
     }

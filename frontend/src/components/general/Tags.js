@@ -64,14 +64,12 @@ export default function Tags(props) {
     return (
         <>
             <label>Tags</label>
-            {/* <form> */}
             <MultipleSelectChip
                 items={allUserTags}
                 selectedItems={selectedTags}
                 onSelectChange={handleSelectChange}
                 disabled={props.disabled}
             ></MultipleSelectChip>
-            {/* </form> */}
 
             <MultipleSelectChip
                 label="Tags"

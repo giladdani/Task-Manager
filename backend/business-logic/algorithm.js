@@ -38,7 +38,7 @@ const generateSchedule = async (project) => {
     let estimatedTimeLeft = estimatedTimeTotal;
     const spacingBetweenEventsMinutes = project.spacingLengthMinutes;
     const allConstraintsArr = await getAllConstraints(project);
-    const allConstraintsSpecialObj = sortAllConstraintsIntoSpecialObj(allConstraintsArr);
+    const constraintsByDay = sortConstraintsByDays(allConstraintsArr);
     let currentDate = getStartDate(project);
     currentDate = resetDateFields(currentDate, false, false, true, true); // Reset the seconds and milliseconds to avoid failing comparisons on inconsequential details
     let endDate = new Date(project.end);
@@ -51,20 +51,12 @@ const generateSchedule = async (project) => {
 
     let firstIteration = true;
     while ((!isCurrDatePastEndDate(currentDate, endDate)) && estimatedTimeLeft > 0) {
-        const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, allConstraintsSpecialObj);
+        // TODO: break this down into more functions so people other than Eli can more easily follow it
+        const allCurrDayConstraints = getAllCurrDateConstraints(currentDate, constraintsByDay);
         const allCurrDayEvents = getAllCurrDayEvents(currentDate, allEvents);
         const allConstraintsAsEvents = changeConstraintsToEvents(allCurrDayConstraints, currentDate, project);
         allConstraintsAsEvents.forEach(constraintEvent => allCurrDayEvents.push(constraintEvent));
-
-        //  go over all curr day events and check if any of them belong to the project
-        let eventsSoFarInDay = 0;
-        for (const event of allCurrDayEvents) {
-            if (event.extendedProps && event.extendedProps.projectId) {
-                if (event.extendedProps.projectId == project.id) {
-                    eventsSoFarInDay++;
-                }
-            }
-        }
+        let eventsSoFarInDay = countProjEventsInDay(allCurrDayEvents, project);
 
         // We set the start time based on the current date, in case this is the first day of the project, and the user wants to start from specific hours.
         // let currStartTime = new dataObjects.Time(currentDate.getHours(), currentDate.getMinutes());
@@ -77,9 +69,7 @@ const generateSchedule = async (project) => {
             }
         }
 
-        // const finalEndTime = new dataObjects.Time(23, 59);
         const finalEndTime = getDailyEndTime(project);
-
 
         while (isLaterTime(finalEndTime, currStartTime) && estimatedTimeLeft > 0 && !isAtMaxEventsPerDay(maxEventsPerDay, eventsSoFarInDay)) {
             const sessionLengthToFind = getSessionLengthFromEstimatedTimeLeft(sessionLengthMinutes, estimatedTimeLeft);
@@ -90,17 +80,8 @@ const generateSchedule = async (project) => {
                 continue;
             }
 
-            let timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
-            const tempStartDate = new Date(currentDate);
-            const tempEndDate = new Date(currentDate);
-            tempStartDate.setHours(currStartTime.hour);
-            tempStartDate.setMinutes(currStartTime.minute);
-            tempStartDate.setSeconds(0);
-            tempStartDate.setMilliseconds(0);
-            tempEndDate.setHours(endTime.hour);
-            tempEndDate.setMinutes(endTime.minute);
-            tempEndDate.setSeconds(0);
-            tempEndDate.setMilliseconds(0);
+            const tempStartDate = new Date(currentDate).setHours(currStartTime.hour, currStartTime.minute, 0, 0);
+            const tempEndDate = new Date(currentDate).setHours(endTime.hour, endTime.minute, 0, 0);
             const tempEvent = { start: tempStartDate, end: tempEndDate }
             let allOverlappingEvents = getAllOverlappingEvents(tempEvent, allCurrDayEvents);
 
@@ -115,7 +96,6 @@ const generateSchedule = async (project) => {
                  * It could cause an endless loop if the end hour of the event is earlier than the start (say, start Monday 18:00 and end Tuesday 15:00).
                  * Therefore if the event ends the next day, we set currStartTime to the end of the day.
                  */
-
                 let [latestEventStart, latestEventEnd] = utils.getEventDates(latestEvent);
                 if (latestEventEnd.getDay() > latestEventStart.getDay()) {
                     currStartTime = cloneTime(finalEndTime);
@@ -133,16 +113,8 @@ const generateSchedule = async (project) => {
                         currStartTime = addMinutesToTime(currStartTime, spacingBetweenEventsMinutes, false);
                         endTime = addMinutesToTime(currStartTime, sessionLengthToFind, false);
                         timeWindow = new dataObjects.TimeWindow(currStartTime, endTime);
-                        const tempStartDate = new Date(currentDate);
-                        const tempEndDate = new Date(currentDate);
-                        tempStartDate.setHours(currStartTime.hour);
-                        tempStartDate.setMinutes(currStartTime.minute);
-                        tempStartDate.setSeconds(0);
-                        tempStartDate.setMilliseconds(0);
-                        tempEndDate.setHours(endTime.hour);
-                        tempEndDate.setMinutes(endTime.minute);
-                        tempEndDate.setSeconds(0);
-                        tempEndDate.setMilliseconds(0);
+                        const tempStartDate = new Date(currentDate).setHours(currStartTime.hour, currStartTime.minute, 0, 0);
+                        const tempEndDate = new Date(currentDate).setHours(endTime.hour, endTime.minute, 0, 0);
                         const tempEvent = { start: tempStartDate, end: tempEndDate }
 
                         // Check again for overlapping events after adding minutes
@@ -389,7 +361,6 @@ const filterEvents = (allEvents, startDateOriginal, endDate) => {
      * we want to take note of those project events.
      * More generally we want to take note of any events in the day.
      * For example, if the day has an event at 12:00-13:00, and the start date is 12:30, the 12:00-13:00 event will get filtered.
-     * TODO: if a person has a night shift starting the day before the start date, this still clashes and requires attention.
      */
     let startDate = resetDateFields(startDateOriginal, true, true, true, true);
 
@@ -404,11 +375,23 @@ const filterEvents = (allEvents, startDateOriginal, endDate) => {
             return false;
         }
 
+        if (isUnapprovedInvitation(event)) {
+            return false;
+        }
+
         return (eventEndDate >= startDate
             && eventStartDate <= endDate);
     })
 
     return eventsWithinDates;
+}
+
+const isUnapprovedInvitation = (event) => {
+    if (event.accessRole === 'pendingInvitation') {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 const getSessionLengthFromEstimatedTimeLeft = (sessionLengthMinutesPreference, estimatedTimeLeft) => {
@@ -442,13 +425,6 @@ const isNoOverlap = (event1, event2) => {
     event2Start = resetDateFields(event2Start, false, false, true, true);
     event2End = resetDateFields(event2End, false, false, true, true);
 
-    // if (isEarlierStartTimeTime(timeWindow1, timeWindow2)) {
-    //     earlierTime = timeWindow1;
-    //     laterTime = timeWindow2;
-    // } else {
-    //     earlierTime = timeWindow2;
-    //     laterTime = timeWindow1;
-    // }
     if (event1Start <= event2Start) {
         earlierEvent = event1;
         laterEvent = event2;
@@ -557,10 +533,6 @@ function getNextDate(project, currentDate, eventsSoFarInDay) {
         It could create unwanted situations where events could occur much farther apart than intended.
         To avoid that we advance by just one day when no time was found. 
     */
-    // TODO: add a way to determine if user wants to skip every X days or perform specific days
-    // let dayRepetitionFrequency = Number(project.dayRepetitionFrequency);
-    // let daysToAdvanceBy = (eventsSoFarInDay > 0 ? dayRepetitionFrequency : 1);
-    // nextDate = addDays(currentDate, daysToAdvanceBy, true);
 
     let currDay = currentDate.getDay();
     let daysOfWeek = project.daysOfWeek;
@@ -806,6 +778,20 @@ function changeConstraintsToEvents(allCurrDayConstraints, currentDate, project) 
     return allConstraintsAsEvents;
 }
 
+function countProjEventsInDay(allCurrDayEvents, project) {
+    let eventsSoFarInDay = 0;
+
+    for (const event of allCurrDayEvents) {
+        if (event.extendedProps && event.extendedProps.projectId) {
+            if (event.extendedProps.projectId == project.id) {
+                eventsSoFarInDay++;
+            }
+        }
+    }
+
+    return eventsSoFarInDay;
+}
+
 function isIgnoredConstraint(constraint, project) {
     let ignoreId = false;
 
@@ -819,7 +805,17 @@ function isIgnoredConstraint(constraint, project) {
     return ignoreId;
 }
 
-const sortAllConstraintsIntoSpecialObj = (allConstraintsArr) => {
+/**
+ * 
+ * @param {*} allConstraintsArr 
+ * @returns An object with fields for each day, which are arrays of all the constraints of the day:
+ * object = {
+ * Sunday: [],
+ * Monday: [],
+ * etc.
+ * }
+ */
+const sortConstraintsByDays = (allConstraintsArr) => {
     const allConstraintsObj = {
         Sunday: [],
         Monday: [],

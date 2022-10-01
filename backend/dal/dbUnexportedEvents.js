@@ -159,11 +159,6 @@ async function patchEventsFromProjectPatch(projectId, eventUpdates) {
             { projectId: projectId },
             pullUpdate,
         );
-
-        // objForUpdate = {
-        //     objForUpdate,
-        //     pullUpdate,
-        // }
     }
 
 

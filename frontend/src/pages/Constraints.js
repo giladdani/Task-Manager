@@ -38,12 +38,6 @@ export const Constraints = () => {
                 if (error) {
                     alert(error)
                 } else if (response.status !== 200) {
-                    // TODO: read body of response. Code here is incorrect.
-                    // const jsonPromise = response.json();
-                    // jsonPromise.then((data) => {
-                    // alert(data);
-                    // })
-
                     alert("Something went wrong :(")
                 } else {
                     setFlag(!rerenderFlag);
@@ -72,13 +66,11 @@ export const Constraints = () => {
                             <table className="spaced-table">
                                 <tbody>
                                     <tr>
-                                        {/* <td><label>Name:</label></td> */}
                                         <td>
                                             <TextField onChange={(newValue) => setConstraintNameValue(newValue.target.value)} value={constraintNameValue} variant="outlined" size="small" label="Name" focused/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Days:</label></td> */}
                                         <td>
                                             <FormLabel>Day repetition:</FormLabel>
                                             <FormGroup>
@@ -87,7 +79,6 @@ export const Constraints = () => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Start time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
@@ -101,7 +92,6 @@ export const Constraints = () => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>End time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker

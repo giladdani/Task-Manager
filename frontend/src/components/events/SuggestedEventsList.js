@@ -51,23 +51,3 @@ export class SuggestedEventsList extends React.Component {
 
     }
 }
-
-// export const SuggestedEventsList = (props) => {
-//     const suggestedEventsList = props.suggestedEvents.map((event, index) => {
-//         <li key={index}>
-//             <SuggestedEvent
-//                 event={event}
-//             ></SuggestedEvent>
-//         </li>
-//     })
-
-//     return (
-//         <>
-//             <ul>
-//                 {suggestedEventsList}
-//             </ul>
-//         </>
-//     );
-// }
-
-

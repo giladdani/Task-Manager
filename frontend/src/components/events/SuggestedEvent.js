@@ -5,8 +5,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import React, { useState } from 'react';
 
 export const SuggestedEvent = (props) => {
-    const allEvents = props.projectEvents;
-
     const [title, setProjectName] = useState(props.event.title);
     const [start, setStartDate] = useState(new Date(props.event.start));
     const [end, setEndDate] = useState(new Date(props.event.end));

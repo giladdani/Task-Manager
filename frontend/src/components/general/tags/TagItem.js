@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import TextField from '@mui/material/TextField';
 import eventUtils from '../../../utils/event-utils.js';
 const EventsAPI = require('../../../apis/EventsAPI.js');
-
-
 
 export const TagItem = (props) => {
     const [tagEvents, setTagEvents] = useState([]);

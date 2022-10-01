@@ -1,4 +1,5 @@
 const express = require('express');
+const StatusCodes = require('http-status-codes').StatusCodes;
 const router = express.Router();
 const utils = require('../utils/utils.js');
 const UserModel = require('../models/user');
@@ -18,13 +19,12 @@ const createUserDataFromCode = async (req, res) => {
         const options = { upsert: true };
         await UserModel.updateOne(query, update, options);
         await googleSync.syncGoogleData(accessToken, email);
-        // TODO: save sync interval ID so we can later stop it when user logs out?
         console.log(`[createUserDataFromCode] ${email} finished login.`)
         res.send({ email: email, accessToken: accessToken });
     }
     catch (err) {
-        console.log(`[createUserDataFromCode] Failed to login, contact Gilad to finish this code :)`);
-        // TODO: wtf do do here
+        console.error(`[createUserDataFromCode] Failed to login`);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).send();
     }
 }
 

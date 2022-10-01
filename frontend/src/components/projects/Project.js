@@ -46,10 +46,6 @@ export const Project = (props) => {
         }
     }, []);
 
-    // TODO: add abort controller!
-
-
-
     // Old events
     useEffect(() => {
         const oldEvents = projectEvents.filter(event => {
@@ -263,34 +259,23 @@ export const Project = (props) => {
             <table className="whiteFont spaced-table">
                 <tbody>
                     <tr>
-                        {/* <td><label>Name:</label></td> */}
                         <td>
                             <TextField value={projectTitle} onChange={(newValue) => { setProjectTitle(newValue.target.value) }} variant="outlined" size="small" label="Name" focused />
                         </td>
                     </tr>
                     <tr>
-                        {/* <td><label>Time Estimate:</label></td> */}
-                        {/* <td>{props.project.timeEstimate}</td> */}
                         <td disabled><TextField label="Time estimate" value={props.project.timeEstimate} focused></TextField></td>
                     </tr>
                     <tr>
-                        {/* <td><label>Events finished:</label></td>
-                        <td>{oldEvents.length}</td> */}
                         <td disabled><TextField label="Events finished" value={oldEvents.length} focused></TextField></td>
                     </tr>
                     <tr>
-                        {/* <td><label>Hours done:</label></td>
-                        <td>{totalHoursPast}</td> */}
                         <td disabled><TextField label="Hours done" value={totalHoursPast} focused></TextField></td>
                     </tr>
                     <tr>
-                        {/* <td><label>Events left:</label></td>
-                        <td>{futureEvents.length}</td> */}
                         <td disabled><TextField label="Events left" value={futureEvents.length} focused></TextField></td>
                     </tr>
                     <tr>
-                        {/* <td><label>Hours left:</label></td>
-                        <td>{totalHoursFuture}</td> */}
                         <td disabled><TextField label="Hours left" value={totalHoursFuture} focused></TextField></td>
                     </tr>
                     <tr>

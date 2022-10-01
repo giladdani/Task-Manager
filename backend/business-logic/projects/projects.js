@@ -422,22 +422,6 @@ const insertEventsToGoogleCalendar = async (req, unexportedEvents, project, cale
         return errMsg;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const deleteProject = async (req, res) => {
         let errorMsg = null;
         const projectId = req.params.id;
@@ -465,9 +449,6 @@ const deleteProject = async (req, res) => {
                                 calendarId: googleCalendarId,
                         })
                 } else {
-                        // await dbUnexportedEvents.deleteMany({ 'projectId': projectId });
-                        // await dbUnexportedEvents.deleteMany({ 'projectSharedId': project.sharedId });
-
                         let docs = await dbUnexportedEvents.updateOne({ 'projectId': projectId }, { $set: { status: 'cancelled' } });
                         let docsShared = await dbUnexportedEvents.updateMany({ projectSharedId: project.sharedId }, { $set: { status: 'cancelled' } });
                 }
@@ -569,70 +550,6 @@ function getPatchFields(req) {
 
         return [projectUpdates, eventUpdates];
 }
-
-// // async function patchEventsFromProjectPatch(projectId, eventUpdates, req) {
-// //         let project = await dbProjects.findOne({ id: projectId });
-// //         if (project.exportedToGoogle) {
-// //                 // TODO: Update Google events
-// //                 return patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req);
-// //         } else {
-// //                 return dbUnexportedEvents.patchEventsFromProjectPatch(projectId, eventUpdates);
-// //         }
-// // }
-
-// // async function patchGoogleEventsFromProjectPatch(projectId, eventUpdates, req) {
-// //         /** 
-// //          * ! This code has a lot of code duplication with the patch event code from events.js. 
-// //          * ! Is there any way to combine the two? 
-// //          * ! In general this code, since dealing with events, feels like it should be in events.js.
-// //          */
-// //         const accessToken = utils.getAccessTokenFromRequest(req);
-// //         utils.oauth2Client.setCredentials({ access_token: accessToken });
-// //         const googleCalendarApi = google.calendar({ version: 'v3', auth: utils.oauth2Client });
-// //         let email = utils.getEmailFromReq(req);
-// //         let dbGEvents = await dbGoogleEvents.findByProject(email, projectId);
-// //         for (const dbGEvent of dbGEvents) {
-// //                 // TODO: change this to batch
-// //                 if (!utils.accessRoleAllowsWriting_GoogleDBEvent(dbGEvent)) {
-// //                         continue;
-// //                 }
-
-// //                 const googleEventId = dbGEvent.id;
-// //                 const googleCalendarId = dbGEvent.calendarId;
-// //                 const resource = getEventPatchFieldsGoogle(eventUpdates);
-// //                 resource = utils.pullDeletedTagsFromIgnoredGEvent(dbGEvent, resource);
-// //                 const params = {
-// //                         auth: utils.oauth2Client,
-// //                         calendarId: googleCalendarId,
-// //                         eventId: googleEventId,
-// //                         resource: resource,
-// //                 }
-
-// //                 const response = await googleCalendarApi.events.patch(params);
-// //         }
-// // }
-
-// // function getEventPatchFieldsGoogle(updateFields) {
-// //         // ! Almost identical to code in events.js! Figure how to either call the code in events.js, or move this to somewhere shared (like utils).
-// //         // ! Note that the code in events.js makes use of req, not an updateFields object. 
-// //         // ! Though it can just send req.body as the updateFields object.
-// //         let resource = {};
-
-// //         if (updateFields.title) resource.summary = updateFields.title;
-// //         if (updateFields.start) resource.start = { dateTime: new Date(updateFields.start) };
-// //         if (updateFields.end) resource.end = { dateTime: new Date(updateFields.end) };
-// //         // // if (updateFields.independentTagIds) resource.extendedProperties = { private: { independentTagIds: updateFields.independentTagIds } };
-// //         // // if (updateFields.projectTagIds) resource.extendedProperties = { private: { projectTagIds: updateFields.projectTagIds } };
-// //         // // if (updateFields.ignoredProjectTagIds) resource.extendedProperties = { private: { ignoredProjectTagIds: updateFields.ignoredProjectTagIds } };
-
-// //         resource.extendedProperties = { private: {} }
-
-// //         if (req.body.independentTagIds) resource.extendedProperties.private.independentTagIdsString = req.body.independentTagIds.toString();
-// //         if (req.body.projectTagIds) resource.extendedProperties.private.projectTagIdsString = req.body.projectTagIds.toString();
-// //         if (req.body.ignoredProjectTagIds) resource.extendedProperties.private.ignoredProjectTagIdsString = req.body.ignoredProjectTagIds.toString();
-
-// //         return resource;
-// // }
 
 /**
  * 

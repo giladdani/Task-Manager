@@ -23,8 +23,6 @@ import TextField from '@mui/material/TextField';
 import MultipleSelectChip from '../MultipleSelectChip';
 import Select from '@mui/material/Select';
 
-import TagDialog from './TagDialog.js';
-import TagManagement from './TagManagement';
 import AlertConfirmDialog from '../AlertConfirmDialog';
 
 

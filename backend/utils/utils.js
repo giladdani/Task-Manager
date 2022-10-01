@@ -203,7 +203,6 @@ const getAllUserEvents = async (email) => {
  * They save their dates differently.
  * @param {*} event 
  */
-// TODO: maybe just add a field to Google events and check that? Like 'isGoogleEvent'
 const getEventStart = (event) => {
     let date = null;
 

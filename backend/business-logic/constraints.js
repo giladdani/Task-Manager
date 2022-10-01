@@ -53,10 +53,7 @@ const updateConstraint = async (req, res) => {
         const constraint = await receiveConstraintFromReq(req);
         constraint.id = constraintId;
 
-        // ! Delete if all works well with updateOne
-        // // const docs = await ConstraintEventModel.updateOne({ 'id': constraintId }, constraint);
         const docs = await dbConstraints.replaceOne({ 'id': constraintId }, constraint);
-
     } catch (err) {
         errorMsg = err;
     }
@@ -108,39 +105,13 @@ const receiveConstraintFromReq = async (req) => {
 
     const days = req.body.days;
 
-
-    // ! DELETE if getDurationFromDate function works well.
-    // // let forbiddenStartDateStr = req.body.forbiddenStartDate;
-    // // let forbiddenStartDate = new Date(forbiddenStartDateStr);
-    // // let startHourStr = forbiddenStartDate.getHours().toString();
-    // // startHourStr = addZeroDigitIfNeeded(startHourStr);
-
-    // // let startMinuteStr = forbiddenStartDate.getMinutes().toString();
-    // // startMinuteStr = addZeroDigitIfNeeded(startMinuteStr);
-    // // const forbiddenStartDuration = `${startHourStr}:${startMinuteStr}`;
-
-
-    // // let forbiddenEndDateStr = req.body.forbiddenEndDate;
-    // // const forbiddenEndDate = new Date(forbiddenEndDateStr);
-    // // let endHourStr = forbiddenEndDate.getHours();
-    // // endHourStr = addZeroDigitIfNeeded(endHourStr);
-
-    // // let endMinuteStr = forbiddenEndDate.getMinutes().toString();
-    // // endMinuteStr = addZeroDigitIfNeeded(endMinuteStr);
-    // // const forbiddenEndDuration = `${endHourStr}:${endMinuteStr}`;
-
     const forbiddenStartDuration = getDurationFromDate(req.body.forbiddenStartDate);
     const forbiddenEndDuration = getDurationFromDate(req.body.forbiddenEndDate);
     const title = req.body.title;
 
     // Create constraint event
-    // // const startRecur = new Date(); // TODO: add option for user to set start date?
     const startRecur = req.body.startRecur;
-
-    // // const endRecur = null; // TODO: add option for user to set end date?
     const endRecur = req.body.endRecur; 
-
-    // TODO: check validity
 
     const constraintEvent = {
         daysOfWeek: days,

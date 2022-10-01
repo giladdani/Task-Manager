@@ -52,26 +52,6 @@ export const Projects = (props) => {
         setConstraints(tempConstraints);
     }, [])
 
-    /*
-        useEffect(() => {
-            const fetchData = async () => {
-                let tempConstraints = await ConstraintsAPI.fetchConstraints();
-    
-                if (componentMounted.current) {
-                    setConstraints(tempConstraints);
-                } else {
-                    console.log(`[Projects - update constraints] component is unmounted, not updating constraints!`)
-                }
-            }
-    
-            fetchData();
-    
-            return () => {
-                componentMounted.current = false;
-            }
-        }, []);
-        */
-
     const handleGenerateClick = async () => {
         try {
             let errorMsg = checkInputValidity();
@@ -133,27 +113,6 @@ export const Projects = (props) => {
                         console.log(msg);
                         props.setNotificationMsg(msg);
                     })
-
-                // ! Old notification code
-                // let msg = "";
-                // if (!error) {
-                //     let jsonRes = await response.json();
-                //     let estimatedTimeLeft = Number(jsonRes.estimatedTimeLeft);
-                //     if (estimatedTimeLeft > 0) {
-                //         msg = `Project added.
-                //         \nNote! There was not enough time to match the estimated hours.
-                //         Estimated time left: ${estimatedTimeLeft}`
-                //     } else {
-                //         msg = `Project added.`;
-                //     }
-                // } else {
-                //     msg = "Whoops, something went wrong!"; // TODO: fetch message from the server's response?
-                // }
-
-                // toggleLoading(false);
-                // setProjectCreationMsg(msg);
-                // console.log(msg);
-                // toggleSuccessDialog(true);
             }
         }
         catch (err) {
@@ -181,7 +140,6 @@ export const Projects = (props) => {
     }
 
     /**
-     * 
      * @returns a string with the type of error. Null if no error is found.
      */
     function checkInputValidity() {
@@ -309,13 +267,11 @@ export const Projects = (props) => {
                             <table className="spaced-table center_elem center_text">
                                 <tbody>
                                     <tr>
-                                        {/* <td><label>Shared project? </label></td> */}
                                         <td>
                                             <FormControlLabel control={<Checkbox checked={shareChecked} onChange={handleShareCheckboxChange} />} label="Shared project?"/>
                                         </td>
                                     </tr>
                                     <tr hidden={!shareChecked}>
-                                        {/* <td><label>Users to share with:</label></td> */}
                                         <td>
                                             <DynamicInputList
                                                 disabled={!shareChecked}
@@ -325,13 +281,11 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Project Name:</label></td> */}
                                         <td>
                                             <TextField onChange={(newValue) => { setProjectName(newValue.target.value) }} variant="outlined" size="small" label="Project name" focused/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Estimated Time (Hours):</label></td> */}
                                         <td>
                                             <TextField
                                                 type="number"
@@ -345,7 +299,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Session Length (Minutes):</label></td> */}
                                         <td>
                                             <TextField
                                                 type="number"
@@ -359,9 +312,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td>
-                                                <label>Break Between Sessions (Minutes):</label>
-                                        </td> */}
                                         <td>
                                             <Tooltip title="How long of a break\spacing would you like between your sessions?">
                                                 <TextField
@@ -377,7 +327,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Start Date:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <DateTimePicker
@@ -392,7 +341,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>End Date:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <DateTimePicker
@@ -424,7 +372,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>Start time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
@@ -438,7 +385,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td><label>End time:</label></td> */}
                                         <td>
                                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                                 <TimePicker
@@ -452,9 +398,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td>
-                                                <label>Max sessions per day: </label>
-                                        </td> */}
                                         <td>
                                             <Tooltip title="How many sessions at maximum per day. Leave undefined for unlimited (as much as possible).">
                                                 <TextField
@@ -469,11 +412,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td>
-                                            <label>
-                                                Day repetition:
-                                            </label>
-                                        </td> */}
                                         <td>
                                             <Tooltip title="Determine which days you would like to work on the project." placement="right">
                                                 <FormLabel>Day repetition:</FormLabel>
@@ -484,9 +422,6 @@ export const Projects = (props) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        {/* <td>
-                                            <label>Constraints to ignore: </label>
-                                        </td> */}
                                         <td>
                                             <form>
                                                 <MultipleSelectChip items={constraints} onSelectChange={onSelectConstraintChange} label="Constraints to ignore:"></MultipleSelectChip>

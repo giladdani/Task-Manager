@@ -18,12 +18,8 @@ const { addTags } = require('../dal/dbProjects');
  */
 const syncGoogleData = async (accessToken, email) => {
     let unsyncedEvents = [];
-
     const oauth2Client = utils.getOauth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
-    // utils.oauth2Client.setCredentials({ access_token: accessToken });
-    // const googleCalendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
-    
     const googleCalendarClient = utils.getGAPIClientCalendar(accessToken);
     const [unsyncedGoogleCalendars, prevSyncToken, nextSyncToken] = await getUnsyncedGoogleCalendars(googleCalendarClient, email);
     await updateUserCalendarsSyncToken(prevSyncToken, nextSyncToken, email);
@@ -63,20 +59,6 @@ const removeDeletedCalendarsEvents = async (deletedCalendarsId, email) => {
     for (const calendarId of deletedCalendarsId) {
         await dbGoogleEvents.deleteEventsByCalendar(email, calendarId);
     }
-
-    // ! Delete if calendar deletion works well since moving it to DAL
-    // // if (deletedCalendarsId.length > 0) {
-    // //     // Delete all calendar events from our DB
-
-    // //     await GoogleEventModel.deleteMany( // No need to await
-    // //         {
-    // //             email: email,
-    // //             calendarId: {
-    // //                 $in: deletedCalendarsId
-    // //             },
-    // //         }
-    // //     );
-    // // }
 }
 
 const updateEventCollectionSyncTokens = async (calendarId2PrevSyncTokenMap, calendarId2NextSyncTokenMap, email) => {
@@ -151,19 +133,6 @@ const addMissingCalendars = async (missingCalendarId2Sync, email) => {
     for (const element of missingCalendarId2Sync) {
         await dbUsers.addCalendar(email, element.key);
     }
-
-    // ! DELETE if all works well after moving to the DB
-    // // if (missingCalendarId2Sync.length > 0) {
-    // //     let userDataUpdate = await UserModel.updateOne(
-    // //         { email: email },
-    // //         {
-    // //             $push: {
-    // //                 eventListCalendarId2SyncToken: {
-    // //                     $each: missingCalendarId2Sync,
-    // //                 }
-    // //             }
-    // //         });
-    // // }
 }
 
 /**
@@ -178,21 +147,6 @@ const getDeletedCalendarsEventsDB = async (deletedCalendarsId, email) => {
         let calendarEvents = await dbGoogleEvents.findByCalendar(email, calendarId);
         deletedCalendarsEvents = deletedCalendarsEvents.concat(calendarEvents);
     }
-
-    // ! Delete if all works well after moving to DAL
-    // // if (deletedCalendarsId.length > 0) {
-    // //     // Delete all calendar events from our DB
-    // //     let calendarEvents = await GoogleEventModel.find( // No need to await
-    // //         {
-    // //             email: email,
-    // //             calendarId: {
-    // //                 $in: deletedCalendarsId
-    // //             },
-    // //         }
-    // //     );
-
-    // //     deletedCalendarsEvents = deletedCalendarsEvents.concat(calendarEvents);
-    // // }
 
     return deletedCalendarsEvents;
 }
@@ -306,21 +260,6 @@ const getCalendarSyncToken = (userData, calendarId) => {
     return syncToken;
 }
 
-const getCalendarACL = async (googleCalendarApi, calendar) => {
-    /**
-     * TODO: check access role?
-     * If you try to retrieve ACL of a calendar you aren't the owner of, Google will deny.
-     * See access role field:
-     * https://developers.google.com/calendar/api/v3/reference/calendarList#resource
-     */
-
-    let response = await googleCalendarApi.acl.list({
-        calendarId: calendar.id,
-    });
-
-
-}
-
 /**
  * This function returns all the unsynced events from the calendar, based on the calendar ID provided.
  * If the sync token is null, the function performs an initial sync.
@@ -335,7 +274,6 @@ const getCalendarACL = async (googleCalendarApi, calendar) => {
 const getUnsyncedEventsFromCalendar = async (googleCalendarApi, calendarId, syncToken, email, summary) => {
     let events = [];
     let nextSyncToken = null;
-    let accessRole = null;
 
     if (syncToken === null) {
         [events, nextSyncToken] = await getInitialSyncEvents(googleCalendarApi, calendarId, email, summary);
@@ -505,34 +443,16 @@ function parseTags(gEvent) {
     if (!gEvent.extendedProperties.private) return tags;
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IndTagIds]) {
-        // // gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
         tags.independentTagIds = gEvent.extendedProperties.private[consts.gFieldName_IndTagIds].split(',');
-
     }
-    // // if (gEvent.extendedProperties.private.independentTagIds) {
-    // //     gEvent.extendedProperties.private.independentTagIds = gEvent.extendedProperties.private.independentTagIds.split(',');
-    // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds]) {
-        // // gEvent.extendedProperties.private.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
         tags.projectTagIds = gEvent.extendedProperties.private[consts.gFieldName_ProjTagIds].split(',');
     }
-    // // if (gEvent.extendedProperties.private.projectTagIdsString) {
-    // //     gEvent.extendedProperties.private.projectTagIdsString = gEvent.extendedProperties.private.projectTagIdsString.split(',');
-    // // }
 
     if (gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds]) {
-        // // gEvent.extendedProperties.private.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
         tags.ignoredProjectTagIds = gEvent.extendedProperties.private[consts.gFieldName_IgnoredProjectTagIds].split(',');
-
     }
-    // // if (gEvent.extendedProperties.private.ignoredProjectTagIdsString) {
-    // //     gEvent.extendedProperties.private.ignoredProjectTagIdsString = gEvent.extendedProperties.private.ignoredProjectTagIdsString.split(',');
-    // // }
-
-    // independentTagIds: [String],
-    // projectTagIds: [String],
-    // ignoredProjectTagIds: [String],
 
     return tags;
 }
@@ -542,21 +462,22 @@ const getEventAccessRole = (calendar, event, email) => {
         return utils.googleAccessRole.none;
     }
 
-    // if (event.creator.email === email) {
-    //     return utils.googleAccessRole.owner;
-    // }
-
     if (event.organizer.email === calendar.id) {
         return calendar.accessRole;
     }
 
     if (event.attendees && event.attendees.some(attendee => attendee.email === email)) {
+        let attendeeObj = event.attendees.find(attendee => attendee.email === email);
+        if (attendeeObj && attendeeObj.responseStatus === 'needsAction') {
+            return 'pendingInvitation';
+        }
+
         if (event.guestsCanModify) {
             return googleAccessRole.writer;
         } else {
             return googleAccessRole.reader;
         }
-    }
+    } 
 
     return googleAccessRole.none;
 }
